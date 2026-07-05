@@ -10,6 +10,8 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID
 
+from migrations.helpers import has_index, has_table
+
 revision = "0003_email_events"
 down_revision = "0002_mission_retry"
 branch_labels = None
@@ -17,6 +19,8 @@ depends_on = None
 
 
 def upgrade() -> None:
+    if has_table("email_ingest_events"):
+        return
     op.create_table(
         "email_ingest_events",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
@@ -34,9 +38,10 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.text("now()")),
         sa.UniqueConstraint("provider", "message_id", name="uq_email_ingest_provider_message"),
     )
-    op.create_index("ix_email_ingest_events_tenant_id", "email_ingest_events", ["tenant_id"])
+    if not has_index("email_ingest_events", "ix_email_ingest_events_tenant_id"):
+        op.create_index("ix_email_ingest_events_tenant_id", "email_ingest_events", ["tenant_id"])
 
 
 def downgrade() -> None:
-    op.drop_index("ix_email_ingest_events_tenant_id", table_name="email_ingest_events")
-    op.drop_table("email_ingest_events")
+    if has_table("email_ingest_events"):
+        op.drop_table("email_ingest_events")

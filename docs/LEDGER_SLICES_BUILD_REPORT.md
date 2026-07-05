@@ -16,42 +16,62 @@ confirm.
 | `73c1d1e` | docs: readiness review + vertical slices plan + feedback |
 | `857d30f` | backend: all backend slices (models, migrations, services, endpoints, tests) |
 | `abfb3da` | frontend: registry refactor, readiness/email/playbook UI, ops page, retry, export |
+| _(this update)_ | infra: Redis in compose, idempotent migrations, verification, report update |
 
-## Verification performed (in this environment)
+## Verification performed — LIVE (Docker Postgres + Redis, this environment)
+
+Ran against the real `pgvector/pgvector:pg16` Postgres and `redis:7-alpine` from `docker-compose.yml`.
 
 | Check | Result |
 |-------|--------|
 | `python -m compileall app worker.py migrations scripts` | ✅ clean |
 | `import app.main` + OpenAPI schema | ✅ all new routes registered |
-| `pytest tests/` | ✅ 16 pure-logic tests pass; 3 DB-gated tests skip (no test Postgres here) |
+| **`alembic upgrade head` on a fresh DB** (`sydekyks_alembic`) | ✅ 0001→0004 applied clean |
+| **`scripts.schema_diff` after upgrade** | ✅ "Schema in sync with models." |
+| **`alembic downgrade base` then `upgrade head`** | ✅ reversible + idempotent |
+| **Existing drifted DB: `alembic stamp 0001_baseline` + `upgrade head`** (`sydekyks`) | ✅ new cols/tables added; `schema_diff` clean |
+| **`pytest tests/` against real Postgres** (`TEST_DATABASE_URL=…/sydekyks_test`) | ✅ **19 passed** (incl. 3 DB-gated: playbook success+usage, setup-failure classification, retry lineage) |
+| **VS-7 queue: `enqueue_mission` with `queue_enabled=true`** | ✅ returned `"queue"`; job landed in Redis as `arq:job:mission:<id>` |
+| **VS-7 worker: `arq WorkerSettings` (burst)** | ✅ registered `run_mission_task`; queue depth 1 → 0 after burst; 5 result keys stored |
 | `tsc -b` (frontend typecheck) | ✅ 0 errors |
 | `vite build` | ✅ 97 modules, built clean |
 | VS-9 DoD grep (no `slug === "ledger"` / `"ledger.vendor_bill_ingest"` branches in shared files) | ✅ branches removed (only a shared `LedgerReadiness` *type* import remains) |
 
-## Requires a live environment to confirm (not runnable here)
+**Migration idempotency fix (found during live testing):** the name-filtered `create_all` baseline
+builds `missions`/`ledger_tenant_settings` from the *current* models (which already carry the new
+columns), so a fresh-DB `upgrade head` collided when the additive migration re-added them. Fixed by
+making the additive migrations idempotent via `migrations/helpers.py` (`has_column`/`has_table`/
+`has_index`/`has_fk` guards). This also makes `stamp` + `upgrade` safe on the real drifted demo DB —
+now proven by the two rows above.
 
-These are correct-by-construction but need real infra to exercise end-to-end:
+## Still needs a real LLM to confirm (LiteLLM proxy is up, but no tenant engine/key wired here)
 
-1. **Alembic migrations against Postgres.** Run `alembic upgrade head` on a fresh DB, and
-   `alembic stamp 0001_baseline && alembic upgrade head` on the existing demo DB. Then
-   `python -m scripts.schema_diff` should print "Schema in sync."
-2. **arq worker + Redis** (VS-7). With `queue_enabled=true` and Redis up, run
-   `arq worker.WorkerSettings`; upload a bill and confirm the Mission runs in the worker and that
-   `transient`/`external` failures retry while `setup`/`validation` do not. Without Redis the
-   inline fallback runs Missions in-process (demo-safe).
-3. **Vision probe** (VS-12) and **usage emission** (VS-15) need a real LiteLLM engine + key.
-4. **Postmark webhook** (VS-8/VS-11) idempotency/rate-limit/size paths need real inbound posts
-   (covered structurally by the parser unit test + the event-writing branches).
+1. **Vision probe** (VS-12) and **usage emission** (VS-15) — the code path is exercised by the
+   DB-gated `test_playbook_success_and_usage` test (which asserts a `usage_records` row is written
+   with the right token count via a faked engine); a real vision call additionally needs a tenant
+   with a configured LiteLLM virtual key + vision model. `reconcile_tenant` vs LiteLLM spend is
+   unit-shaped but not run against live spend.
+2. **Postmark webhook** HTTP path (VS-8/VS-11) — parser + branch logic are unit-tested; a real
+   inbound POST would exercise the rate-limiter and event rows end to end.
 
 ## How to run
 
 ```
+# infra
+docker compose up -d postgres redis         # Redis now in compose (VS-7)
+
 # backend
 pip install -r backend/requirements.txt
-cd backend && alembic upgrade head          # schema (was: create_all)
+cd backend
+alembic upgrade head                        # fresh DB: builds everything (was: create_all)
+#   existing/drifted DB instead: alembic stamp 0001_baseline && alembic upgrade head
+python -m scripts.schema_diff               # expect "Schema in sync with models."
 python -m app.seed                          # data only now; SCHEMA_AUTO_CREATE=1 to also create tables
 arq worker.WorkerSettings                   # only if queue_enabled=true (needs Redis)
 python -m scripts.check_demo_readiness acme # VS-6 demo gate
+
+# tests (real Postgres)
+TEST_DATABASE_URL=postgresql+psycopg://sydekyks:sydekyks@localhost:5432/sydekyks_test pytest
 
 # frontend
 cd frontend && npm run build
@@ -70,6 +90,8 @@ cd frontend && npm run build
 - `scripts/schema_diff.py` — scripted drift check (replaces eyeballing autogenerate).
 - `seed.py` no longer calls `create_all` unconditionally; gated behind `SCHEMA_AUTO_CREATE=1` for
   local/test bootstrap only, and schema/seed are now separate steps.
+- `migrations/helpers.py` + `migrations/__init__.py` — idempotency guards so additive migrations
+  are safe on both a fresh baseline DB and a stamped, drifted demo DB (added during live testing).
 
 ### VS-13 — DocumentStorage boundary 🔒 (before any doc copy)
 - `app/services/document_storage.py` (`write_content` / `read_content`, backend `postgres_bytea`).
@@ -167,21 +189,25 @@ column; real-Postgres test DB; composed email create-and-assign endpoint.
 
 ## Deviations & notes
 
-- **Baseline migration uses a name-filtered `create_all`** rather than hand-transcribed DDL — stable
-  and stable against later additive migrations, but on a drifted existing DB you must `stamp`, then
-  verify with `schema_diff`. This is called out in the migration docstring.
+- **Baseline migration uses a name-filtered `create_all`** rather than hand-transcribed DDL. Because
+  that builds tables from the *current* models, the additive migrations are made **idempotent**
+  (`migrations/helpers.py` guards) so `upgrade head` works on a fresh DB and `stamp` + `upgrade`
+  works on the drifted demo DB — both now proven live. On an existing DB, always `stamp
+  0001_baseline` first, then `upgrade head`, then `schema_diff`.
 - **FastAPI here is a newer build** whose `app.routes` are lazily wrapped; route registration was
   verified via the generated OpenAPI schema instead.
 - **`LedgerReadiness` type** still imported into two shared frontend files (a type, not a branch).
   Left as-is; genericize (`SydekykReadiness`) only at Sydekyk #2.
 - **`0004` bundles VS-12 + VS-15** columns/tables in one migration (both land in the same pass).
 
-## Recommended follow-ups (post-merge, need live infra)
+## Recommended follow-ups (post-merge)
 
-1. Run migrations on demo/staging; confirm `schema_diff` clean; wire `alembic upgrade head` into
-   deploy.
-2. Stand up Redis, set `queue_enabled=true`, run the arq worker; smoke-test retry-by-category.
-3. Point `TEST_DATABASE_URL` at CI Postgres so the DB-gated tests run in CI, not just locally.
-4. Exercise the vision probe + usage emission against a real LiteLLM engine; verify a
+1. ✅ _Done here:_ migrations run + `schema_diff` clean on both fresh and drifted DBs; Redis in
+   compose; arq worker proven. Remaining: wire `alembic upgrade head` into the deploy pipeline.
+2. ✅ _Done here:_ Redis up, `queue_enabled=true`, worker drains jobs. Remaining: smoke-test
+   retry-by-category with a real failing Mission (needs a live engine to hit the transient path).
+3. Point CI's `TEST_DATABASE_URL` at a CI Postgres so the 3 DB-gated tests run in CI, not just
+   locally (they pass locally now).
+4. Exercise the vision probe + usage emission against a real LiteLLM engine + tenant key; verify a
    `reconcile_tenant` delta of ~0.
 5. Add a distributed (Redis) rate limiter for the webhook once multi-process.
