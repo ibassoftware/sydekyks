@@ -15,6 +15,7 @@ class SydekykOut(BaseModel):
     is_exclusive: bool
     chat_enabled: bool
     workflow_enabled: bool
+    accepts_document_uploads: bool
     installed: bool
     created_at: datetime
 

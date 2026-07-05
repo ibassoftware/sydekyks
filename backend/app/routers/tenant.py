@@ -45,6 +45,7 @@ def _to_out(sydekyk: Sydekyk, installed: bool) -> SydekykOut:
         is_exclusive=sydekyk.is_exclusive,
         chat_enabled=sydekyk.chat_enabled,
         workflow_enabled=sydekyk.workflow_enabled,
+        accepts_document_uploads=sydekyk.accepts_document_uploads,
         installed=installed,
         created_at=sydekyk.created_at,
     )

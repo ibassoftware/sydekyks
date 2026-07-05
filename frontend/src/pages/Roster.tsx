@@ -3,6 +3,7 @@ import axios from "axios";
 import { Link } from "react-router-dom";
 import {
   api,
+  type LedgerSettings,
   type LLMProvider,
   type ProviderCredential,
   type Sydekyk,
@@ -11,6 +12,8 @@ import {
 } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { Badge, Button, Card, Input, Label, Modal, PageShell } from "../components/ui";
+import { DocumentIntakeSection } from "../components/DocumentIntakeSection";
+import { GadgetRequirementList } from "../components/GadgetRequirementList";
 
 const ENGINE_LABEL: Record<LLMProvider, string> = {
   power_core: "Power Core",
@@ -259,6 +262,14 @@ function SydekykDetail({
 
           {(sydekyk.installed || sydekyk.is_exclusive) && <AIEngineSection sydekyk={sydekyk} canManage={canManage} />}
 
+          {(sydekyk.installed || sydekyk.is_exclusive) && sydekyk.slug === "ledger" && (
+            <LedgerSettingsSection sydekyk={sydekyk} canManage={canManage} />
+          )}
+
+          {(sydekyk.installed || sydekyk.is_exclusive) && sydekyk.accepts_document_uploads && (
+            <DocumentIntakeSection sydekyk={sydekyk} canManage={canManage} />
+          )}
+
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-ink-700 pt-6">
             {sydekyk.is_exclusive ? (
               <span className="text-sm font-semibold text-gold-400">Always active for your HQ</span>
@@ -295,6 +306,71 @@ function EngineStatusBadge({ status }: { status: SydekykLLMConfig["status"] }) {
     return <Badge tone="danger">Connection failed</Badge>;
   }
   return <Badge tone="neutral">Untested</Badge>;
+}
+
+function LedgerSettingsSection({ sydekyk, canManage }: { sydekyk: Sydekyk; canManage: boolean }) {
+  const [settings, setSettings] = useState<LedgerSettings | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    api.get<LedgerSettings>("/tenant/ledger/settings").then((res) => setSettings(res.data));
+  }, []);
+
+  async function save(next: LedgerSettings) {
+    setSettings(next);
+    if (!canManage) return;
+    setSaving(true);
+    try {
+      const res = await api.put<LedgerSettings>("/tenant/ledger/settings", next);
+      setSettings(res.data);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="mt-6 border-t border-ink-700 pt-6">
+      <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Ledger Setup</p>
+      <div className="mt-3 grid gap-4">
+        <GadgetRequirementList sydekykId={sydekyk.id} canManage={canManage} />
+
+        {settings && (
+          <>
+            <label className="flex items-center gap-2 text-sm text-[#ede6da]">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-gold-500"
+                disabled={!canManage || saving}
+                checked={settings.auto_create_partner}
+                onChange={(e) => save({ ...settings, auto_create_partner: e.target.checked })}
+              />
+              Auto-create vendors in Odoo when not found
+            </label>
+            <div>
+              <Label>Auto-post threshold (confidence %)</Label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={5}
+                  className="flex-1 accent-gold-500"
+                  disabled={!canManage || saving}
+                  value={settings.auto_post_threshold}
+                  onChange={(e) => setSettings({ ...settings, auto_post_threshold: Number(e.target.value) })}
+                  onMouseUp={(e) => save({ ...settings, auto_post_threshold: Number((e.target as HTMLInputElement).value) })}
+                />
+                <span className="w-10 text-right text-sm text-[#ede6da]">{settings.auto_post_threshold}%</span>
+              </div>
+              <p className="mt-1 text-xs text-[#8a7f6d]">
+                Bills at or above this confidence are posted automatically; below, they wait as drafts.
+              </p>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function AIEngineSection({ sydekyk, canManage }: { sydekyk: Sydekyk; canManage: boolean }) {

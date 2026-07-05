@@ -144,10 +144,16 @@ export default function Gadgets() {
                       <td className="px-6 py-3 font-medium text-[#f5eee0]">{link.name}</td>
                       <td className="px-6 py-3 text-[#b9ad98]">{link.gadget.name}</td>
                       <td className="px-6 py-3 text-[#b9ad98]">
-                        <p>{link.url}</p>
-                        <p className="text-xs text-[#8a7f6d]">
-                          db: {link.database} · user: {link.username}
-                        </p>
+                        {link.category === "email" ? (
+                          <code className="break-all text-xs text-gold-300">{link.inbound_address}</code>
+                        ) : (
+                          <>
+                            <p>{link.url}</p>
+                            <p className="text-xs text-[#8a7f6d]">
+                              db: {link.database} · user: {link.username}
+                            </p>
+                          </>
+                        )}
                       </td>
                       <td className="px-6 py-3">
                         <StatusBadge status={link.status} />
@@ -226,6 +232,8 @@ type GadgetLinkFormProps =
 
 function GadgetLinkForm({ mode, gadget, link, onCancel, onSaved }: GadgetLinkFormProps) {
   const gadgetName = mode === "create" ? gadget.name : link.gadget.name;
+  const category = mode === "create" ? gadget.category : link.gadget.category;
+  const isEmail = category === "email";
   const [name, setName] = useState(link?.name ?? "");
   const [url, setUrl] = useState(link?.url ?? "");
   const [database, setDatabase] = useState(link?.database ?? "");
@@ -239,14 +247,18 @@ function GadgetLinkForm({ mode, gadget, link, onCancel, onSaved }: GadgetLinkFor
     setError(null);
     setSubmitting(true);
     try {
+      const erpFields = isEmail ? {} : { url, database, username };
       const res =
         mode === "create"
-          ? await api.post("/tenant/gadget-links", { gadget_slug: gadget.slug, name, url, database, username, secret })
+          ? await api.post("/tenant/gadget-links", {
+              gadget_slug: gadget.slug,
+              name,
+              ...erpFields,
+              secret: isEmail ? undefined : secret,
+            })
           : await api.patch(`/tenant/gadget-links/${link.id}`, {
               name,
-              url,
-              database,
-              username,
+              ...erpFields,
               secret: secret || undefined,
             });
       onSaved(res.data);
@@ -267,44 +279,74 @@ function GadgetLinkForm({ mode, gadget, link, onCancel, onSaved }: GadgetLinkFor
         {mode === "create" ? `Connect ${gadgetName}` : `Edit ${link.name}`}
       </h2>
       <p className="mt-1 text-sm text-[#8a7f6d]">
-        {mode === "create" ? gadget.description : `${gadgetName} instance connection details.`}
+        {mode === "create" ? gadget.description : `${gadgetName} connection details.`}
       </p>
 
       <form onSubmit={handleSubmit} className="mt-5 grid gap-4">
         <div>
-          <Label>Instance Name</Label>
-          <Input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Production Odoo" />
-        </div>
-        <div>
-          <Label>Odoo URL</Label>
+          <Label>Name</Label>
           <Input
             required
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://mycompany.odoo.com"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={isEmail ? "Bills Inbox" : "Production Odoo"}
           />
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <Label>Database</Label>
-            <Input required value={database} onChange={(e) => setDatabase(e.target.value)} placeholder="mycompany" />
-          </div>
-          <div>
-            <Label>Username</Label>
-            <Input required value={username} onChange={(e) => setUsername(e.target.value)} placeholder="admin" />
-          </div>
-        </div>
-        <div>
-          <Label>Password / API Token</Label>
-          <Input
-            required={mode === "create"}
-            type="password"
-            value={secret}
-            onChange={(e) => setSecret(e.target.value)}
-            placeholder={mode === "create" ? "••••••••" : "Leave blank to keep the existing one"}
-          />
-        </div>
+
+        {isEmail ? (
+          <>
+            {mode === "edit" && link.inbound_address && (
+              <div>
+                <Label>Inbound Address</Label>
+                <code className="block break-all rounded-md border border-ink-600 bg-ink-900 px-3 py-2 text-sm text-gold-300">
+                  {link.inbound_address}
+                </code>
+                <p className="mt-1 text-xs text-[#8a7f6d]">
+                  Forward or send bills to this address. Configure it at your email provider's inbound routing.
+                </p>
+              </div>
+            )}
+            {mode === "create" && (
+              <p className="text-sm text-[#8a7f6d]">
+                We'll generate a unique inbound email address once you connect. Send bills there to have them processed
+                automatically.
+              </p>
+            )}
+          </>
+        ) : (
+          <>
+            <div>
+              <Label>Odoo URL</Label>
+              <Input
+                required
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://mycompany.odoo.com"
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Database</Label>
+                <Input required value={database} onChange={(e) => setDatabase(e.target.value)} placeholder="mycompany" />
+              </div>
+              <div>
+                <Label>Username</Label>
+                <Input required value={username} onChange={(e) => setUsername(e.target.value)} placeholder="admin" />
+              </div>
+            </div>
+            <div>
+              <Label>Password / API Token</Label>
+              <Input
+                required={mode === "create"}
+                type="password"
+                value={secret}
+                onChange={(e) => setSecret(e.target.value)}
+                placeholder={mode === "create" ? "••••••••" : "Leave blank to keep the existing one"}
+              />
+            </div>
+          </>
+        )}
 
         {error && <p className="text-sm text-red-400">{error}</p>}
 

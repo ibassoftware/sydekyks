@@ -52,6 +52,7 @@ export interface Sydekyk {
   is_exclusive: boolean;
   chat_enabled: boolean;
   workflow_enabled: boolean;
+  accepts_document_uploads: boolean;
   installed: boolean;
   created_at: string;
 }
@@ -77,6 +78,7 @@ export interface Gadget {
   name: string;
   slug: string;
   type: string;
+  category: string;
   description: string;
 }
 
@@ -86,9 +88,11 @@ export interface GadgetLink {
   id: string;
   gadget: Gadget;
   name: string;
-  url: string;
-  database: string;
-  username: string;
+  category: string;
+  url: string | null;
+  database: string | null;
+  username: string | null;
+  inbound_address: string | null;
   status: GadgetLinkStatus;
   last_tested_at: string | null;
   last_test_error: string | null;
@@ -98,10 +102,10 @@ export interface GadgetLink {
 export interface GadgetLinkCreate {
   gadget_slug: string;
   name: string;
-  url: string;
-  database: string;
-  username: string;
-  secret: string;
+  url?: string;
+  database?: string;
+  username?: string;
+  secret?: string;
 }
 
 export interface GadgetLinkTestResult {
@@ -186,4 +190,57 @@ export interface HostedAssignment {
 export interface HostedAssignmentUpdate {
   hosted_provider: string;
   hosted_model: string;
+}
+
+// --- Mission engine (generic) + Ledger ---
+
+export type MissionStatus = "queued" | "running" | "succeeded" | "failed";
+
+export interface MissionStep {
+  step_index: number;
+  step_key: string;
+  step_type: string;
+  status: string;
+  input: Record<string, unknown> | null;
+  output: Record<string, unknown> | null;
+  error_message: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+}
+
+export interface Mission {
+  id: string;
+  sydekyk_id: string;
+  playbook_key: string;
+  signal_type: string;
+  status: MissionStatus;
+  result_summary: Record<string, unknown> | null;
+  error_message: string | null;
+  document_filename: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface MissionDetail extends Mission {
+  steps: MissionStep[];
+}
+
+export interface EligibleLink {
+  id: string;
+  name: string;
+}
+
+export interface GadgetRequirement {
+  requirement_id: string;
+  role_key: string;
+  label: string;
+  gadget_category: string;
+  is_required: boolean;
+  eligible_links: EligibleLink[];
+  assigned_link_id: string | null;
+}
+
+export interface LedgerSettings {
+  auto_create_partner: boolean;
+  auto_post_threshold: number;
 }
