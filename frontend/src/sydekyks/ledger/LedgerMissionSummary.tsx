@@ -1,4 +1,4 @@
-import { Badge } from "./ui";
+import { Badge } from "../../components/ui";
 
 export function LedgerMissionSummary({ summary }: { summary: Record<string, unknown> }) {
   const vendor = (summary.vendor_name as string) ?? "Unknown vendor";

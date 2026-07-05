@@ -8,6 +8,7 @@ import TenantDashboard from "./pages/TenantDashboard";
 import Roster from "./pages/Roster";
 import SydekykDetail from "./pages/SydekykDetail";
 import Gadgets from "./pages/Gadgets";
+import Missions from "./pages/Missions";
 import Settings from "./pages/Settings";
 
 export default function App() {
@@ -54,6 +55,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={["commander", "hero"]}>
                 <Gadgets />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hq/missions"
+            element={
+              <ProtectedRoute roles={["commander", "hero"]}>
+                <Missions />
               </ProtectedRoute>
             }
           />

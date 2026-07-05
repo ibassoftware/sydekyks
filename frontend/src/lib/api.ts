@@ -211,18 +211,85 @@ export interface MissionStep {
 export interface Mission {
   id: string;
   sydekyk_id: string;
+  sydekyk_name: string | null;
   playbook_key: string;
   signal_type: string;
+  source: string | null;
   status: MissionStatus;
+  failure_category: string | null;
   result_summary: Record<string, unknown> | null;
   error_message: string | null;
   document_filename: string | null;
+  parent_mission_id: string | null;
+  root_mission_id: string | null;
+  attempt_number: number;
   created_at: string;
   completed_at: string | null;
 }
 
 export interface MissionDetail extends Mission {
   steps: MissionStep[];
+}
+
+export interface MissionPage {
+  items: Mission[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface MissionFilters {
+  sydekyk_id?: string;
+  status?: MissionStatus;
+  signal_type?: string;
+  source?: string;
+  filename?: string;
+  date_from?: string;
+  date_to?: string;
+  limit?: number;
+  offset?: number;
+}
+
+// --- Ledger-owned surfaces (readiness, playbook, vision test, email inbox) ---
+
+export type ReadinessState = "ok" | "warn" | "blocked";
+
+export interface ReadinessItem {
+  key: string;
+  label: string;
+  state: ReadinessState;
+  detail: string | null;
+  action_label: string | null;
+  action_href: string | null;
+}
+
+export interface LedgerReadiness {
+  items: ReadinessItem[];
+  can_upload: boolean;
+  last_inbound_email: string | null;
+}
+
+export interface PlaybookStep {
+  key: string;
+  title: string;
+  description: string;
+  likely_failures: string;
+}
+
+export interface LedgerPlaybook {
+  playbook_key: string;
+  editable: boolean;
+  steps: PlaybookStep[];
+}
+
+export interface VisionTestResult {
+  ok: boolean;
+  message: string;
+}
+
+export interface EmailInboxOut {
+  link_id: string;
+  inbound_address: string;
 }
 
 export interface EligibleLink {
@@ -243,4 +310,6 @@ export interface GadgetRequirement {
 export interface LedgerSettings {
   auto_create_partner: boolean;
   auto_post_threshold: number;
+  ledger_vision_ok?: boolean | null;
+  ledger_vision_tested_at?: string | null;
 }

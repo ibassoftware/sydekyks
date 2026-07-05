@@ -3,7 +3,7 @@ import axios from "axios";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   api,
-  type LedgerSettings,
+  type LedgerReadiness,
   type LLMProvider,
   type ProviderCredential,
   type Sydekyk,
@@ -13,7 +13,7 @@ import {
 import { useAuth } from "../lib/auth";
 import { Badge, Button, Card, Input, Label, PageShell } from "../components/ui";
 import { DocumentIntakeSection } from "../components/DocumentIntakeSection";
-import { GadgetRequirementList } from "../components/GadgetRequirementList";
+import { registryForSlug } from "../sydekyks/registry";
 
 const ENGINE_LABEL: Record<LLMProvider, string> = {
   power_core: "Power Core",
@@ -30,6 +30,8 @@ export default function SydekykDetail() {
   const [sydekyk, setSydekyk] = useState<Sydekyk | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [pending, setPending] = useState(false);
+  const [readiness, setReadiness] = useState<LedgerReadiness | null>(null);
+  const registryEntry = registryForSlug(sydekyk?.slug);
 
   useEffect(() => {
     if (!sydekykId) return;
@@ -136,15 +138,21 @@ export default function SydekykDetail() {
               </Card>
             )}
 
-            {active && sydekyk.slug === "ledger" && (
+            {active && registryEntry?.setupSection && (
               <Card className="p-6">
-                <LedgerSettingsSection sydekyk={sydekyk} canManage={canManage} />
+                <registryEntry.setupSection sydekyk={sydekyk} canManage={canManage} onReadiness={setReadiness} />
+              </Card>
+            )}
+
+            {active && registryEntry?.playbookPanel && (
+              <Card className="p-6">
+                <registryEntry.playbookPanel />
               </Card>
             )}
 
             {active && sydekyk.accepts_document_uploads && (
               <Card className="p-6">
-                <DocumentIntakeSection sydekyk={sydekyk} canManage={canManage} />
+                <DocumentIntakeSection sydekyk={sydekyk} canManage={canManage} readiness={readiness} />
               </Card>
             )}
 
@@ -397,67 +405,3 @@ function EngineForm({
   );
 }
 
-function LedgerSettingsSection({ sydekyk, canManage }: { sydekyk: Sydekyk; canManage: boolean }) {
-  const [settings, setSettings] = useState<LedgerSettings | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    api.get<LedgerSettings>("/tenant/ledger/settings").then((res) => setSettings(res.data));
-  }, []);
-
-  async function save(next: LedgerSettings) {
-    setSettings(next);
-    if (!canManage) return;
-    setSaving(true);
-    try {
-      const res = await api.put<LedgerSettings>("/tenant/ledger/settings", next);
-      setSettings(res.data);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div>
-      <SectionHeader title="Ledger Setup" />
-      <div className="mt-3 grid gap-4">
-        <GadgetRequirementList sydekykId={sydekyk.id} canManage={canManage} />
-
-        {settings && (
-          <>
-            <label className="flex items-center gap-2 text-sm text-[#ede6da]">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-gold-500"
-                disabled={!canManage || saving}
-                checked={settings.auto_create_partner}
-                onChange={(e) => save({ ...settings, auto_create_partner: e.target.checked })}
-              />
-              Auto-create vendors in Odoo when not found
-            </label>
-            <div>
-              <Label>Auto-post threshold (confidence %)</Label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={5}
-                  className="flex-1 accent-gold-500"
-                  disabled={!canManage || saving}
-                  value={settings.auto_post_threshold}
-                  onChange={(e) => setSettings({ ...settings, auto_post_threshold: Number(e.target.value) })}
-                  onMouseUp={(e) => save({ ...settings, auto_post_threshold: Number((e.target as HTMLInputElement).value) })}
-                />
-                <span className="w-10 text-right text-sm text-[#ede6da]">{settings.auto_post_threshold}%</span>
-              </div>
-              <p className="mt-1 text-xs text-[#8a7f6d]">
-                Bills at or above this confidence are posted automatically; below, they wait as drafts.
-              </p>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}

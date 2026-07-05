@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, type Mission, type MissionDetail, type Sydekyk } from "../lib/api";
-import { Badge } from "./ui";
+import { api, type LedgerReadiness, type Mission, type MissionDetail, type Sydekyk } from "../lib/api";
+import { Badge, Button } from "./ui";
 import { FileDropZone } from "./FileDropZone";
-import { LedgerMissionSummary } from "./LedgerMissionSummary";
+import { registryForPlaybook } from "../sydekyks/registry";
 
 function StatusBadge({ status }: { status: Mission["status"] }) {
   if (status === "succeeded") return <Badge tone="gold">Done</Badge>;
@@ -16,7 +16,15 @@ function StatusBadge({ status }: { status: Mission["status"] }) {
   return <Badge tone="neutral">Queued</Badge>;
 }
 
-export function DocumentIntakeSection({ sydekyk, canManage }: { sydekyk: Sydekyk; canManage: boolean }) {
+export function DocumentIntakeSection({
+  sydekyk,
+  canManage,
+  readiness,
+}: {
+  sydekyk: Sydekyk;
+  canManage: boolean;
+  readiness?: LedgerReadiness | null;
+}) {
   const [missions, setMissions] = useState<Mission[] | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -31,7 +39,6 @@ export function DocumentIntakeSection({ sydekyk, canManage }: { sydekyk: Sydekyk
     load();
   }, [load]);
 
-  // Poll while anything is in flight.
   const active = missions?.some((m) => m.status === "queued" || m.status === "running");
   const activeRef = useRef(active);
   activeRef.current = active;
@@ -53,8 +60,8 @@ export function DocumentIntakeSection({ sydekyk, canManage }: { sydekyk: Sydekyk
       await api.post(`/tenant/sydekyks/${sydekyk.id}/documents`, form);
       load();
     } catch (err) {
-      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setUploadError(detail ?? "Upload failed.");
+      const d = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setUploadError(d ?? "Upload failed.");
     } finally {
       setUploading(false);
     }
@@ -72,11 +79,18 @@ export function DocumentIntakeSection({ sydekyk, canManage }: { sydekyk: Sydekyk
     setDetail(res.data);
   }
 
+  // VS-1: block upload until required readiness items pass (when readiness is known for this Sydekyk).
+  const uploadBlocked = readiness ? !readiness.can_upload : false;
+
   return (
     <div>
       <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Upload Bills</p>
 
-      {canManage ? (
+      {!canManage ? (
+        <p className="mt-2 text-sm text-[#8a7f6d]">Your Commander can upload bills for {sydekyk.name}.</p>
+      ) : uploadBlocked ? (
+        <p className="mt-2 text-sm text-amber-400/90">Finish the required setup above before uploading bills.</p>
+      ) : (
         <div className="mt-3">
           <FileDropZone
             accept=".pdf,.png,.jpg,.jpeg,.webp"
@@ -86,8 +100,6 @@ export function DocumentIntakeSection({ sydekyk, canManage }: { sydekyk: Sydekyk
           />
           {uploadError && <p className="mt-2 text-sm text-red-400">{uploadError}</p>}
         </div>
-      ) : (
-        <p className="mt-2 text-sm text-[#8a7f6d]">Your Commander can upload bills for {sydekyk.name}.</p>
       )}
 
       <div className="mt-5">
@@ -106,6 +118,7 @@ export function DocumentIntakeSection({ sydekyk, canManage }: { sydekyk: Sydekyk
                 >
                   <span className="min-w-0 flex-1 truncate text-sm text-[#ede6da]">
                     {m.document_filename ?? "document"}
+                    {m.attempt_number > 1 && <span className="ml-1 text-xs text-[#8a7f6d]">· retry #{m.attempt_number - 1}</span>}
                   </span>
                   <StatusBadge status={m.status} />
                   <span className="text-xs text-[#8a7f6d]">{expanded === m.id ? "▲" : "▼"}</span>
@@ -116,7 +129,7 @@ export function DocumentIntakeSection({ sydekyk, canManage }: { sydekyk: Sydekyk
                     {!detail ? (
                       <p className="text-sm text-[#8a7f6d]">Loading…</p>
                     ) : (
-                      <MissionDetailPanel detail={detail} />
+                      <MissionDetailPanel detail={detail} canManage={canManage} onChanged={load} />
                     )}
                   </div>
                 )}
@@ -129,17 +142,42 @@ export function DocumentIntakeSection({ sydekyk, canManage }: { sydekyk: Sydekyk
   );
 }
 
-function MissionDetailPanel({ detail }: { detail: MissionDetail }) {
+export function MissionDetailPanel({
+  detail,
+  canManage,
+  onChanged,
+}: {
+  detail: MissionDetail;
+  canManage: boolean;
+  onChanged?: () => void;
+}) {
+  const [retrying, setRetrying] = useState(false);
+  const Summary = registryForPlaybook(detail.playbook_key)?.missionSummary;
+
+  async function retry() {
+    setRetrying(true);
+    try {
+      await api.post(`/tenant/missions/${detail.id}/retry`);
+      onChanged?.();
+    } finally {
+      setRetrying(false);
+    }
+  }
+
   return (
     <div className="grid gap-4">
       {detail.result_summary &&
-        (detail.playbook_key === "ledger.vendor_bill_ingest" ? (
-          <LedgerMissionSummary summary={detail.result_summary} />
-        ) : (
-          <GenericSummary summary={detail.result_summary} />
-        ))}
+        (Summary ? <Summary summary={detail.result_summary} /> : <GenericSummary summary={detail.result_summary} />)}
 
       {detail.error_message && <p className="text-sm text-red-400">{detail.error_message}</p>}
+
+      {detail.status === "failed" && canManage && (
+        <div>
+          <Button variant="ghost" className="px-3 py-1.5 text-xs" disabled={retrying} onClick={retry}>
+            {retrying ? "Retrying…" : "Retry mission"}
+          </Button>
+        </div>
+      )}
 
       <div>
         <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-gold-500/80">Steps</p>

@@ -37,6 +37,9 @@ export default function TenantDashboard() {
             <Link to="/hq/roster" className="text-sm font-semibold text-gold-400 hover:text-gold-300">
               Roster
             </Link>
+            <Link to="/hq/missions" className="text-sm font-semibold text-gold-400 hover:text-gold-300">
+              Missions
+            </Link>
             <Link to="/hq/gadgets" className="text-sm font-semibold text-gold-400 hover:text-gold-300">
               Gadgets
             </Link>
@@ -102,9 +105,14 @@ export default function TenantDashboard() {
 
             <Card className="mt-6 flex flex-col items-center gap-4 p-10 text-center">
               <p className="text-[#b9ad98]">Activate Sydekyks from the Roster to put them to work for your team.</p>
-              <Link to="/hq/roster">
-                <Button>Open the Roster</Button>
-              </Link>
+              <div className="flex gap-3">
+                <Link to="/hq/roster">
+                  <Button>Open the Roster</Button>
+                </Link>
+                <Link to="/hq/missions">
+                  <Button variant="ghost">View Missions</Button>
+                </Link>
+              </div>
             </Card>
           </>
         )}
