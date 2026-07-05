@@ -9,6 +9,36 @@ foundation-first order. This report records what shipped per slice, how it was v
 product decisions honored, and exactly what still needs a live environment (Postgres/Redis/LLM) to
 confirm.
 
+> **Post-review status:** an independent verification
+> (`docs/LEDGER_SLICES_BUILD_REPORT_VERIFICATION.md`) found **two real P0 bugs** that this report's
+> original "correct-by-construction" wording had glossed over. Both are now **fixed, reproduced, and
+> regression-tested** — see [§ Post-review fixes](#post-review-fixes-p0--p1). The wording in the
+> slice detail below has been corrected accordingly.
+
+## Post-review fixes (P0 + P1)
+
+An independent review reproduced two P0 defects; I confirmed both empirically (each raised an
+`IntegrityError`), fixed them, and added regression tests for the exact paths the original suite
+missed (it had tested *adjacent* paths — manual retry and the Postmark *parser* — but not the worker
+retry path or the duplicate-delivery webhook branch).
+
+| Bug | Root cause | Fix | Test |
+|-----|-----------|-----|------|
+| **P0 #1** — arq auto-retry re-ran the *same* Mission → collided on `mission_steps(mission_id, step_index)` | The worker raised arq `Retry`, re-invoking `run_mission` on the same row; contradicted VS-4's own new-Mission design | `worker.py` now, on a retryable failure, calls `retry_mission()` (NEW linked Mission) and enqueues that; arq `max_tries = 1` | `test_worker_retry_spawns_new_linked_mission` |
+| **P0 #2** — duplicate email delivery violated `uq_email_ingest_provider_message` (500 instead of `duplicate`) | `email_ingest_events` doubled as an append-only log AND a unique idempotency ledger | Table is now **append-only** (migration `0005` drops the unique constraint → plain index); idempotency stays in the explicit query | `test_duplicate_email_delivery_records_duplicate` |
+
+P1s also fixed: webhook now records `ignored` (invalid JSON) and `no_supported_attachment`
+(attachments present but none allowed); `rate_limited` is **intentionally not** recorded (writing a
+row per over-limit request would be unbounded under a flood and defeat the limiter — every recorded
+branch sits *below* the limiter and is thus capped). Readiness `last_inbound_email` is now scoped to
+Ledger's inbox (`matched_sydekyk_id`), not tenant-wide.
+
+Accepted as noted (not code-changed): the baseline migration is pragmatic **migration debt** (see
+Deviations); email idempotency is **message-level** `(provider, message_id)`, not attachment-level;
+server-side upload gating is **UX-only** (the playbook still fails cleanly if setup is incomplete);
+`usage_records` is **attribution-ready, not full-billing-ready** until reconcile runs against a
+priced provider.
+
 ## Commits
 
 | Commit | Contents |
@@ -26,11 +56,11 @@ Ran against the real `pgvector/pgvector:pg16` Postgres and `redis:7-alpine` from
 |-------|--------|
 | `python -m compileall app worker.py migrations scripts` | ✅ clean |
 | `import app.main` + OpenAPI schema | ✅ all new routes registered |
-| **`alembic upgrade head` on a fresh DB** (`sydekyks_alembic`) | ✅ 0001→0004 applied clean |
+| **`alembic upgrade head` on a fresh DB** (`sydekyks_alembic`) | ✅ 0001→0005 applied clean |
 | **`scripts.schema_diff` after upgrade** | ✅ "Schema in sync with models." |
 | **`alembic downgrade base` then `upgrade head`** | ✅ reversible + idempotent |
 | **Existing drifted DB: `alembic stamp 0001_baseline` + `upgrade head`** (`sydekyks`) | ✅ new cols/tables added; `schema_diff` clean |
-| **`pytest tests/` against real Postgres** (`TEST_DATABASE_URL=…/sydekyks_test`) | ✅ **19 passed** (incl. 3 DB-gated: playbook success+usage, setup-failure classification, retry lineage) |
+| **`pytest tests/` against real Postgres** (`TEST_DATABASE_URL=…/sydekyks_test`) | ✅ **21 passed** (incl. 5 DB-gated: playbook success+usage, setup-failure classification, retry lineage, worker-retry-new-mission, duplicate-email-delivery) |
 | **VS-7 queue: `enqueue_mission` with `queue_enabled=true`** | ✅ returned `"queue"`; job landed in Redis as `arq:job:mission:<id>` |
 | **VS-7 worker: `arq WorkerSettings` (burst)** | ✅ registered `run_mission_task`; queue depth 1 → 0 after burst; 5 result keys stored |
 | `tsc -b` (frontend typecheck) | ✅ 0 errors |
@@ -55,7 +85,7 @@ LiteLLM proxy, using the app's own `_sample_invoice_png()` fixture.
 | LiteLLM model registration + virtual key + round-trip through proxy | ✅ usage returned |
 | **Real vision extraction — `gemma3:4b`** on the sample invoice | ✅ read vendor `ACME SUPPLIES LLC`, invoice `INV-2026-0042`, total `88.0 USD`; 764 real tokens |
 | **Real vision extraction — `kimi-k2.7-code`** (the specified model) | ✅ also read the invoice correctly (it is multimodal) |
-| Full `pytest` after cost change | ✅ **19 passed** (cost assertion added) |
+| Full `pytest` after cost + P0 fixes | ✅ **21 passed** (cost + 2 P0 regression tests added) |
 
 **Two real bugs/gaps this surfaced and fixed:**
 
@@ -73,9 +103,10 @@ LiteLLM proxy, using the app's own `_sample_invoice_png()` fixture.
 
 1. **`reconcile_tenant` vs live LiteLLM spend** — the reconcile logic is unit-shaped; running it
    against real accrued spend needs a priced provider (OpenAI/Anthropic) so cost is non-zero.
-2. **Postmark webhook** HTTP path (VS-8/VS-11) — parser + branch logic are unit-tested; a real
-   inbound POST (or a local authenticated `curl` against a running backend — no real Postmark
-   needed) would exercise the rate-limiter and event rows end to end. Not yet run.
+2. **Postmark webhook** HTTP path (VS-8/VS-11) — parser + the accepted/duplicate branches are now
+   covered by a router-level test (`test_duplicate_email_delivery_records_duplicate`, via
+   `TestClient`). Still not exercised over **real DNS/Postmark** or against the **rate-limiter under
+   load** — both are deployment/load concerns, locally simulatable with authenticated `curl`.
 
 ## How to run
 
@@ -160,13 +191,22 @@ cd frontend && npm run build
 - `app/services/queue.py` `enqueue_mission()` seam → arq over Redis when `queue_enabled`, else
   fire-and-forget threadpool fallback. `run_mission` unchanged as the entry point.
 - `backend/worker.py` arq `WorkerSettings`; retry policy driven by `Mission.failure_category`
-  (`transient`/`external` retry with backoff; `setup`/`validation` terminal).
+  (`transient`/`external` → auto-retry; `setup`/`validation` → terminal). **Auto-retry creates a
+  NEW linked Mission** (via `retry_mission`) and enqueues it — it never re-runs the same row (P0 #1
+  fix). arq `max_tries = 1`; chain length capped by `attempt_number`.
 - Both `BackgroundTasks` call sites (upload, email) replaced with `await enqueue_mission(...)`.
+- Verified live: enqueue → Redis → worker drain (transport). Retry *semantics* covered by
+  `test_worker_retry_spawns_new_linked_mission`.
 
 ### VS-8 — Email ingest events + idempotency 🔒 (one inbox → one Sydekyk)
-- `email_ingest_events` table + model; webhook writes an event on **every** branch.
-- Idempotency on `(provider, message_id)`; single-Sydekyk routing (records `ambiguous_inbox` if >1);
-  shared 15MB size cap; Postmark parser now surfaces `MessageID`. Migration `0003_email_events`.
+- `email_ingest_events` table + model — **append-only** (migration `0005` after the P0 #2 fix).
+  Webhook records an event on every branch it processes (`accepted`/`duplicate`/`no_match`/
+  `no_sydekyk`/`ambiguous_inbox`/`no_op`/`no_supported_attachment`/`rejected_size`/`unauthorized`/
+  `ignored`); `rate_limited` is intentionally *not* recorded (see Post-review fixes).
+- Idempotency is **message-level** `(provider, message_id)` via an explicit query for a prior
+  `accepted`/`ambiguous_inbox` row — not attachment-level. Single-Sydekyk routing (records
+  `ambiguous_inbox` if >1); shared 15MB size cap; Postmark parser surfaces `MessageID`.
+  Migrations `0003_email_events` + `0005_email_append`.
 
 ### VS-11 — Webhook hardening
 - In-memory sliding-window rate limiter on the Postmark endpoint; `unauthorized` now recorded as an
@@ -192,7 +232,7 @@ cd frontend && npm run build
 
 ### VS-10 — Test suite
 - `tests/`: extraction parse/coerce, duplicates + confidence, Postmark parser, Playbook-metadata
-  drift guard (16 tests, all green here). DB-gated `test_mission_flow.py` drives the playbook end to
+  drift guard (18 non-DB tests). DB-gated `test_mission_flow.py` + `test_review_fixes.py` drive the playbook, worker retry, and duplicate email delivery end to
   end with a fake Odoo + fake extraction (success, setup-failure classification, retry lineage,
   usage emission); `conftest.py` skips these unless `TEST_DATABASE_URL` points at a real Postgres.
 
@@ -231,7 +271,7 @@ column; real-Postgres test DB; composed email create-and-assign endpoint.
    compose; arq worker proven. Remaining: wire `alembic upgrade head` into the deploy pipeline.
 2. ✅ _Done here:_ Redis up, `queue_enabled=true`, worker drains jobs. Remaining: smoke-test
    retry-by-category with a real failing Mission (needs a live engine to hit the transient path).
-3. Point CI's `TEST_DATABASE_URL` at a CI Postgres so the 3 DB-gated tests run in CI, not just
+3. Point CI's `TEST_DATABASE_URL` at a CI Postgres so the 5 DB-gated tests run in CI, not just
    locally (they pass locally now).
 4. Exercise the vision probe + usage emission against a real LiteLLM engine + tenant key; verify a
    `reconcile_tenant` delta of ~0.

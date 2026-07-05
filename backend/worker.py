@@ -3,13 +3,16 @@
 Run with:  arq worker.WorkerSettings
 
 `run_mission` is synchronous and opens its own DB session, so it runs in a threadpool to avoid
-blocking the event loop. Retry policy is driven by the Mission's `failure_category` (set by the
-playbook), never by matching error strings:
+blocking the event loop.
 
-  - transient / external  → let arq retry with backoff (raise to signal retry).
-  - setup / validation     → terminal; do not retry (the Mission is already marked failed).
+Retry model (fixed after review): a retryable failure must NOT re-run the same Mission row —
+`mission_steps` has a unique (mission_id, step_index), so re-running collides with the audit trail.
+Instead, on a retryable outcome we create a NEW linked Mission via `retry_mission` (same lineage as
+manual retry) and enqueue that. arq's own retry is disabled (`max_tries = 1`) so the two models
+never fight. The chain length is capped by `attempt_number`.
 """
 
+import asyncio
 import uuid
 
 from arq.connections import RedisSettings
@@ -17,31 +20,35 @@ from arq.connections import RedisSettings
 from app.core.config import settings
 from app.db.session import SessionLocal
 from app.models.mission import Mission
+from app.services.missions import retry_mission, run_mission
+from app.services.queue import enqueue_mission
 
-# Categories that are worth another attempt automatically.
+# Failure categories worth another attempt automatically.
 _RETRYABLE = {"transient", "external"}
-MAX_TRIES = 4
+# Cap on the retry chain length (attempt_number of the original is 1).
+MAX_ATTEMPTS = 4
 
 
 async def run_mission_task(ctx: dict, mission_id: str) -> str:
-    import asyncio
-
-    from app.services.missions import run_mission
-
     mid = uuid.UUID(mission_id)
+    # Execute the (fresh) Mission. run_mission guarantees a terminal status on its own.
     await asyncio.to_thread(run_mission, mid)
 
-    # Decide whether arq should retry, based on the classified outcome.
     db = SessionLocal()
     try:
         mission = db.get(Mission, mid)
         if mission is None:
             return "gone"
-        if mission.status == "failed" and mission.failure_category in _RETRYABLE and ctx["job_try"] < MAX_TRIES:
-            from arq.worker import Retry
-
-            # Backoff grows with the attempt number; setup/validation failures never reach here.
-            raise Retry(defer=ctx["job_try"] * 10)
+        # Audit-trail-safe auto-retry: spawn a NEW linked Mission and enqueue it, never re-run this
+        # row (which would collide on mission_steps).
+        if (
+            mission.status == "failed"
+            and mission.failure_category in _RETRYABLE
+            and mission.attempt_number < MAX_ATTEMPTS
+        ):
+            retried = retry_mission(db, mission)
+            await enqueue_mission(retried.id)
+            return f"retried:{retried.id}"
         return mission.status
     finally:
         db.close()
@@ -50,5 +57,6 @@ async def run_mission_task(ctx: dict, mission_id: str) -> str:
 class WorkerSettings:
     functions = [run_mission_task]
     redis_settings = RedisSettings.from_dsn(settings.redis_url)
-    max_tries = MAX_TRIES
+    # We own retry via new linked Missions; arq must not also retry the same job.
+    max_tries = 1
     job_timeout = 300

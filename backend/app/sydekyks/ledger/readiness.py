@@ -97,9 +97,11 @@ def compute_readiness(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) 
         items.append(_item("email_inbox", "Email inbox (optional)", "ok", addr, None, None))
 
     # --- Last inbound email (informational) ----------------------------------------------------
+    # Scope to THIS Sydekyk's inbox, not tenant-wide — otherwise an unrelated Sydekyk's inbound
+    # email would show up as Ledger's "last inbound" (matters at Sydekyk #2).
     last_event = (
         db.query(EmailIngestEvent)
-        .filter(EmailIngestEvent.tenant_id == tenant_id)
+        .filter(EmailIngestEvent.tenant_id == tenant_id, EmailIngestEvent.matched_sydekyk_id == sydekyk_id)
         .order_by(EmailIngestEvent.created_at.desc())
         .first()
     )

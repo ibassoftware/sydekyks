@@ -323,7 +323,7 @@ the DB and (for models) in LiteLLM's own store — not in the repo.
 
 ## 12. Verified-live status (see build report for detail)
 
-✅ Alembic upgrade/downgrade/idempotency + `schema_diff` clean · ✅ 19/19 pytest on real Postgres ·
+✅ Alembic upgrade/downgrade/idempotency + `schema_diff` clean · ✅ 21/21 pytest on real Postgres ·
 ✅ arq enqueue→worker→drain over Redis · ✅ real vision extraction through LiteLLM on a live Ollama
 Cloud key (vendor/invoice#/total read correctly; token usage captured) · ✅ frontend `tsc` + `vite
 build`.

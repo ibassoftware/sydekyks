@@ -88,6 +88,9 @@ async def postmark_inbound(request: Request, authorization: str | None = Header(
     # Public endpoint — app-wide Basic Auth proves it's our configured Postmark webhook. Always
     # returns 200 (even on rejection/no-match) so we never leak tenant existence or trigger retries.
     client_ip = request.client.host if request.client else "unknown"
+    # Deliberately NOT recorded: rate-limited requests are the over-limit ones, so writing a row per
+    # rejection would be unbounded under a flood and defeat the limiter. Every branch BELOW the limit
+    # is recorded (and thus itself capped at the per-minute limit).
     if _rate_limited(client_ip):
         return {"status": "rate_limited"}
 
@@ -102,6 +105,11 @@ async def postmark_inbound(request: Request, authorization: str | None = Header(
     try:
         raw = await request.json()
     except ValueError:
+        db = next(get_db())
+        try:
+            _record(db, None, "ignored", reason="invalid JSON body")
+        finally:
+            db.close()
         return {"status": "ignored"}
 
     email = parse_postmark_payload(raw)
@@ -185,6 +193,12 @@ async def postmark_inbound(request: Request, authorization: str | None = Header(
             )
             await enqueue_mission(mission.id)
             count += 1
+
+        if count == 0:
+            # Attachments were present but none passed the type filter — not an accepted bill.
+            _record(db, email, "no_supported_attachment", reason="no attachment matched allowed types",
+                    tenant_id=link.tenant_id, matched_link_id=link.id, matched_sydekyk_id=sydekyk.id)
+            return {"status": "no_supported_attachment"}
 
         outcome = "ambiguous_inbox" if ambiguous else "accepted"
         reason = "more than one Sydekyk on this inbox; used the first" if ambiguous else None
