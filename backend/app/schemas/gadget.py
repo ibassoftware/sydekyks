@@ -9,6 +9,7 @@ class GadgetOut(BaseModel):
     name: str
     slug: str
     type: str
+    category: str
     description: str
 
     class Config:
@@ -18,17 +19,18 @@ class GadgetOut(BaseModel):
 class GadgetLinkCreate(BaseModel):
     gadget_slug: str
     name: str = Field(min_length=1, max_length=255)
-    url: str = Field(min_length=1, max_length=500)
-    database: str = Field(min_length=1, max_length=255)
-    username: str = Field(min_length=1, max_length=255)
-    secret: str = Field(min_length=1, description="Odoo password or API token")
+    # ERP (Odoo) fields — optional at the schema layer; the router validates per gadget category.
+    url: str | None = Field(default=None, max_length=500)
+    database: str | None = Field(default=None, max_length=255)
+    username: str | None = Field(default=None, max_length=255)
+    secret: str | None = Field(default=None, description="Odoo password or API token")
 
 
 class GadgetLinkUpdate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
-    url: str = Field(min_length=1, max_length=500)
-    database: str = Field(min_length=1, max_length=255)
-    username: str = Field(min_length=1, max_length=255)
+    url: str | None = Field(default=None, max_length=500)
+    database: str | None = Field(default=None, max_length=255)
+    username: str | None = Field(default=None, max_length=255)
     secret: str | None = Field(default=None, description="Leave blank to keep the existing password/token")
 
 
@@ -36,9 +38,11 @@ class GadgetLinkOut(BaseModel):
     id: uuid.UUID
     gadget: GadgetOut
     name: str
-    url: str
-    database: str
-    username: str
+    category: str
+    url: str | None
+    database: str | None
+    username: str | None
+    inbound_address: str | None
     status: str
     last_tested_at: datetime | None
     last_test_error: str | None

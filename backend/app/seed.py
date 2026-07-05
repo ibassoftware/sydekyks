@@ -1,9 +1,11 @@
+import app.models  # noqa: F401 — ensure all platform models are registered before create_all
 from app.core.config import settings
 from app.core.security import hash_password
 from app.db.session import Base, SessionLocal, engine
 from app.models.gadget import Gadget
 from app.models.sydekyk import Sydekyk
 from app.models.user import User
+from app.sydekyks import collect_seed_functions, discover_sydekyk_packages
 
 
 def seed_admin(db):
@@ -57,23 +59,40 @@ def seed_roster_sydekyks(db):
 
 
 def seed_gadgets(db):
-    existing = db.query(Gadget).filter(Gadget.slug == "odoo").first()
-    if existing:
+    if not db.query(Gadget).filter(Gadget.slug == "odoo").first():
+        db.add(
+            Gadget(
+                name="Odoo",
+                slug="odoo",
+                type="external",
+                category="erp",
+                description="Connect an Odoo instance to let Sydekyks read and act on your ERP data.",
+            )
+        )
+        db.commit()
+        print("Created Gadget: Odoo")
+    else:
         print("Gadget already exists: odoo")
-        return
 
-    odoo = Gadget(
-        name="Odoo",
-        slug="odoo",
-        type="external",
-        description="Connect an Odoo instance to let Sydekyks read and act on your ERP data.",
-    )
-    db.add(odoo)
-    db.commit()
-    print("Created Gadget: Odoo")
+    if not db.query(Gadget).filter(Gadget.slug == "email").first():
+        db.add(
+            Gadget(
+                name="Email Inbox",
+                slug="email",
+                type="external",
+                category="email",
+                description="Route inbound emails with attachments into a Sydekyk's Mission pipeline.",
+            )
+        )
+        db.commit()
+        print("Created Gadget: Email Inbox")
+    else:
+        print("Gadget already exists: email")
 
 
 def run():
+    # Import every Sydekyk package so their models.py register with metadata before create_all.
+    discover_sydekyk_packages()
     Base.metadata.create_all(bind=engine)
 
     db = SessionLocal()
@@ -81,6 +100,9 @@ def run():
         seed_admin(db)
         seed_roster_sydekyks(db)
         seed_gadgets(db)
+        # Each Sydekyk package seeds its own catalog additions (capability flags, requirements).
+        for sydekyk_seed in collect_seed_functions():
+            sydekyk_seed(db)
     finally:
         db.close()
 

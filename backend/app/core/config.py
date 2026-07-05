@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     encryption_key: str = "5fto_knqSHvZPLD6rRnVbetrEbhgHH24KoJpXBjjJYs="
     litellm_proxy_url: str = "http://localhost:4000"
     litellm_master_key: str = "sk-sydekyks-dev-master-key-change-me"
+    # Inbound email (Postmark) — app-wide, proves "came from our configured webhook" (not per-tenant).
+    email_webhook_basic_auth_user: str = "postmark"
+    email_webhook_basic_auth_pass: str = "dev-inbound-webhook-secret-change-me"
+    email_inbound_domain: str = "inbound.sydekyks.app"
 
 
 settings = Settings()

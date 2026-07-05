@@ -1,9 +1,11 @@
+import secrets
 import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.crypto import decrypt_secret, encrypt_secret
 from app.core.deps import require_commander, require_tenant_member
 from app.db.session import get_db
@@ -15,14 +17,22 @@ from app.services import odoo
 router = APIRouter(prefix="/api/tenant", tags=["gadgets"], dependencies=[Depends(require_tenant_member)])
 
 
+def _inbound_address(link: TenantGadgetLink) -> str | None:
+    lp = (link.config or {}).get("inbound_local_part")
+    dom = (link.config or {}).get("inbound_domain")
+    return f"{lp}@{dom}" if lp and dom else None
+
+
 def _to_link_out(link: TenantGadgetLink) -> GadgetLinkOut:
     return GadgetLinkOut(
         id=link.id,
         gadget=GadgetOut.model_validate(link.gadget, from_attributes=True),
         name=link.name,
+        category=link.gadget.category,
         url=link.url,
         database=link.database,
         username=link.username,
+        inbound_address=_inbound_address(link),
         status=link.status,
         last_tested_at=link.last_tested_at,
         last_test_error=link.last_test_error,
@@ -47,23 +57,34 @@ def list_gadget_links(user: User = Depends(require_tenant_member), db: Session =
 
 
 @router.post("/gadget-links", response_model=GadgetLinkOut, status_code=status.HTTP_201_CREATED)
-def create_gadget_link(
-    payload: GadgetLinkCreate, user: User = Depends(require_commander), db: Session = Depends(get_db)
-):
+def create_gadget_link(payload: GadgetLinkCreate, user: User = Depends(require_commander), db: Session = Depends(get_db)):
     gadget = db.query(Gadget).filter(Gadget.slug == payload.gadget_slug).first()
     if gadget is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown integration")
 
-    link = TenantGadgetLink(
-        tenant_id=user.tenant_id,
-        gadget_id=gadget.id,
-        name=payload.name,
-        url=payload.url,
-        database=payload.database,
-        username=payload.username,
-        encrypted_secret=encrypt_secret(payload.secret),
-        status="untested",
-    )
+    link = TenantGadgetLink(tenant_id=user.tenant_id, gadget_id=gadget.id, name=payload.name)
+
+    if gadget.category == "email":
+        # No handshake to test; generate a unique inbound address + a per-link webhook secret.
+        tenant_slug = user.tenant.slug if user.tenant else "hq"
+        link.config = {
+            "provider": "postmark",
+            "inbound_local_part": f"{tenant_slug}-{secrets.token_hex(4)}",
+            "inbound_domain": settings.email_inbound_domain,
+        }
+        link.encrypted_secret = encrypt_secret(secrets.token_urlsafe(24))
+        link.status = "connected"
+    else:
+        if not (payload.url and payload.database and payload.username and payload.secret):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="URL, database, username and secret are required"
+            )
+        link.url = payload.url
+        link.database = payload.database
+        link.username = payload.username
+        link.encrypted_secret = encrypt_secret(payload.secret)
+        link.status = "untested"
+
     db.add(link)
     db.commit()
     db.refresh(link)
@@ -83,22 +104,20 @@ def _get_link(db: Session, tenant_id: uuid.UUID, link_id: uuid.UUID) -> TenantGa
 
 @router.patch("/gadget-links/{link_id}", response_model=GadgetLinkOut)
 def update_gadget_link(
-    link_id: uuid.UUID,
-    payload: GadgetLinkUpdate,
-    user: User = Depends(require_commander),
-    db: Session = Depends(get_db),
+    link_id: uuid.UUID, payload: GadgetLinkUpdate, user: User = Depends(require_commander), db: Session = Depends(get_db)
 ):
     link = _get_link(db, user.tenant_id, link_id)
-
     link.name = payload.name
-    link.url = payload.url
-    link.database = payload.database
-    link.username = payload.username
-    if payload.secret:
-        link.encrypted_secret = encrypt_secret(payload.secret)
-    link.status = "untested"
-    link.last_tested_at = None
-    link.last_test_error = None
+
+    if link.gadget.category != "email":
+        link.url = payload.url
+        link.database = payload.database
+        link.username = payload.username
+        if payload.secret:
+            link.encrypted_secret = encrypt_secret(payload.secret)
+        link.status = "untested"
+        link.last_tested_at = None
+        link.last_test_error = None
 
     db.commit()
     db.refresh(link)
@@ -108,16 +127,20 @@ def update_gadget_link(
 @router.post("/gadget-links/{link_id}/test", response_model=GadgetLinkTestResult)
 def test_gadget_link(link_id: uuid.UUID, user: User = Depends(require_commander), db: Session = Depends(get_db)):
     link = _get_link(db, user.tenant_id, link_id)
-    secret = decrypt_secret(link.encrypted_secret)
 
-    ok, message = odoo.test_connection(link.url, link.database, link.username, secret)
+    if link.gadget.category == "email":
+        return GadgetLinkTestResult(
+            ok=True,
+            message="Email inboxes can't be tested synchronously — send a bill to the inbound address to try it.",
+            link=_to_link_out(link),
+        )
 
+    ok, message = odoo.test_connection(link.url, link.database, link.username, decrypt_secret(link.encrypted_secret))
     link.status = "connected" if ok else "error"
     link.last_tested_at = datetime.now(timezone.utc)
     link.last_test_error = None if ok else message
     db.commit()
     db.refresh(link)
-
     return GadgetLinkTestResult(ok=ok, message=message, link=_to_link_out(link))
 
 

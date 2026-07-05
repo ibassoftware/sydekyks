@@ -27,6 +27,10 @@ class Sydekyk(Base):
     is_published: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     chat_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     workflow_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # Generic capability flag gating the frontend document-intake UI, and the dispatch key that
+    # routes a Mission to the right registered playbook (never an `if slug ==` check).
+    accepts_document_uploads: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    playbook_key: Mapped[str | None] = mapped_column(String(150), nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
     installs: Mapped[list["SydekykInstall"]] = relationship(back_populates="sydekyk", cascade="all, delete-orphan")
