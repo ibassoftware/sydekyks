@@ -98,6 +98,13 @@ def _get_visible_sydekyk(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUI
     return sydekyk
 
 
+@router.get("/sydekyks/{sydekyk_id}", response_model=SydekykOut)
+def get_sydekyk(sydekyk_id: uuid.UUID, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+    sydekyk = _get_visible_sydekyk(db, user.tenant_id, sydekyk_id)
+    installed = sydekyk.id in _installed_ids(db, user.tenant_id)
+    return _to_out(sydekyk, installed=sydekyk.is_exclusive or installed)
+
+
 @router.post("/sydekyks/{sydekyk_id}/install", response_model=SydekykOut, status_code=status.HTTP_201_CREATED)
 def install_sydekyk(sydekyk_id: uuid.UUID, user: User = Depends(require_commander), db: Session = Depends(get_db)):
     sydekyk = _get_visible_sydekyk(db, user.tenant_id, sydekyk_id)

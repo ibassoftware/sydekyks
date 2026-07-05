@@ -73,7 +73,7 @@ export function DocumentIntakeSection({ sydekyk, canManage }: { sydekyk: Sydekyk
   }
 
   return (
-    <div className="mt-6 border-t border-ink-700 pt-6">
+    <div>
       <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Upload Bills</p>
 
       {canManage ? (

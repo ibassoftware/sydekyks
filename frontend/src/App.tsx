@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import Admin from "./pages/Admin";
 import TenantDashboard from "./pages/TenantDashboard";
 import Roster from "./pages/Roster";
+import SydekykDetail from "./pages/SydekykDetail";
 import Gadgets from "./pages/Gadgets";
 import Settings from "./pages/Settings";
 
@@ -37,6 +38,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={["commander", "hero"]}>
                 <Roster />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hq/roster/:sydekykId"
+            element={
+              <ProtectedRoute roles={["commander", "hero"]}>
+                <SydekykDetail />
               </ProtectedRoute>
             }
           />
