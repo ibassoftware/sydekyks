@@ -101,10 +101,12 @@ def _coerce(raw: dict) -> BillExtraction:
 
 def extract_bill_data(
     virtual_key: str, model_alias: str, document_bytes: bytes, content_type: str, timeout: float = 90.0
-) -> tuple[bool, str, BillExtraction | None]:
+) -> tuple[bool, str, BillExtraction | None, dict]:
     """Vision completion through the tenant's assigned engine (via its LiteLLM virtual key).
-    Returns (ok, message, extraction). No pre-check of vision support — we let the provider reject
-    it and surface a clear message, since BYOK model strings are freeform."""
+    Returns (ok, message, extraction, meta) where meta carries {usage, request_id, model} for
+    billing-grade usage attribution (VS-15). No pre-check of vision support — we let the provider
+    reject it and surface a clear message, since BYOK model strings are freeform."""
+    meta: dict = {"usage": None, "request_id": None, "model": model_alias}
     data_uri = f"data:{content_type};base64,{base64.b64encode(document_bytes).decode('ascii')}"
     payload = {
         "model": model_alias,
@@ -126,7 +128,7 @@ def extract_bill_data(
                 "/chat/completions", headers={"Authorization": f"Bearer {virtual_key}"}, json=payload
             )
     except (httpx.ConnectError, httpx.TimeoutException) as exc:
-        return False, f"Could not reach the LiteLLM proxy: {exc}", None
+        return False, f"Could not reach the LiteLLM proxy: {exc}", None, meta
 
     if resp.status_code >= 400:
         return (
@@ -134,15 +136,20 @@ def extract_bill_data(
             "The AI engine rejected the document. Its assigned model may not support image/PDF "
             f"understanding — assign a vision-capable model in AI Engine settings. ({resp.text[:200]})",
             None,
+            meta,
         )
 
     try:
-        content = resp.json()["choices"][0]["message"]["content"]
+        body = resp.json()
+        content = body["choices"][0]["message"]["content"]
     except (KeyError, IndexError, ValueError):
-        return False, "The AI engine returned an unexpected response shape.", None
+        return False, "The AI engine returned an unexpected response shape.", None, meta
+
+    meta["usage"] = body.get("usage")
+    meta["request_id"] = body.get("id")
 
     raw = _parse_json(content if isinstance(content, str) else json.dumps(content))
     if raw is None:
-        return False, f"Could not parse structured data from the AI response: {str(content)[:200]}", None
+        return False, f"Could not parse structured data from the AI response: {str(content)[:200]}", None, meta
 
-    return True, "ok", _coerce(raw)
+    return True, "ok", _coerce(raw), meta

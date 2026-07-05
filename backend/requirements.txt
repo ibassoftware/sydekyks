@@ -11,3 +11,8 @@ cryptography
 httpx
 python-multipart
 python-dotenv
+alembic
+arq
+redis
+pillow
+pytest

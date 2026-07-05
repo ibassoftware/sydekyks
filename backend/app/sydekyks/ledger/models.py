@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from sqlalchemy import Boolean, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import DateTime
 
 from app.db.session import Base
 
@@ -20,6 +21,9 @@ class LedgerTenantSettings(Base):
     )
     auto_create_partner: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     auto_post_threshold: Mapped[int] = mapped_column(Integer, nullable=False, default=90)
+    # VS-12: result of the last "can this engine actually read a bill?" probe.
+    ledger_vision_ok: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    ledger_vision_tested_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
         default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)

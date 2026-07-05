@@ -39,5 +39,6 @@ def parse_postmark_payload(raw: dict) -> ParsedInboundEmail:
         to_address=to_address,
         from_address=from_address,
         subject=raw.get("Subject") or "",
+        message_id=raw.get("MessageID") or None,
         attachments=attachments,
     )

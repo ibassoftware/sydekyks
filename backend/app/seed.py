@@ -1,4 +1,6 @@
-import app.models  # noqa: F401 — ensure all platform models are registered before create_all
+import os
+
+import app.models  # noqa: F401 — ensure all platform models are registered
 from app.core.config import settings
 from app.core.security import hash_password
 from app.db.session import Base, SessionLocal, engine
@@ -91,9 +93,15 @@ def seed_gadgets(db):
 
 
 def run():
-    # Import every Sydekyk package so their models.py register with metadata before create_all.
+    # Import every Sydekyk package so their models.py register with metadata.
     discover_sydekyk_packages()
-    Base.metadata.create_all(bind=engine)
+
+    # Schema is owned by Alembic — run `alembic upgrade head` before seeding. `create_all` is kept
+    # only as an opt-in local/test bootstrap (SCHEMA_AUTO_CREATE=1); it never ALTERs existing
+    # tables, so it must not be relied on for evolving schemas.
+    if os.getenv("SCHEMA_AUTO_CREATE") == "1":
+        Base.metadata.create_all(bind=engine)
+        print("SCHEMA_AUTO_CREATE=1 — created any missing tables via create_all (dev/test only).")
 
     db = SessionLocal()
     try:

@@ -18,6 +18,14 @@ class Settings(BaseSettings):
     email_webhook_basic_auth_user: str = "postmark"
     email_webhook_basic_auth_pass: str = "dev-inbound-webhook-secret-change-me"
     email_inbound_domain: str = "inbound.sydekyks.app"
+    # Queue-backed Mission execution (VS-7). When queue_enabled is true, Missions are dispatched to
+    # the arq worker over Redis; otherwise they fall back to in-process threadpool execution.
+    redis_url: str = "redis://localhost:6379/0"
+    queue_enabled: bool = False
+    # Max attachment size shared by upload + email ingest (VS-8), in bytes.
+    max_document_bytes: int = 15 * 1024 * 1024
+    # Simple in-memory rate limit for the public email webhook (VS-11).
+    email_webhook_rate_limit_per_minute: int = 60
 
 
 settings = Settings()

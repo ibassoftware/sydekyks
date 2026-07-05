@@ -16,4 +16,5 @@ class ParsedInboundEmail:
     to_address: str
     from_address: str
     subject: str
+    message_id: str | None = None  # provider message id — the idempotency key (VS-8)
     attachments: list[ParsedAttachment] = field(default_factory=list)

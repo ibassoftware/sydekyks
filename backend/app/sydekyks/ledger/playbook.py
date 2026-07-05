@@ -12,7 +12,7 @@ from app.models.gadget import TenantGadgetLink
 from app.models.gadget_requirement import SydekykGadgetRequirement, TenantSydekykGadgetAssignment
 from app.models.llm_provider import TenantSydekykLLMConfig
 from app.models.mission import Mission, MissionDocument
-from app.services import odoo
+from app.services import document_storage, odoo
 from app.services.missions import record_step, register_playbook
 
 from app.sydekyks.ledger import confidence, duplicates, extraction, narration, odoo_bills
@@ -20,13 +20,67 @@ from app.sydekyks.ledger.models import LedgerTenantSettings
 
 PLAYBOOK_KEY = "ledger.vendor_bill_ingest"
 
+# Read-only, human-facing description of the fixed Playbook (VS-5). Single source of truth: the
+# `key`s here MUST match the step_keys `run()` records below, and a test asserts that invariant.
+PLAYBOOK_STEPS = [
+    {"key": "extract_bill_data", "title": "Extract bill data",
+     "description": "Read the uploaded/emailed bill with the assigned vision model and pull vendor, invoice number, dates, totals and line items.",
+     "likely_failures": "AI engine not configured, or the model can't read images/PDFs."},
+    {"key": "connect_odoo", "title": "Connect to Odoo",
+     "description": "Open an authenticated session to the Odoo instance assigned to Ledger.",
+     "likely_failures": "No Odoo assigned, wrong credentials, or Odoo unreachable."},
+    {"key": "lookup_vendor", "title": "Find or create the vendor",
+     "description": "Match the extracted vendor to an Odoo partner; optionally create it when auto-create is on.",
+     "likely_failures": "Vendor not found and auto-create disabled (marked needs-review)."},
+    {"key": "duplicate_check", "title": "Duplicate check",
+     "description": "Look for an existing bill with the same invoice number (or a near-match by amount) to avoid double entry.",
+     "likely_failures": "None fatal — a suspected duplicate is flagged for review."},
+    {"key": "infer_account", "title": "Infer the expense account",
+     "description": "Reuse the vendor's historical account, else fall back to a default expense account.",
+     "likely_failures": "No expense account available in Odoo."},
+    {"key": "create_bill", "title": "Create the vendor bill",
+     "description": "Compute a confidence score and create the draft bill in Odoo with its line items and narration.",
+     "likely_failures": "Required Odoo fields unmet (marked needs-review) or an Odoo error."},
+    {"key": "post_bill", "title": "Post when confident",
+     "description": "If confidence meets the auto-post threshold, post the bill; otherwise leave it as a draft for a human.",
+     "likely_failures": "Odoo rejects posting; bill stays draft."},
+]
 
-def _finish(db: Session, mission: Mission, status: str, summary: dict, error: str | None = None) -> None:
+
+def _finish(
+    db: Session,
+    mission: Mission,
+    status: str,
+    summary: dict,
+    error: str | None = None,
+    failure_category: str | None = None,
+) -> None:
     mission.status = status
     mission.result_summary = summary
     mission.error_message = error
+    # Classify failures so the queue's retry policy (VS-7) reads a field, never the error string.
+    mission.failure_category = failure_category if status == "failed" else None
     mission.completed_at = datetime.now(timezone.utc)
     db.commit()
+
+
+def _emit_usage(db: Session, mission: Mission, llm, meta: dict) -> None:
+    """Best-effort usage attribution — never let a usage-logging hiccup fail the Mission."""
+    try:
+        from app.services import usage_events
+
+        usage_events.record_usage(
+            db,
+            tenant_id=mission.tenant_id,
+            sydekyk_id=mission.sydekyk_id,
+            mission_id=mission.id,
+            provider=llm.provider,
+            model=llm.litellm_model_alias,
+            usage=meta.get("usage"),
+            litellm_request_id=meta.get("request_id"),
+        )
+    except Exception:  # noqa: BLE001 — usage logging is non-critical to the AP workflow
+        db.rollback()
 
 
 def _get_ledger_settings(db: Session, tenant_id) -> LedgerTenantSettings:
@@ -68,9 +122,10 @@ def _get_odoo_link(db: Session, mission: Mission) -> TenantGadgetLink | None:
 def run(db: Session, mission: Mission) -> None:
     idx = 0
     document = db.query(MissionDocument).filter(MissionDocument.mission_id == mission.id).first()
-    if document is None or document.content is None:
+    document_bytes = document_storage.read_content(document)
+    if document is None or document_bytes is None:
         record_step(db, mission, idx, "load_document", "internal", "failed", error="Document bytes missing")
-        _finish(db, mission, "failed", {}, "Document bytes missing")
+        _finish(db, mission, "failed", {}, "Document bytes missing", failure_category="validation")
         return
 
     settings = _get_ledger_settings(db, mission.tenant_id)
@@ -87,14 +142,19 @@ def run(db: Session, mission: Mission) -> None:
     if llm is None or not llm.litellm_virtual_key_encrypted or not llm.litellm_model_alias:
         record_step(db, mission, idx, "extract_bill_data", "llm_call", "failed",
                     error="No AI engine configured for Ledger. Pick one in the Roster AI Engine section.")
-        _finish(db, mission, "failed", {}, "No AI engine configured")
+        _finish(db, mission, "failed", {}, "No AI engine configured", failure_category="setup")
         return
 
     virtual_key = decrypt_secret(llm.litellm_virtual_key_encrypted)
-    ok, msg, bill = extraction.extract_bill_data(virtual_key, llm.litellm_model_alias, document.content, document.content_type)
+    ok, msg, bill, meta = extraction.extract_bill_data(
+        virtual_key, llm.litellm_model_alias, document_bytes, document.content_type
+    )
+    # VS-15: attribute this hosted-AI call to (tenant, sydekyk, mission), keyed by request id.
+    _emit_usage(db, mission, llm, meta)
     if not ok or bill is None:
         record_step(db, mission, idx, "extract_bill_data", "llm_call", "failed", error=msg)
-        _finish(db, mission, "failed", {}, msg)
+        # Provider/proxy reachability or model rejection — the queue may retry transient cases.
+        _finish(db, mission, "failed", {}, msg, failure_category="transient")
         return
     record_step(db, mission, idx, "extract_bill_data", "llm_call", "succeeded", output={
         "vendor_name": bill.vendor_name, "invoice_number": bill.invoice_number,
@@ -108,12 +168,13 @@ def run(db: Session, mission: Mission) -> None:
     if link is None:
         record_step(db, mission, idx, "connect_odoo", "gadget_call", "failed",
                     error="No Odoo instance assigned to Ledger. Assign one in Ledger's settings.")
-        _finish(db, mission, "failed", {"vendor_name": bill.vendor_name}, "No Odoo instance assigned")
+        _finish(db, mission, "failed", {"vendor_name": bill.vendor_name}, "No Odoo instance assigned",
+                failure_category="setup")
         return
     ok, msg, client = odoo.connect(link.url, link.database, link.username, decrypt_secret(link.encrypted_secret))
     if not ok or client is None:
         record_step(db, mission, idx, "connect_odoo", "gadget_call", "failed", error=msg)
-        _finish(db, mission, "failed", {"vendor_name": bill.vendor_name}, msg)
+        _finish(db, mission, "failed", {"vendor_name": bill.vendor_name}, msg, failure_category="external")
         return
     record_step(db, mission, idx, "connect_odoo", "gadget_call", "succeeded", output={"instance": link.name})
     idx += 1
@@ -170,7 +231,8 @@ def run(db: Session, mission: Mission) -> None:
         if account_id is None:
             record_step(db, mission, idx, "infer_account", "gadget_call", "failed",
                         error="No expense account available in Odoo")
-            _finish(db, mission, "failed", {"vendor_name": bill.vendor_name}, "No expense account available")
+            _finish(db, mission, "failed", {"vendor_name": bill.vendor_name}, "No expense account available",
+                    failure_category="validation")
             return
         record_step(db, mission, idx, "infer_account", "gadget_call", "succeeded", output={
             "account_id": account_id, "source": account_source})
@@ -198,7 +260,7 @@ def run(db: Session, mission: Mission) -> None:
                 "vendor_name": bill.vendor_name, "invoice_number": bill.invoice_number,
                 "total": bill.total, "currency": bill.currency, "posted": False,
                 "needs_review": bool(unmet), "review_reason": msg,
-            }, None if unmet else msg)
+            }, None if unmet else msg, failure_category=None if unmet else "external")
             return
         record_step(db, mission, idx, "create_bill", "gadget_call", "succeeded", output={
             "odoo_move_id": move_id, "confidence": score})
@@ -222,7 +284,7 @@ def run(db: Session, mission: Mission) -> None:
         })
     except odoo.OdooError as exc:
         record_step(db, mission, idx, "odoo_error", "gadget_call", "failed", error=str(exc))
-        _finish(db, mission, "failed", {"vendor_name": bill.vendor_name}, str(exc))
+        _finish(db, mission, "failed", {"vendor_name": bill.vendor_name}, str(exc), failure_category="external")
 
 
 register_playbook(PLAYBOOK_KEY, run)

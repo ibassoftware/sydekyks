@@ -1,22 +1,24 @@
 import hashlib
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.deps import require_tenant_member
 from app.db.session import get_db
 from app.models.sydekyk import Sydekyk, SydekykInstall
 from app.models.user import User
 from app.schemas.mission import MissionOut
-from app.services.missions import create_mission_for_document, run_mission
+from app.services.missions import create_mission_for_document
+from app.services.queue import enqueue_mission
 
 router = APIRouter(prefix="/api/tenant", tags=["documents"], dependencies=[Depends(require_tenant_member)])
 
 _ALLOWED_TYPES = {"application/pdf", "image/png", "image/jpeg", "image/webp"}
 _ALLOWED_EXTS = (".pdf", ".png", ".jpg", ".jpeg", ".webp")
-_MAX_BYTES = 15 * 1024 * 1024
+_MAX_BYTES = settings.max_document_bytes
 
 
 def _mission_out(mission, filename: str | None) -> MissionOut:
@@ -37,7 +39,6 @@ def _mission_out(mission, filename: str | None) -> MissionOut:
 @router.post("/sydekyks/{sydekyk_id}/documents", response_model=list[MissionOut], status_code=status.HTTP_201_CREATED)
 async def upload_documents(
     sydekyk_id: uuid.UUID,
-    background_tasks: BackgroundTasks,
     files: list[UploadFile],
     user: User = Depends(require_tenant_member),
     db: Session = Depends(get_db),
@@ -90,7 +91,7 @@ async def upload_documents(
             source="web_upload",
             signal_type="manual_upload",
         )
-        background_tasks.add_task(run_mission, mission.id)
+        await enqueue_mission(mission.id)
         created.append(_mission_out(mission, name))
 
     return created

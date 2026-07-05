@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.models.mission import Mission, MissionDocument, MissionStep
 from app.models.sydekyk import Sydekyk
+from app.services import document_storage
 
 # ---------------------------------------------------------------------------
 # Registries
@@ -139,11 +140,56 @@ def create_mission_for_document(
         content_type=content_type,
         size_bytes=len(document_bytes),
         sha256_hash=sha256_hash,
-        storage_backend="postgres_bytea",
-        content=document_bytes,
         source=source,
     )
+    document_storage.write_content(document, document_bytes)  # sets storage_backend + content via the boundary
     db.add(document)
+    db.commit()
+    db.refresh(mission)
+    return mission
+
+
+def retry_mission(db: Session, original: Mission) -> Mission:
+    """Create a NEW Mission that replays the original's contract (same Playbook + document).
+
+    Retrying in place is impossible without destroying the audit trail — `mission_steps` has a
+    unique (mission_id, step_index). So a retry is a fresh Mission linked via `parent_mission_id`
+    to its predecessor and `root_mission_id` to the head of the chain. The document bytes are
+    copied through the DocumentStorage boundary (a no-op-cheap copy today; a storage_key copy once
+    S3 lands). Only failed Missions may be retried."""
+    if original.status != "failed":
+        raise ValueError("Only failed Missions can be retried")
+
+    original_doc = db.query(MissionDocument).filter(MissionDocument.mission_id == original.id).first()
+    if original_doc is None:
+        raise ValueError("Original Mission has no document to replay")
+
+    mission = Mission(
+        tenant_id=original.tenant_id,
+        user_id=original.user_id,
+        sydekyk_id=original.sydekyk_id,
+        mode=original.mode,
+        signal_type=original.signal_type,
+        playbook_key=original.playbook_key,  # replay the ORIGINAL Playbook, not "latest"
+        status="queued",
+        parent_mission_id=original.id,
+        root_mission_id=original.root_mission_id or original.id,
+        attempt_number=original.attempt_number + 1,
+    )
+    db.add(mission)
+    db.flush()
+
+    copy = MissionDocument(
+        tenant_id=original.tenant_id,
+        mission_id=mission.id,
+        filename=original_doc.filename,
+        content_type=original_doc.content_type,
+        size_bytes=original_doc.size_bytes,
+        sha256_hash=original_doc.sha256_hash,
+        source=original_doc.source,
+    )
+    document_storage.write_content(copy, document_storage.read_content(original_doc) or b"")
+    db.add(copy)
     db.commit()
     db.refresh(mission)
     return mission
@@ -185,6 +231,10 @@ def run_mission(mission_id: uuid.UUID) -> None:
             if mission is not None:
                 mission.status = "failed"
                 mission.error_message = str(exc)[:2000]
+                # An unhandled crash is not a classified setup/validation problem — treat as
+                # unknown so the queue's retry policy (VS-7) can decide conservatively.
+                if mission.failure_category is None:
+                    mission.failure_category = "unknown"
                 mission.completed_at = datetime.now(timezone.utc)
                 db.commit()
             return

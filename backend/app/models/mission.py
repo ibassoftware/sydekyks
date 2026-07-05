@@ -28,8 +28,16 @@ class Mission(Base):
     signal_type: Mapped[str] = mapped_column(String(20), nullable=False)  # manual_upload | email | scheduled | api
     playbook_key: Mapped[str] = mapped_column(String(150), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="queued")  # queued|running|succeeded|failed
+    # Populated only on failure; drives the queue's retry policy (VS-7) instead of error-string matching.
+    failure_category: Mapped[str | None] = mapped_column(String(20), nullable=True)  # setup|validation|transient|external|unknown
     result_summary: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Retry lineage (VS-4): a retry is a NEW Mission linked to its predecessor + the chain head.
+    parent_mission_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("missions.id", ondelete="SET NULL"), nullable=True
+    )
+    root_mission_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
+    attempt_number: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
     started_at: Mapped[datetime | None] = mapped_column(nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(nullable=True)
