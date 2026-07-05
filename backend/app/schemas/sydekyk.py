@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class SydekykOut(BaseModel):
@@ -20,6 +20,10 @@ class SydekykOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class SydekykModelUpdate(BaseModel):
+    model: str = Field(min_length=1, max_length=100)
 
 
 class SydekykAdminOut(BaseModel):

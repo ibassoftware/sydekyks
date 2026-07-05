@@ -7,6 +7,7 @@ import Admin from "./pages/Admin";
 import TenantDashboard from "./pages/TenantDashboard";
 import Roster from "./pages/Roster";
 import Gadgets from "./pages/Gadgets";
+import Settings from "./pages/Settings";
 
 export default function App() {
   return (
@@ -44,6 +45,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={["commander", "hero"]}>
                 <Gadgets />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hq/settings"
+            element={
+              <ProtectedRoute roles={["commander"]}>
+                <Settings />
               </ProtectedRoute>
             }
           />

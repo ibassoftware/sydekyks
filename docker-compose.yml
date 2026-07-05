@@ -12,5 +12,35 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  litellm-postgres:
+    image: postgres:16-alpine
+    container_name: sydekyks-litellm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: litellm
+      POSTGRES_PASSWORD: litellm
+      POSTGRES_DB: litellm
+    volumes:
+      - litellm_postgres_data:/var/lib/postgresql/data
+
+  litellm-proxy:
+    # Pin an explicit version tag before deploying anywhere real — verify the latest stable
+    # release at https://github.com/BerriAI/litellm/releases before shipping.
+    image: ghcr.io/berriai/litellm:v1.81.9-stable
+    container_name: sydekyks-litellm-proxy
+    restart: unless-stopped
+    depends_on:
+      - litellm-postgres
+    environment:
+      DATABASE_URL: postgresql://litellm:litellm@litellm-postgres:5432/litellm
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-sydekyks-dev-master-key-change-me}
+    ports:
+      # Dev convenience only — must be internal-network-only (no host port mapping) in a real deployment.
+      - "4000:4000"
+    volumes:
+      - ./litellm-config.yaml:/app/config.yaml:ro
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+
 volumes:
   postgres_data:
+  litellm_postgres_data:

@@ -11,7 +11,9 @@ class Settings(BaseSettings):
     admin_email: str = "rein@ibasuite.com"
     admin_password: str = "admin123"
     cors_origins: list[str] = ["http://localhost:5173"]
-    gadget_encryption_key: str = "5fto_knqSHvZPLD6rRnVbetrEbhgHH24KoJpXBjjJYs="
+    encryption_key: str = "5fto_knqSHvZPLD6rRnVbetrEbhgHH24KoJpXBjjJYs="
+    litellm_proxy_url: str = "http://localhost:4000"
+    litellm_master_key: str = "sk-sydekyks-dev-master-key-change-me"
 
 
 settings = Settings()

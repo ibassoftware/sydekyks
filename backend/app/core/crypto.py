@@ -2,7 +2,7 @@ from cryptography.fernet import Fernet
 
 from app.core.config import settings
 
-_fernet = Fernet(settings.gadget_encryption_key.encode("utf-8"))
+_fernet = Fernet(settings.encryption_key.encode("utf-8"))
 
 
 def encrypt_secret(plaintext: str) -> str:

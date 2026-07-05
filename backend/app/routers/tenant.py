@@ -11,6 +11,7 @@ from app.models.tenant import Tenant
 from app.models.user import User
 from app.schemas.dashboard import DashboardOut
 from app.schemas.sydekyk import SydekykOut
+from app.services.usage import get_tenant_dashboard_usage
 
 router = APIRouter(prefix="/api/tenant", tags=["tenant"], dependencies=[Depends(require_tenant_member)])
 
@@ -59,6 +60,7 @@ def dashboard(user: User = Depends(require_tenant_member), db: Session = Depends
     sydekyks = _visible_sydekyks(db, tenant.id)
     roster_count = sum(1 for s in sydekyks if not s.is_exclusive and s.id in installed_ids)
     exclusive_count = sum(1 for s in sydekyks if s.is_exclusive)
+    used, stale = get_tenant_dashboard_usage(db, tenant)
 
     return DashboardOut(
         tenant_id=tenant.id,
@@ -67,8 +69,9 @@ def dashboard(user: User = Depends(require_tenant_member), db: Session = Depends
         plan=tenant.plan,
         roster_sydekyk_count=roster_count,
         exclusive_sydekyk_count=exclusive_count,
-        power_meter_used=0,
-        power_meter_quota=100000,
+        power_meter_used=used,
+        power_meter_quota=None,
+        power_meter_stale=stale,
     )
 
 

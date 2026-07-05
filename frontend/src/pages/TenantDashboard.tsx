@@ -22,7 +22,9 @@ export default function TenantDashboard() {
     navigate("/login");
   }
 
-  const powerPct = dashboard ? Math.min(100, Math.round((dashboard.power_meter_used / dashboard.power_meter_quota) * 100)) : 0;
+  const hasQuota = !!dashboard?.power_meter_quota;
+  const powerPct =
+    dashboard && hasQuota ? Math.min(100, Math.round((dashboard.power_meter_used / dashboard.power_meter_quota!) * 100)) : 0;
 
   return (
     <PageShell>
@@ -38,6 +40,11 @@ export default function TenantDashboard() {
             <Link to="/hq/gadgets" className="text-sm font-semibold text-gold-400 hover:text-gold-300">
               Gadgets
             </Link>
+            {user?.role === "commander" && (
+              <Link to="/hq/settings" className="text-sm font-semibold text-gold-400 hover:text-gold-300">
+                Settings
+              </Link>
+            )}
             <span className="text-sm text-[#b9ad98]">{user?.email}</span>
             <Button variant="ghost" onClick={handleLogout}>
               Log out
@@ -73,13 +80,23 @@ export default function TenantDashboard() {
                 </Card>
               </Link>
               <Card className="p-6">
-                <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Power Meter</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Estimated Power Usage</p>
                 <p className="mt-2 text-3xl font-bold text-[#f5eee0]">
-                  {dashboard.power_meter_used.toLocaleString()} <span className="text-base font-normal text-[#8a7f6d]">/ {dashboard.power_meter_quota.toLocaleString()}</span>
+                  ${dashboard.power_meter_used.toFixed(2)}
+                  {hasQuota && (
+                    <span className="text-base font-normal text-[#8a7f6d]"> / ${dashboard.power_meter_quota!.toFixed(2)}</span>
+                  )}
                 </p>
-                <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-ink-700">
-                  <div className="h-full rounded-full bg-gradient-to-r from-gold-600 to-gold-400" style={{ width: `${powerPct}%` }} />
-                </div>
+                {hasQuota ? (
+                  <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-ink-700">
+                    <div className="h-full rounded-full bg-gradient-to-r from-gold-600 to-gold-400" style={{ width: `${powerPct}%` }} />
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-[#8a7f6d]">No quota set</p>
+                )}
+                {dashboard.power_meter_stale && (
+                  <p className="mt-2 text-xs text-[#8a7f6d]">Showing last known value — reconnecting…</p>
+                )}
               </Card>
             </div>
 

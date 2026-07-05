@@ -8,5 +8,6 @@ pydantic-settings
 pyjwt
 bcrypt
 cryptography
+httpx
 python-multipart
 python-dotenv
