@@ -42,6 +42,25 @@ def test_coerce_normalizes_currency_and_numbers():
     assert bill.line_items[0].amount == 50.0
 
 
+def test_image_data_uris_passthrough_for_images():
+    uris, err = extraction._image_data_uris(b"\x89PNG fake", "image/png")
+    assert err is None
+    assert len(uris) == 1 and uris[0].startswith("data:image/png;base64,")
+
+
+def test_image_data_uris_rasterizes_pdf_to_png():
+    import io
+
+    from PIL import Image
+
+    buf = io.BytesIO()
+    Image.new("RGB", (200, 200), "white").save(buf, format="PDF")
+    uris, err = extraction._image_data_uris(buf.getvalue(), "application/pdf")
+    assert err is None
+    # A PDF becomes one-or-more PNG image parts (not a PDF data URI).
+    assert len(uris) >= 1 and all(u.startswith("data:image/png;base64,") for u in uris)
+
+
 def test_coerce_skips_unparseable_line_items():
     bill = extraction._coerce({
         "vendor_name": "ACME", "total": 10,

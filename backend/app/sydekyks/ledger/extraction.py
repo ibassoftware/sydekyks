@@ -1,4 +1,5 @@
 import base64
+import io
 import json
 import re
 from dataclasses import dataclass, field
@@ -6,6 +7,47 @@ from dataclasses import dataclass, field
 import httpx
 
 from app.core.config import settings
+
+# Vision models accept raster images, not PDFs — a PDF sent as an image_url is rejected with
+# "invalid image input". So a PDF is rasterized to PNG page images before the vision call. Cap the
+# page count: invoices are almost always 1-2 pages, and each page is another (billable) image.
+_MAX_PDF_PAGES = 5
+_PDF_RENDER_SCALE = 2.5  # ~180 DPI — enough for the model to read invoice text
+
+
+def _b64_data_uri(content_type: str, raw: bytes) -> str:
+    return f"data:{content_type};base64,{base64.b64encode(raw).decode('ascii')}"
+
+
+def _image_data_uris(document_bytes: bytes, content_type: str) -> tuple[list[str], str | None]:
+    """Turn the uploaded document into a list of image data URIs the vision model can read.
+    Images pass straight through; PDFs are rasterized page-by-page to PNG."""
+    is_pdf = content_type == "application/pdf" or document_bytes[:5] == b"%PDF-"
+    if not is_pdf:
+        return [_b64_data_uri(content_type or "image/png", document_bytes)], None
+
+    try:
+        import pypdfium2 as pdfium
+    except ImportError:
+        return [], "PDF support isn't installed (pypdfium2). Install it or upload an image."
+
+    try:
+        pdf = pdfium.PdfDocument(document_bytes)
+    except Exception as exc:  # noqa: BLE001 — corrupt/encrypted PDF
+        return [], f"Couldn't open the PDF: {exc}"
+
+    uris: list[str] = []
+    try:
+        for i in range(min(len(pdf), _MAX_PDF_PAGES)):
+            bitmap = pdf[i].render(scale=_PDF_RENDER_SCALE)
+            buf = io.BytesIO()
+            bitmap.to_pil().save(buf, format="PNG")
+            uris.append(_b64_data_uri("image/png", buf.getvalue()))
+    finally:
+        pdf.close()
+    if not uris:
+        return [], "The PDF had no rasterizable pages."
+    return uris, None
 
 _EXTRACTION_PROMPT = """You are Ledger, a meticulous accounts-payable assistant. You are given an \
 image of a single vendor bill / invoice. Extract its data and respond with ONLY a JSON object \
@@ -107,18 +149,16 @@ def extract_bill_data(
     billing-grade usage attribution (VS-15). No pre-check of vision support — we let the provider
     reject it and surface a clear message, since BYOK model strings are freeform."""
     meta: dict = {"usage": None, "request_id": None, "model": model_alias, "cost_usd": 0.0}
-    data_uri = f"data:{content_type};base64,{base64.b64encode(document_bytes).decode('ascii')}"
+
+    image_uris, img_err = _image_data_uris(document_bytes, content_type)
+    if img_err:
+        return False, img_err, None, meta
+
+    content = [{"type": "text", "text": _EXTRACTION_PROMPT}]
+    content += [{"type": "image_url", "image_url": {"url": uri}} for uri in image_uris]
     payload = {
         "model": model_alias,
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": _EXTRACTION_PROMPT},
-                    {"type": "image_url", "image_url": {"url": data_uri}},
-                ],
-            }
-        ],
+        "messages": [{"role": "user", "content": content}],
         "temperature": 0,
     }
 

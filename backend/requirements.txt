@@ -15,4 +15,5 @@ alembic
 arq
 redis
 pillow
+pypdfium2
 pytest
