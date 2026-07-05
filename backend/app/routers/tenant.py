@@ -1,13 +1,52 @@
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.core.deps import require_tenant_member
+from app.core.deps import require_commander, require_tenant_member
 from app.db.session import get_db
+from app.models.sydekyk import Sydekyk, SydekykInstall
 from app.models.tenant import Tenant
 from app.models.user import User
 from app.schemas.dashboard import DashboardOut
+from app.schemas.sydekyk import SydekykOut
 
 router = APIRouter(prefix="/api/tenant", tags=["tenant"], dependencies=[Depends(require_tenant_member)])
+
+
+def _visible_sydekyks(db: Session, tenant_id: uuid.UUID) -> list[Sydekyk]:
+    return (
+        db.query(Sydekyk)
+        .filter(
+            Sydekyk.is_published.is_(True),
+            or_(Sydekyk.tenant_id.is_(None), Sydekyk.tenant_id == tenant_id),
+        )
+        .order_by(Sydekyk.created_at.asc())
+        .all()
+    )
+
+
+def _installed_ids(db: Session, tenant_id: uuid.UUID) -> set[uuid.UUID]:
+    rows = db.query(SydekykInstall.sydekyk_id).filter(SydekykInstall.tenant_id == tenant_id).all()
+    return {row[0] for row in rows}
+
+
+def _to_out(sydekyk: Sydekyk, installed: bool) -> SydekykOut:
+    return SydekykOut(
+        id=sydekyk.id,
+        name=sydekyk.name,
+        slug=sydekyk.slug,
+        tagline=sydekyk.tagline,
+        description=sydekyk.description,
+        avatar_url=sydekyk.avatar_url,
+        model=sydekyk.model,
+        is_exclusive=sydekyk.is_exclusive,
+        chat_enabled=sydekyk.chat_enabled,
+        workflow_enabled=sydekyk.workflow_enabled,
+        installed=installed,
+        created_at=sydekyk.created_at,
+    )
 
 
 @router.get("/dashboard", response_model=DashboardOut)
@@ -16,15 +55,72 @@ def dashboard(user: User = Depends(require_tenant_member), db: Session = Depends
     if tenant is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found")
 
-    # Sydekyk roster / Power Meter data pipelines land in a later milestone;
-    # placeholders keep the dashboard contract stable for the frontend.
+    installed_ids = _installed_ids(db, tenant.id)
+    sydekyks = _visible_sydekyks(db, tenant.id)
+    roster_count = sum(1 for s in sydekyks if not s.is_exclusive and s.id in installed_ids)
+    exclusive_count = sum(1 for s in sydekyks if s.is_exclusive)
+
     return DashboardOut(
         tenant_id=tenant.id,
         tenant_name=tenant.name,
         tenant_slug=tenant.slug,
         plan=tenant.plan,
-        roster_sydekyk_count=0,
-        exclusive_sydekyk_count=0,
+        roster_sydekyk_count=roster_count,
+        exclusive_sydekyk_count=exclusive_count,
         power_meter_used=0,
         power_meter_quota=100000,
     )
+
+
+@router.get("/sydekyks", response_model=list[SydekykOut])
+def list_sydekyks(user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+    installed_ids = _installed_ids(db, user.tenant_id)
+    sydekyks = _visible_sydekyks(db, user.tenant_id)
+    return [_to_out(s, installed=s.is_exclusive or s.id in installed_ids) for s in sydekyks]
+
+
+def _get_visible_sydekyk(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -> Sydekyk:
+    sydekyk = (
+        db.query(Sydekyk)
+        .filter(
+            Sydekyk.id == sydekyk_id,
+            Sydekyk.is_published.is_(True),
+            or_(Sydekyk.tenant_id.is_(None), Sydekyk.tenant_id == tenant_id),
+        )
+        .first()
+    )
+    if sydekyk is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sydekyk not found")
+    return sydekyk
+
+
+@router.post("/sydekyks/{sydekyk_id}/install", response_model=SydekykOut, status_code=status.HTTP_201_CREATED)
+def install_sydekyk(sydekyk_id: uuid.UUID, user: User = Depends(require_commander), db: Session = Depends(get_db)):
+    sydekyk = _get_visible_sydekyk(db, user.tenant_id, sydekyk_id)
+    if sydekyk.is_exclusive:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Exclusive Sydekyks are always active")
+
+    existing = (
+        db.query(SydekykInstall)
+        .filter(SydekykInstall.tenant_id == user.tenant_id, SydekykInstall.sydekyk_id == sydekyk_id)
+        .first()
+    )
+    if existing is None:
+        db.add(SydekykInstall(tenant_id=user.tenant_id, sydekyk_id=sydekyk_id))
+        db.commit()
+
+    return _to_out(sydekyk, installed=True)
+
+
+@router.delete("/sydekyks/{sydekyk_id}/install", response_model=SydekykOut)
+def uninstall_sydekyk(sydekyk_id: uuid.UUID, user: User = Depends(require_commander), db: Session = Depends(get_db)):
+    sydekyk = _get_visible_sydekyk(db, user.tenant_id, sydekyk_id)
+    if sydekyk.is_exclusive:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Exclusive Sydekyks can't be uninstalled")
+
+    db.query(SydekykInstall).filter(
+        SydekykInstall.tenant_id == user.tenant_id, SydekykInstall.sydekyk_id == sydekyk_id
+    ).delete()
+    db.commit()
+
+    return _to_out(sydekyk, installed=False)

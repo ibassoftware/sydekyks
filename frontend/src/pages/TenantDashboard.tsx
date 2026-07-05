@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api, type Dashboard } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { Button, Card, PageShell } from "../components/ui";
@@ -32,6 +32,12 @@ export default function TenantDashboard() {
             <span className="text-2xl">⚡</span> SYDEKYKS
           </div>
           <div className="flex items-center gap-4">
+            <Link to="/hq/roster" className="text-sm font-semibold text-gold-400 hover:text-gold-300">
+              Roster
+            </Link>
+            <Link to="/hq/integrations" className="text-sm font-semibold text-gold-400 hover:text-gold-300">
+              Integrations
+            </Link>
             <span className="text-sm text-[#b9ad98]">{user?.email}</span>
             <Button variant="ghost" onClick={handleLogout}>
               Log out
@@ -52,16 +58,20 @@ export default function TenantDashboard() {
             </div>
 
             <div className="mt-8 grid gap-6 md:grid-cols-3">
-              <Card className="p-6">
-                <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Roster Sydekyks</p>
-                <p className="mt-2 text-3xl font-bold text-[#f5eee0]">{dashboard.roster_sydekyk_count}</p>
-                <p className="mt-1 text-sm text-[#8a7f6d]">Shared agents available to your team</p>
-              </Card>
-              <Card className="p-6">
-                <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Exclusive Sydekyks</p>
-                <p className="mt-2 text-3xl font-bold text-[#f5eee0]">{dashboard.exclusive_sydekyk_count}</p>
-                <p className="mt-1 text-sm text-[#8a7f6d]">Built just for your HQ</p>
-              </Card>
+              <Link to="/hq/roster">
+                <Card className="p-6 transition-colors hover:border-gold-500/60">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Roster Sydekyks</p>
+                  <p className="mt-2 text-3xl font-bold text-[#f5eee0]">{dashboard.roster_sydekyk_count}</p>
+                  <p className="mt-1 text-sm text-[#8a7f6d]">Shared agents available to your team</p>
+                </Card>
+              </Link>
+              <Link to="/hq/roster">
+                <Card className="p-6 transition-colors hover:border-gold-500/60">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Exclusive Sydekyks</p>
+                  <p className="mt-2 text-3xl font-bold text-[#f5eee0]">{dashboard.exclusive_sydekyk_count}</p>
+                  <p className="mt-1 text-sm text-[#8a7f6d]">Built just for your HQ</p>
+                </Card>
+              </Link>
               <Card className="p-6">
                 <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Power Meter</p>
                 <p className="mt-2 text-3xl font-bold text-[#f5eee0]">
@@ -73,8 +83,11 @@ export default function TenantDashboard() {
               </Card>
             </div>
 
-            <Card className="mt-6 p-10 text-center">
-              <p className="text-[#b9ad98]">No Sydekyks activated yet. Your roster will appear here once your Commander enables them.</p>
+            <Card className="mt-6 flex flex-col items-center gap-4 p-10 text-center">
+              <p className="text-[#b9ad98]">Activate Sydekyks from the Roster to put them to work for your team.</p>
+              <Link to="/hq/roster">
+                <Button>Open the Roster</Button>
+              </Link>
             </Card>
           </>
         )}

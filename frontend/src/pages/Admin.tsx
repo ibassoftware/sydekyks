@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import axios from "axios";
-import { api, type Tenant } from "../lib/api";
+import { api, type SydekykAdmin, type Tenant } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { Button, Card, Input, Label, PageShell } from "../components/ui";
+import { Badge, Button, Card, Input, Label, PageShell } from "../components/ui";
 import { useNavigate } from "react-router-dom";
 
 export default function Admin() {
@@ -11,6 +11,9 @@ export default function Admin() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [sydekyks, setSydekyks] = useState<SydekykAdmin[]>([]);
+  const [sydekyksLoading, setSydekyksLoading] = useState(true);
+  const [publishPendingId, setPublishPendingId] = useState<string | null>(null);
 
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -26,9 +29,30 @@ export default function Admin() {
     setLoading(false);
   }
 
+  async function loadSydekyks() {
+    setSydekyksLoading(true);
+    const res = await api.get<SydekykAdmin[]>("/admin/sydekyks");
+    setSydekyks(res.data);
+    setSydekyksLoading(false);
+  }
+
   useEffect(() => {
     loadTenants();
+    loadSydekyks();
   }, []);
+
+  async function togglePublish(sydekyk: SydekykAdmin) {
+    setPublishPendingId(sydekyk.id);
+    try {
+      const res = sydekyk.is_published
+        ? await api.delete<SydekykAdmin>(`/admin/sydekyks/${sydekyk.id}/publish`)
+        : await api.post<SydekykAdmin>(`/admin/sydekyks/${sydekyk.id}/publish`);
+      const updated = res.data;
+      setSydekyks((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+    } finally {
+      setPublishPendingId(null);
+    }
+  }
 
   function slugify(value: string) {
     return value
@@ -166,6 +190,82 @@ export default function Admin() {
                     <td className="px-6 py-3 text-[#b9ad98]">{t.slug}</td>
                     <td className="px-6 py-3 capitalize text-[#b9ad98]">{t.plan}</td>
                     <td className="px-6 py-3 text-[#b9ad98]">{new Date(t.created_at).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Card>
+
+        <div className="mt-12 flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-[#f5eee0]">Roster Sydekyks</h2>
+            <p className="mt-1 text-sm text-[#b9ad98]">
+              Shared Sydekyks available across every HQ. Publish to make one installable tenant-wide, or unpublish to
+              pull it back.
+            </p>
+          </div>
+        </div>
+
+        <Card className="mt-6 overflow-hidden">
+          {sydekyksLoading ? (
+            <p className="p-6 text-sm text-[#b9ad98]">Loading Roster Sydekyks…</p>
+          ) : sydekyks.length === 0 ? (
+            <p className="p-6 text-sm text-[#b9ad98]">No Roster Sydekyks yet.</p>
+          ) : (
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-ink-700 text-xs uppercase tracking-wider text-gold-500">
+                  <th className="px-6 py-3 font-semibold">Sydekyk</th>
+                  <th className="px-6 py-3 font-semibold">Model</th>
+                  <th className="px-6 py-3 font-semibold">Modes</th>
+                  <th className="px-6 py-3 font-semibold">Status</th>
+                  <th className="px-6 py-3 font-semibold"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {sydekyks.map((s) => (
+                  <tr key={s.id} className="border-b border-ink-700/60 last:border-0">
+                    <td className="px-6 py-3">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={s.avatar_url}
+                          alt={s.name}
+                          className="h-9 w-9 rounded-full border border-ink-600 object-cover object-top"
+                        />
+                        <div>
+                          <p className="font-medium text-[#f5eee0]">{s.name}</p>
+                          <p className="text-xs text-[#8a7f6d]">{s.tagline}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-3 text-[#b9ad98]">{s.model}</td>
+                    <td className="px-6 py-3">
+                      <div className="flex gap-1.5">
+                        {s.chat_enabled && <Badge tone="neutral">Chat</Badge>}
+                        {s.workflow_enabled && <Badge tone="neutral">Workflow</Badge>}
+                      </div>
+                    </td>
+                    <td className="px-6 py-3">
+                      {s.is_published ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold-400">
+                          <span className="h-1.5 w-1.5 rounded-full bg-gold-400 shadow-[0_0_8px_2px_rgba(234,194,95,0.7)]" />
+                          Published
+                        </span>
+                      ) : (
+                        <span className="text-xs font-semibold text-[#8a7f6d]">Draft</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-3 text-right">
+                      <Button
+                        variant="ghost"
+                        className="px-3 py-1.5 text-xs"
+                        disabled={publishPendingId === s.id}
+                        onClick={() => togglePublish(s)}
+                      >
+                        {publishPendingId === s.id ? "…" : s.is_published ? "Unpublish" : "Publish"}
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

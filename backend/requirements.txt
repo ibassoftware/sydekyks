@@ -7,5 +7,6 @@ pydantic[email]
 pydantic-settings
 pyjwt
 bcrypt
+cryptography
 python-multipart
 python-dotenv

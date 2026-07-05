@@ -38,3 +38,9 @@ def require_tenant_member(user: User = Depends(get_current_user)) -> User:
     if user.role not in ("commander", "hero"):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Tenant access required")
     return user
+
+
+def require_commander(user: User = Depends(get_current_user)) -> User:
+    if user.role != "commander":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Commander access required")
+    return user

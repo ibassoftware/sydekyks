@@ -5,6 +5,8 @@ import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
 import TenantDashboard from "./pages/TenantDashboard";
+import Roster from "./pages/Roster";
+import Integrations from "./pages/Integrations";
 
 export default function App() {
   return (
@@ -26,6 +28,22 @@ export default function App() {
             element={
               <ProtectedRoute roles={["commander", "hero"]}>
                 <TenantDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hq/roster"
+            element={
+              <ProtectedRoute roles={["commander", "hero"]}>
+                <Roster />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hq/integrations"
+            element={
+              <ProtectedRoute roles={["commander", "hero"]}>
+                <Integrations />
               </ProtectedRoute>
             }
           />
