@@ -5,11 +5,13 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
+import AdminMissions from "./pages/AdminMissions";
 import TenantDashboard from "./pages/TenantDashboard";
 import Roster from "./pages/Roster";
 import SydekykDetail from "./pages/SydekykDetail";
 import Gadgets from "./pages/Gadgets";
 import Missions from "./pages/Missions";
+import Issues from "./pages/Issues";
 import Settings from "./pages/Settings";
 
 export default function App() {
@@ -25,6 +27,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={["super_admin"]}>
                 <Admin />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/missions"
+            element={
+              <ProtectedRoute roles={["super_admin"]}>
+                <AdminMissions />
               </ProtectedRoute>
             }
           />
@@ -65,6 +75,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={["commander", "hero"]}>
                 <Missions />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hq/issues"
+            element={
+              <ProtectedRoute roles={["commander", "hero"]}>
+                <Issues />
               </ProtectedRoute>
             }
           />

@@ -39,6 +39,7 @@ export default function Roster() {
             <span className="text-2xl">⚡</span> SYDEKYKS
           </Link>
           <div className="flex items-center gap-4">
+            <Link to="/hq/issues" className="text-sm font-semibold text-gold-400 hover:text-gold-300">Issues</Link>
             <HeaderActivity />
             <span className="text-sm text-[#b9ad98]">{user?.email}</span>
             <Link to="/hq">

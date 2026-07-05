@@ -212,6 +212,7 @@ export interface Mission {
   id: string;
   sydekyk_id: string;
   sydekyk_name: string | null;
+  tenant_name?: string | null;  // set only by the admin Command Center cross-tenant view
   playbook_key: string;
   signal_type: string;
   source: string | null;
@@ -293,6 +294,34 @@ export interface EmailInboxOut {
   inbound_address: string;
 }
 
+// --- Tenant Issues (standing config gaps + missions flagged for review) ---
+
+export interface TenantIssue {
+  id: string;
+  sydekyk_id: string | null;
+  sydekyk_name: string | null;
+  kind: string;
+  title: string;
+  detail: string | null;
+  status: "open" | "resolved";
+  occurrence_count: number;
+  first_seen_at: string;
+  last_seen_at: string;
+}
+
+export interface MissionReviewItem {
+  mission_id: string;
+  sydekyk_name: string | null;
+  document_filename: string | null;
+  reason: string | null;
+  created_at: string;
+}
+
+export interface IssuesOut {
+  config_issues: TenantIssue[];
+  missions_needing_review: MissionReviewItem[];
+}
+
 export interface EligibleLink {
   id: string;
   name: string;
@@ -310,6 +339,7 @@ export interface GadgetRequirement {
 
 export interface LedgerSettings {
   auto_create_partner: boolean;
+  auto_post_enabled: boolean;
   auto_post_threshold: number;
   ledger_vision_ok?: boolean | null;
   ledger_vision_tested_at?: string | null;

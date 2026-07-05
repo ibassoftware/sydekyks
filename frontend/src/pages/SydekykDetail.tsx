@@ -32,6 +32,9 @@ export default function SydekykDetail() {
   const [pending, setPending] = useState(false);
   const [readiness, setReadiness] = useState<LedgerReadiness | null>(null);
   const registryEntry = registryForSlug(sydekyk?.slug);
+  // Settings is configured once; Upload Bills + Recent Missions are used constantly — split them
+  // into tabs, defaulting to Operations. Only Sydekyks that accept uploads get a tab bar at all.
+  const [activeTab, setActiveTab] = useState<"operations" | "settings">("operations");
 
   useEffect(() => {
     if (!sydekykId) return;
@@ -132,31 +135,65 @@ export default function SydekykDetail() {
               </div>
             </Card>
 
-            {active && (
-              <Card className="p-6">
-                <AIEngineSection sydekyk={sydekyk} canManage={canManage} />
-              </Card>
-            )}
+            {active && sydekyk.accepts_document_uploads ? (
+              <>
+                <div className="flex gap-1 border-b border-ink-700">
+                  {(["operations", "settings"] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`px-4 py-2.5 text-sm font-semibold capitalize transition-colors ${
+                        activeTab === tab
+                          ? "border-b-2 border-gold-500 text-gold-300"
+                          : "text-[#8a7f6d] hover:text-[#b9ad98]"
+                      }`}
+                    >
+                      {tab === "operations" ? "Upload Bills" : "Settings"}
+                    </button>
+                  ))}
+                </div>
 
-            {active && registryEntry?.setupSection && (
-              <Card className="p-6">
-                <registryEntry.setupSection sydekyk={sydekyk} canManage={canManage} onReadiness={setReadiness} />
-              </Card>
-            )}
+                {/* Both tabs stay mounted (CSS-hidden, not unmounted) so the readiness fetch inside
+                    Settings keeps running and gates the upload panel even while Operations is open. */}
+                <div className={activeTab === "operations" ? "grid gap-6" : "hidden"}>
+                  <Card className="p-6">
+                    <DocumentIntakeSection sydekyk={sydekyk} canManage={canManage} readiness={readiness} />
+                  </Card>
+                </div>
 
-            {active && registryEntry?.playbookPanel && (
-              <Card className="p-6">
-                <registryEntry.playbookPanel />
-              </Card>
-            )}
-
-            {active && sydekyk.accepts_document_uploads && (
-              <Card className="p-6">
-                <DocumentIntakeSection sydekyk={sydekyk} canManage={canManage} readiness={readiness} />
-              </Card>
-            )}
-
-            {!active && (
+                <div className={activeTab === "settings" ? "grid gap-6" : "hidden"}>
+                  <Card className="p-6">
+                    <AIEngineSection sydekyk={sydekyk} canManage={canManage} />
+                  </Card>
+                  {registryEntry?.setupSection && (
+                    <Card className="p-6">
+                      <registryEntry.setupSection sydekyk={sydekyk} canManage={canManage} onReadiness={setReadiness} />
+                    </Card>
+                  )}
+                  {registryEntry?.playbookPanel && (
+                    <Card className="p-6">
+                      <registryEntry.playbookPanel />
+                    </Card>
+                  )}
+                </div>
+              </>
+            ) : active ? (
+              <>
+                <Card className="p-6">
+                  <AIEngineSection sydekyk={sydekyk} canManage={canManage} />
+                </Card>
+                {registryEntry?.setupSection && (
+                  <Card className="p-6">
+                    <registryEntry.setupSection sydekyk={sydekyk} canManage={canManage} onReadiness={setReadiness} />
+                  </Card>
+                )}
+                {registryEntry?.playbookPanel && (
+                  <Card className="p-6">
+                    <registryEntry.playbookPanel />
+                  </Card>
+                )}
+              </>
+            ) : (
               <Card className="p-6 text-center text-sm text-[#8a7f6d]">
                 Install this Sydekyk to configure its AI engine and put it to work.
               </Card>

@@ -3,7 +3,7 @@ import axios from "axios";
 import { api, type HostedAssignment, type ProviderKey, type SydekykAdmin, type SydekykUsage, type Tenant } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { Badge, Button, Card, Input, Label, Modal, PageShell } from "../components/ui";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const PROVIDER_LABELS: Record<string, string> = {
   openai: "OpenAI",
@@ -133,9 +133,14 @@ export default function Admin() {
           <div className="flex items-center gap-2 text-lg font-bold tracking-wide text-gold-300">
             <span className="text-2xl">⚡</span> SYDEKYKS <span className="ml-2 rounded border border-gold-700/50 px-2 py-0.5 text-xs font-semibold text-gold-400">Command Center</span>
           </div>
-          <Button variant="ghost" onClick={handleLogout}>
-            Log out
-          </Button>
+          <div className="flex items-center gap-4">
+            <Link to="/admin/missions" className="text-sm font-semibold text-gold-400 hover:text-gold-300">
+              All Missions
+            </Link>
+            <Button variant="ghost" onClick={handleLogout}>
+              Log out
+            </Button>
+          </div>
         </div>
       </header>
 

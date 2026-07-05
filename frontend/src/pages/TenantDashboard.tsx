@@ -41,6 +41,9 @@ export default function TenantDashboard() {
             <Link to="/hq/missions" className="text-sm font-semibold text-gold-400 hover:text-gold-300">
               Missions
             </Link>
+            <Link to="/hq/issues" className="text-sm font-semibold text-gold-400 hover:text-gold-300">
+              Issues
+            </Link>
             <Link to="/hq/gadgets" className="text-sm font-semibold text-gold-400 hover:text-gold-300">
               Gadgets
             </Link>

@@ -72,26 +72,46 @@ export function LedgerSettingsSection({
             />
             Auto-create vendors in Odoo when not found
           </label>
-          <div>
-            <Label>Auto-post threshold (confidence %)</Label>
-            <div className="flex items-center gap-3">
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={5}
-                className="flex-1 accent-gold-500"
-                disabled={!canManage || saving}
-                value={settings.auto_post_threshold}
-                onChange={(e) => setSettings({ ...settings, auto_post_threshold: Number(e.target.value) })}
-                onMouseUp={(e) => save({ ...settings, auto_post_threshold: Number((e.target as HTMLInputElement).value) })}
-              />
-              <span className="w-10 text-right text-sm text-[#ede6da]">{settings.auto_post_threshold}%</span>
-            </div>
-            <p className="mt-1 text-xs text-[#8a7f6d]">
-              Bills at or above this confidence are posted automatically; below, they wait as drafts.
+
+          <label className="flex items-center gap-2 text-sm text-[#ede6da]">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-gold-500"
+              disabled={!canManage || saving}
+              checked={settings.auto_post_enabled}
+              onChange={(e) => save({ ...settings, auto_post_enabled: e.target.checked })}
+            />
+            Auto-post vendor bills
+          </label>
+          {!settings.auto_post_enabled && (
+            <p className="-mt-2 text-xs text-[#8a7f6d]">
+              Every bill stays a draft in Odoo for a human to review and post.
             </p>
-          </div>
+          )}
+
+          {settings.auto_post_enabled && (
+            <div>
+              <Label>Auto-post threshold (confidence %)</Label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={5}
+                  className="flex-1 accent-gold-500"
+                  disabled={!canManage || saving}
+                  value={settings.auto_post_threshold}
+                  onChange={(e) => setSettings({ ...settings, auto_post_threshold: Number(e.target.value) })}
+                  onMouseUp={(e) => save({ ...settings, auto_post_threshold: Number((e.target as HTMLInputElement).value) })}
+                />
+                <span className="w-10 text-right text-sm text-[#ede6da]">{settings.auto_post_threshold}%</span>
+              </div>
+              <p className="mt-1 text-xs text-[#8a7f6d]">
+                Bills at or above this confidence are posted automatically; below, they wait as drafts.
+                A bill is also never auto-posted if its currency or tax couldn't be matched in Odoo.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
