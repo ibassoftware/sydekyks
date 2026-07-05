@@ -20,6 +20,9 @@ class LedgerTenantSettings(Base):
         UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, unique=True, index=True
     )
     auto_create_partner: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # Opt-in: bills only auto-post when this is explicitly enabled AND confidence clears the
+    # threshold. Defaults False — never auto-post without an explicit choice.
+    auto_post_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     auto_post_threshold: Mapped[int] = mapped_column(Integer, nullable=False, default=90)
     # VS-12: result of the last "can this engine actually read a bill?" probe.
     ledger_vision_ok: Mapped[bool | None] = mapped_column(Boolean, nullable=True)

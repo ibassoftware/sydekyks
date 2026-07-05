@@ -9,6 +9,7 @@ from app.routers import (
     email_webhook,
     gadget_assignments,
     gadgets,
+    issues,
     llm_settings,
     missions,
     tenant,
@@ -33,6 +34,7 @@ app.include_router(gadget_assignments.router)
 app.include_router(llm_settings.router)
 app.include_router(documents.router)
 app.include_router(missions.router)
+app.include_router(issues.router)
 app.include_router(email_webhook.router)
 
 # Mount every discovered Sydekyk package's own router (e.g. Ledger's settings). Adding a new

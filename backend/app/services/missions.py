@@ -249,3 +249,43 @@ def run_mission(mission_id: uuid.UUID) -> None:
             db.commit()
     finally:
         db.close()
+
+
+# ---------------------------------------------------------------------------
+# Shared query filters (tenant Missions ops page + admin cross-tenant Command Center)
+# ---------------------------------------------------------------------------
+
+
+def apply_mission_filters(
+    query,
+    *,
+    tenant_id=None,
+    sydekyk_id=None,
+    status=None,
+    signal_type=None,
+    source=None,
+    filename=None,
+    date_from=None,
+    date_to=None,
+):
+    """Applies the common Mission list filters. `tenant_id` is optional here on purpose: the
+    tenant router scopes tenant_id directly on its own base query (defense-in-depth), while the
+    admin Command Center passes it through as just another optional filter for cross-tenant
+    browsing. Requires the query to already join MissionDocument for the source/filename filters."""
+    if tenant_id is not None:
+        query = query.filter(Mission.tenant_id == tenant_id)
+    if sydekyk_id is not None:
+        query = query.filter(Mission.sydekyk_id == sydekyk_id)
+    if status:
+        query = query.filter(Mission.status == status)
+    if signal_type:
+        query = query.filter(Mission.signal_type == signal_type)
+    if source:
+        query = query.filter(MissionDocument.source == source)
+    if filename:
+        query = query.filter(MissionDocument.filename.ilike(f"%{filename}%"))
+    if date_from:
+        query = query.filter(Mission.created_at >= date_from)
+    if date_to:
+        query = query.filter(Mission.created_at <= date_to)
+    return query

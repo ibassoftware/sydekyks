@@ -23,6 +23,7 @@ class MissionOut(BaseModel):
     id: uuid.UUID
     sydekyk_id: uuid.UUID
     sydekyk_name: str | None = None
+    tenant_name: str | None = None  # only set by the admin Command Center (cross-tenant view)
     playbook_key: str
     signal_type: str
     source: str | None = None  # web_upload | email (from the document)

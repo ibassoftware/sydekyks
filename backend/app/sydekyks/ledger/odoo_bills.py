@@ -68,6 +68,23 @@ def default_expense_account_id(client: OdooClient) -> int | None:
     return accts[0]["id"] if accts else None
 
 
+def get_account_default_taxes(client: OdooClient, account_id: int) -> list[int]:
+    """The purchase tax(es) configured as this expense account's default, if any."""
+    rows = client.execute_kw("account.account", "read", [[account_id]], {"fields": ["tax_ids"]})
+    if not rows:
+        return []
+    return rows[0].get("tax_ids") or []
+
+
+def has_purchase_taxes_configured(client: OdooClient) -> bool:
+    """Whether this Odoo instance has ANY active purchase tax defined at all — distinguishes
+    "nobody set a default tax on this account" from "this instance has no tax config at all"."""
+    rows = client.search_read(
+        "account.tax", [["type_tax_use", "=", "purchase"], ["active", "=", True]], ["id"], limit=1
+    )
+    return bool(rows)
+
+
 def create_vendor_bill(
     client: OdooClient,
     *,
@@ -77,12 +94,20 @@ def create_vendor_bill(
     account_id: int,
     line_items: list[dict],
     narration: str,
+    currency_id: int | None = None,
+    tax_ids: list[int] | None = None,
 ) -> tuple[bool, str, int | None, list[str]]:
     """Creates a draft vendor bill. Returns (ok, message, move_id, unmet_required_fields).
+
+    `currency_id`/`tax_ids` are resolved by the playbook's currency/tax steps and passed in
+    explicitly rather than left to Odoo's defaults — see PLAYBOOK_STEPS "resolve_currency" /
+    "resolve_tax" for why (both are correctness fixes: Odoo previously silently used the company's
+    default currency and no tax regardless of what the bill actually stated).
 
     On failure due to a missing required field (custom Odoo modules), introspects the model's
     required fields and reports the ones we didn't set — so the Mission surfaces exactly what's
     blocking rather than an opaque error."""
+    line_tax_cmd = [(6, 0, tax_ids)] if tax_ids else []
     lines = [
         (
             0,
@@ -92,6 +117,7 @@ def create_vendor_bill(
                 "quantity": li.get("quantity") or 1,
                 "price_unit": li.get("unit_price") or li.get("amount") or 0,
                 "account_id": account_id,
+                **({"tax_ids": line_tax_cmd} if line_tax_cmd else {}),
             },
         )
         for li in (line_items or [{"description": "Bill total", "quantity": 1, "unit_price": 0, "amount": 0}])
@@ -106,6 +132,8 @@ def create_vendor_bill(
         values["ref"] = invoice_number
     if invoice_date:
         values["invoice_date"] = invoice_date
+    if currency_id is not None:
+        values["currency_id"] = currency_id
 
     try:
         move_id = client.create("account.move", values)

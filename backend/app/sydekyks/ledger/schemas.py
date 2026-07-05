@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 
 class LedgerSettingsOut(BaseModel):
     auto_create_partner: bool
+    auto_post_enabled: bool
     auto_post_threshold: int
     ledger_vision_ok: bool | None = None
     ledger_vision_tested_at: str | None = None
@@ -10,6 +11,7 @@ class LedgerSettingsOut(BaseModel):
 
 class LedgerSettingsUpdate(BaseModel):
     auto_create_partner: bool
+    auto_post_enabled: bool
     auto_post_threshold: int = Field(ge=0, le=100)
 
 

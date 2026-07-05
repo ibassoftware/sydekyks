@@ -44,6 +44,8 @@ def test_playbook_steps_metadata_matches_expected_keys():
         "lookup_vendor",
         "duplicate_check",
         "infer_account",
+        "resolve_currency",
+        "resolve_tax",
         "create_bill",
         "post_bill",
     ]

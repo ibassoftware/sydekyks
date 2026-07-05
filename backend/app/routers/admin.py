@@ -1,6 +1,8 @@
 import uuid
+from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.crypto import decrypt_secret, encrypt_secret
@@ -8,15 +10,18 @@ from app.core.deps import require_super_admin
 from app.core.security import hash_password
 from app.db.session import get_db
 from app.models.llm_provider import CentralProviderKey, SydekykHostedAssignment
+from app.models.mission import Mission, MissionDocument
 from app.models.sydekyk import Sydekyk
 from app.models.tenant import Tenant
 from app.models.user import User
 from app.schemas.hosted_assignment import HostedAssignmentOut, HostedAssignmentUpdate
+from app.schemas.mission import MissionDetailOut, MissionOut, MissionPage, MissionStepOut
 from app.schemas.provider_key import ProviderKeyOut, ProviderKeyUpdate
 from app.schemas.sydekyk import SydekykAdminOut, SydekykModelUpdate
 from app.schemas.sydekyk_llm_config import SydekykUsageOut
 from app.schemas.tenant import TenantCreate, TenantOut
 from app.services import llm_provisioning
+from app.services.missions import apply_mission_filters
 from app.services.usage import get_sydekyk_total_usage
 
 router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(require_super_admin)])
@@ -205,3 +210,87 @@ def get_sydekyk_usage(sydekyk_id: uuid.UUID, db: Session = Depends(get_db)):
     _get_roster_sydekyk(db, sydekyk_id)
     spend, stale = get_sydekyk_total_usage(db, sydekyk_id)
     return SydekykUsageOut(spend_used=spend, stale=stale)
+
+
+# ---------------------------------------------------------------------------
+# Command Center: Missions across ALL tenants (raw/unsanitized — admin-only debugging view).
+# Tenant-facing routers/missions.py sanitizes error_message; this one intentionally does not.
+# ---------------------------------------------------------------------------
+
+
+def _admin_mission_out(m: Mission, *, filename, source, sydekyk_name, tenant_name) -> MissionOut:
+    return MissionOut(
+        id=m.id, sydekyk_id=m.sydekyk_id, sydekyk_name=sydekyk_name, tenant_name=tenant_name,
+        playbook_key=m.playbook_key, signal_type=m.signal_type, source=source, status=m.status,
+        failure_category=m.failure_category, result_summary=m.result_summary,
+        error_message=m.error_message,  # raw — no friendly_message() sanitization here
+        document_filename=filename, parent_mission_id=m.parent_mission_id,
+        root_mission_id=m.root_mission_id, attempt_number=m.attempt_number,
+        created_at=m.created_at, completed_at=m.completed_at,
+    )
+
+
+@router.get("/missions", response_model=MissionPage)
+def list_all_tenant_missions(
+    tenant_id: uuid.UUID | None = None,
+    sydekyk_id: uuid.UUID | None = None,
+    status_: str | None = Query(default=None, alias="status"),
+    signal_type: str | None = None,
+    source: str | None = None,
+    filename: str | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    limit: int = 25,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+):
+    """Every Mission across every tenant — the Command Center operations feed."""
+    limit = max(1, min(limit, 100))
+    base = (
+        db.query(Mission, MissionDocument.filename, MissionDocument.source, Sydekyk.name, Tenant.name)
+        .outerjoin(MissionDocument, MissionDocument.mission_id == Mission.id)
+        .outerjoin(Sydekyk, Sydekyk.id == Mission.sydekyk_id)
+        .outerjoin(Tenant, Tenant.id == Mission.tenant_id)
+    )
+    base = apply_mission_filters(
+        base, tenant_id=tenant_id, sydekyk_id=sydekyk_id, status=status_, signal_type=signal_type,
+        source=source, filename=filename, date_from=date_from, date_to=date_to,
+    )
+
+    count_q = (
+        db.query(func.count(Mission.id)).outerjoin(MissionDocument, MissionDocument.mission_id == Mission.id)
+    )
+    count_q = apply_mission_filters(
+        count_q, tenant_id=tenant_id, sydekyk_id=sydekyk_id, status=status_, signal_type=signal_type,
+        source=source, filename=filename, date_from=date_from, date_to=date_to,
+    )
+    total = count_q.scalar() or 0
+
+    rows = base.order_by(Mission.created_at.desc()).limit(limit).offset(offset).all()
+    items = [
+        _admin_mission_out(m, filename=fn, source=src, sydekyk_name=syd_name, tenant_name=ten_name)
+        for m, fn, src, syd_name, ten_name in rows
+    ]
+    return MissionPage(items=items, total=total, limit=limit, offset=offset)
+
+
+@router.get("/missions/{mission_id}", response_model=MissionDetailOut)
+def get_any_mission(mission_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Full, RAW Mission detail (any tenant) — including unsanitized step errors/stack traces."""
+    mission = db.get(Mission, mission_id)
+    if mission is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mission not found")
+
+    sydekyk = db.get(Sydekyk, mission.sydekyk_id)
+    tenant = db.get(Tenant, mission.tenant_id)
+    doc = (
+        db.query(MissionDocument.filename, MissionDocument.source)
+        .filter(MissionDocument.mission_id == mission.id)
+        .first()
+    )
+    base = _admin_mission_out(
+        mission, filename=doc[0] if doc else None, source=doc[1] if doc else None,
+        sydekyk_name=sydekyk.name if sydekyk else None, tenant_name=tenant.name if tenant else None,
+    )
+    steps = [MissionStepOut.model_validate(s, from_attributes=True) for s in mission.steps]
+    return MissionDetailOut(**base.model_dump(), steps=steps)

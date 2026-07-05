@@ -60,6 +60,7 @@ def _settings(db: Session, tenant_id) -> LedgerTenantSettings:
 def _settings_out(s: LedgerTenantSettings) -> LedgerSettingsOut:
     return LedgerSettingsOut(
         auto_create_partner=s.auto_create_partner,
+        auto_post_enabled=s.auto_post_enabled,
         auto_post_threshold=s.auto_post_threshold,
         ledger_vision_ok=s.ledger_vision_ok,
         ledger_vision_tested_at=s.ledger_vision_tested_at.isoformat() if s.ledger_vision_tested_at else None,
@@ -77,6 +78,7 @@ def update_settings(
 ):
     s = _settings(db, user.tenant_id)
     s.auto_create_partner = payload.auto_create_partner
+    s.auto_post_enabled = payload.auto_post_enabled
     s.auto_post_threshold = payload.auto_post_threshold
     db.commit()
     db.refresh(s)

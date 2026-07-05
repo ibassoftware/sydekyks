@@ -132,3 +132,13 @@ def create_partner(client: OdooClient, name: str, is_company: bool = True, extra
     if extra:
         values.update(extra)
     return client.create("res.partner", values)
+
+
+def find_currency_id(client: OdooClient, iso_code: str) -> int | None:
+    """Look up an Odoo res.currency id by its 3-letter ISO code (e.g. 'USD'). Prefers an active
+    currency record when duplicates exist (a currency can be present but disabled)."""
+    rows = client.search_read("res.currency", [["name", "=", iso_code.upper()]], ["id", "active"])
+    if not rows:
+        return None
+    active = [r for r in rows if r.get("active")]
+    return (active or rows)[0]["id"]

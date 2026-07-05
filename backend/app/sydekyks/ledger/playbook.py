@@ -38,6 +38,12 @@ PLAYBOOK_STEPS = [
     {"key": "infer_account", "title": "Infer the expense account",
      "description": "Reuse the vendor's historical account, else fall back to a default expense account.",
      "likely_failures": "No expense account available in Odoo."},
+    {"key": "resolve_currency", "title": "Resolve currency",
+     "description": "Match the bill's stated currency to an enabled Odoo currency, so the bill is created in the right denomination.",
+     "likely_failures": "The stated currency isn't enabled in Odoo (marked needs-review, no bill created)."},
+    {"key": "resolve_tax", "title": "Resolve tax",
+     "description": "Apply the expense account's default purchase tax, if one is configured.",
+     "likely_failures": "The bill has tax but no matching tax is configured in Odoo (bill created as a draft, flagged for review, never auto-posted)."},
     {"key": "create_bill", "title": "Create the vendor bill",
      "description": "Compute a confidence score and create the draft bill in Odoo with its line items and narration.",
      "likely_failures": "Required Odoo fields unmet (marked needs-review) or an Odoo error."},
@@ -239,12 +245,72 @@ def run(db: Session, mission: Mission) -> None:
             "account_id": account_id, "source": account_source})
         idx += 1
 
-        # --- Step 6: compute confidence + create bill -------------------------------------------
+        # --- Step 6: resolve currency (currency-aware) ------------------------------------------
+        # A PDF/image bill states its currency; Odoo previously always defaulted to the company's
+        # currency regardless — silently wrong for any bill not in that currency. Resolve the
+        # extracted ISO code to an Odoo res.currency id, or refuse to create a (mis-denominated)
+        # bill rather than guess.
+        currency_id = None
+        if bill.currency:
+            currency_id = odoo.find_currency_id(client, bill.currency)
+            if currency_id is None:
+                record_step(db, mission, idx, "resolve_currency", "gadget_call", "succeeded", output={
+                    "requested": bill.currency, "resolved": False})
+                idx += 1
+                _finish(db, mission, "succeeded", {
+                    "vendor_name": bill.vendor_name, "invoice_number": bill.invoice_number,
+                    "total": bill.total, "currency": bill.currency, "posted": False, "duplicate": False,
+                    "needs_review": True,
+                    "review_reason": f"Currency '{bill.currency}' isn't enabled in Odoo — needs manual review.",
+                })
+                return
+            record_step(db, mission, idx, "resolve_currency", "gadget_call", "succeeded", output={
+                "requested": bill.currency, "resolved": True, "currency_id": currency_id})
+        else:
+            record_step(db, mission, idx, "resolve_currency", "gadget_call", "succeeded", output={
+                "requested": None, "resolved": False, "note": "No currency extracted — Odoo default applies"})
+        idx += 1
+
+        # --- Step 7: resolve tax (tax-aware) -----------------------------------------------------
+        # If the bill states tax but the expense account has no default purchase tax configured,
+        # still create the draft (the line amounts are correct) but never auto-post it, and flag a
+        # standing tenant Issue — this is an Odoo configuration gap, not a one-off bill problem.
+        tax_ids = odoo_bills.get_account_default_taxes(client, account_id)
+        tax_needs_review = False
+        tax_review_reason: str | None = None
+        if tax_ids:
+            record_step(db, mission, idx, "resolve_tax", "gadget_call", "succeeded", output={
+                "tax_ids": tax_ids, "source": "account_default"})
+        elif bill.tax_amount and bill.tax_amount > 0:
+            any_purchase_tax = odoo_bills.has_purchase_taxes_configured(client)
+            tax_review_reason = (
+                "This bill includes tax, but the expense account has no default purchase tax in Odoo."
+                if any_purchase_tax else
+                "This bill includes tax, but this Odoo instance has no purchase taxes configured at all."
+            )
+            record_step(db, mission, idx, "resolve_tax", "gadget_call", "succeeded", output={
+                "tax_ids": [], "source": "none", "flagged": True, "reason": tax_review_reason})
+            tax_needs_review = True
+            from app.services import tenant_issues
+            tenant_issues.report_issue(
+                db, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id,
+                kind="missing_tax_config", title="Ledger flagged a bill with no matching tax configuration",
+                detail=tax_review_reason,
+            )
+        else:
+            record_step(db, mission, idx, "resolve_tax", "gadget_call", "succeeded", output={
+                "tax_ids": [], "source": "none", "flagged": False})
+        idx += 1
+
+        # --- Step 8: compute confidence + create bill -------------------------------------------
         score = confidence.compute_confidence(
             bill.llm_confidence, partner_matched_exact=partner_matched_exact,
             partner_auto_created=partner_auto_created, account_source=account_source,
             duplicate_check="clear")
-        will_post = score >= settings.auto_post_threshold
+        # Auto-post is opt-in (auto_post_enabled) and additionally never fires when tax config is
+        # missing — posting a bill with an unrepresented tax liability is a compliance risk we
+        # don't take automatically.
+        will_post = settings.auto_post_enabled and not tax_needs_review and score >= settings.auto_post_threshold
         note = narration.build_narration(score, account_source, will_post)
 
         line_items = [
@@ -253,7 +319,8 @@ def run(db: Session, mission: Mission) -> None:
         ]
         ok, msg, move_id, unmet = odoo_bills.create_vendor_bill(
             client, partner_id=partner_id, invoice_number=bill.invoice_number,
-            invoice_date=bill.invoice_date, account_id=account_id, line_items=line_items, narration=note)
+            invoice_date=bill.invoice_date, account_id=account_id, line_items=line_items, narration=note,
+            currency_id=currency_id, tax_ids=tax_ids or None)
         if not ok:
             record_step(db, mission, idx, "create_bill", "gadget_call", "failed", error=msg,
                         output={"unmet_required_fields": unmet})
@@ -267,7 +334,7 @@ def run(db: Session, mission: Mission) -> None:
             "odoo_move_id": move_id, "confidence": score})
         idx += 1
 
-        # --- Step 7: optional auto-post ---------------------------------------------------------
+        # --- Step 9: optional auto-post ---------------------------------------------------------
         posted = False
         if will_post:
             ok, msg = odoo_bills.post_bill(client, move_id)
@@ -281,7 +348,8 @@ def run(db: Session, mission: Mission) -> None:
             "vendor_name": bill.vendor_name, "invoice_number": bill.invoice_number,
             "total": bill.total, "currency": bill.currency, "confidence": score,
             "odoo_move_id": move_id, "odoo_move_name": bill_row.get("name") if bill_row else None,
-            "posted": posted, "duplicate": False, "needs_review": False,
+            "posted": posted, "duplicate": False,
+            "needs_review": tax_needs_review, "review_reason": tax_review_reason,
         })
     except odoo.OdooError as exc:
         record_step(db, mission, idx, "odoo_error", "gadget_call", "failed", error=str(exc))

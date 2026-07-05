@@ -14,7 +14,8 @@ from app.models.mission import Mission, MissionDocument, MissionStep
 from app.models.sydekyk import Sydekyk
 from app.models.user import User
 from app.schemas.mission import MissionDetailOut, MissionOut, MissionPage, MissionStepOut
-from app.services.missions import retry_mission
+from app.services.error_display import friendly_message
+from app.services.missions import apply_mission_filters, retry_mission
 from app.services.queue import enqueue_mission
 
 router = APIRouter(prefix="/api/tenant", tags=["missions"], dependencies=[Depends(require_tenant_member)])
@@ -28,6 +29,8 @@ def _filename(db: Session, mission_id: uuid.UUID) -> str | None:
 def _mission_out(
     m: Mission, *, filename: str | None, source: str | None, sydekyk_name: str | None, last_step_key: str | None = None
 ) -> MissionOut:
+    """Tenant-facing serialization — error_message is sanitized (raw text stays in the DB and is
+    what Command Center's admin endpoints return; see app/services/error_display.py)."""
     return MissionOut(
         id=m.id,
         sydekyk_id=m.sydekyk_id,
@@ -38,7 +41,7 @@ def _mission_out(
         status=m.status,
         failure_category=m.failure_category,
         result_summary=m.result_summary,
-        error_message=m.error_message,
+        error_message=friendly_message(m.error_message),
         document_filename=filename,
         last_step_key=last_step_key,
         parent_mission_id=m.parent_mission_id,
@@ -47,24 +50,6 @@ def _mission_out(
         created_at=m.created_at,
         completed_at=m.completed_at,
     )
-
-
-def _apply_filters(query, *, sydekyk_id, status_, signal_type, source, filename, date_from, date_to):
-    if sydekyk_id is not None:
-        query = query.filter(Mission.sydekyk_id == sydekyk_id)
-    if status_:
-        query = query.filter(Mission.status == status_)
-    if signal_type:
-        query = query.filter(Mission.signal_type == signal_type)
-    if source:
-        query = query.filter(MissionDocument.source == source)
-    if filename:
-        query = query.filter(MissionDocument.filename.ilike(f"%{filename}%"))
-    if date_from:
-        query = query.filter(Mission.created_at >= date_from)
-    if date_to:
-        query = query.filter(Mission.created_at <= date_to)
-    return query
 
 
 @router.get("/sydekyks/{sydekyk_id}/missions", response_model=list[MissionOut])
@@ -106,8 +91,8 @@ def list_all_missions(
         .outerjoin(Sydekyk, Sydekyk.id == Mission.sydekyk_id)
         .filter(Mission.tenant_id == user.tenant_id)
     )
-    base = _apply_filters(
-        base, sydekyk_id=sydekyk_id, status_=status_, signal_type=signal_type,
+    base = apply_mission_filters(
+        base, sydekyk_id=sydekyk_id, status=status_, signal_type=signal_type,
         source=source, filename=filename, date_from=date_from, date_to=date_to,
     )
 
@@ -116,8 +101,8 @@ def list_all_missions(
         .outerjoin(MissionDocument, MissionDocument.mission_id == Mission.id)
         .filter(Mission.tenant_id == user.tenant_id)
     )
-    count_q = _apply_filters(
-        count_q, sydekyk_id=sydekyk_id, status_=status_, signal_type=signal_type,
+    count_q = apply_mission_filters(
+        count_q, sydekyk_id=sydekyk_id, status=status_, signal_type=signal_type,
         source=source, filename=filename, date_from=date_from, date_to=date_to,
     )
     total = count_q.scalar() or 0
@@ -172,8 +157,8 @@ def export_missions(
         .outerjoin(Sydekyk, Sydekyk.id == Mission.sydekyk_id)
         .filter(Mission.tenant_id == user.tenant_id)
     )
-    q = _apply_filters(
-        q, sydekyk_id=sydekyk_id, status_=status_, signal_type=signal_type,
+    q = apply_mission_filters(
+        q, sydekyk_id=sydekyk_id, status=status_, signal_type=signal_type,
         source=source, filename=filename, date_from=date_from, date_to=date_to,
     ).order_by(Mission.created_at.desc())
 
@@ -213,10 +198,11 @@ def get_mission(mission_id: uuid.UUID, user: User = Depends(require_tenant_membe
         source=doc[1] if doc else None,
         sydekyk_name=sydekyk.name if sydekyk else None,
     )
-    return MissionDetailOut(
-        **base.model_dump(),
-        steps=[MissionStepOut.model_validate(s, from_attributes=True) for s in mission.steps],
-    )
+    steps = [MissionStepOut.model_validate(s, from_attributes=True) for s in mission.steps]
+    # Sanitize step-level errors too — this is exactly where a raw provider payload would otherwise
+    # surface in the tenant-facing step trail.
+    steps = [s.model_copy(update={"error_message": friendly_message(s.error_message)}) for s in steps]
+    return MissionDetailOut(**base.model_dump(), steps=steps)
 
 
 @router.post("/missions/{mission_id}/retry", response_model=MissionOut, status_code=status.HTTP_201_CREATED)
