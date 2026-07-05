@@ -106,7 +106,7 @@ def extract_bill_data(
     Returns (ok, message, extraction, meta) where meta carries {usage, request_id, model} for
     billing-grade usage attribution (VS-15). No pre-check of vision support — we let the provider
     reject it and surface a clear message, since BYOK model strings are freeform."""
-    meta: dict = {"usage": None, "request_id": None, "model": model_alias}
+    meta: dict = {"usage": None, "request_id": None, "model": model_alias, "cost_usd": 0.0}
     data_uri = f"data:{content_type};base64,{base64.b64encode(document_bytes).decode('ascii')}"
     payload = {
         "model": model_alias,
@@ -147,6 +147,12 @@ def extract_bill_data(
 
     meta["usage"] = body.get("usage")
     meta["request_id"] = body.get("id")
+    # LiteLLM computes per-call cost and returns it in this header (present for priced providers;
+    # absent/0 for custom endpoints like Ollama Cloud). This is what VS-15 attributes + reconciles.
+    try:
+        meta["cost_usd"] = float(resp.headers.get("x-litellm-response-cost") or 0.0)
+    except (TypeError, ValueError):
+        meta["cost_usd"] = 0.0
 
     raw = _parse_json(content if isinstance(content, str) else json.dumps(content))
     if raw is None:

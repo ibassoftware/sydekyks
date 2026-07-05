@@ -78,6 +78,7 @@ def _emit_usage(db: Session, mission: Mission, llm, meta: dict) -> None:
             model=llm.litellm_model_alias,
             usage=meta.get("usage"),
             litellm_request_id=meta.get("request_id"),
+            cost_usd=float(meta.get("cost_usd") or 0.0),
         )
     except Exception:  # noqa: BLE001 — usage logging is non-critical to the AP workflow
         db.rollback()

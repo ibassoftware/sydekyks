@@ -44,15 +44,38 @@ making the additive migrations idempotent via `migrations/helpers.py` (`has_colu
 `has_index`/`has_fk` guards). This also makes `stamp` + `upgrade` safe on the real drifted demo DB —
 now proven by the two rows above.
 
-## Still needs a real LLM to confirm (LiteLLM proxy is up, but no tenant engine/key wired here)
+## LIVE LLM verification (real Ollama Cloud key, via LiteLLM proxy)
 
-1. **Vision probe** (VS-12) and **usage emission** (VS-15) — the code path is exercised by the
-   DB-gated `test_playbook_success_and_usage` test (which asserts a `usage_records` row is written
-   with the right token count via a faked engine); a real vision call additionally needs a tenant
-   with a configured LiteLLM virtual key + vision model. `reconcile_tenant` vs LiteLLM spend is
-   unit-shaped but not run against live spend.
+Ran the actual VS-12 extraction code against a **real Ollama Cloud account**, through the running
+LiteLLM proxy, using the app's own `_sample_invoice_png()` fixture.
+
+| Check | Result |
+|-------|--------|
+| Ollama Cloud reachable (OpenAI-compatible `https://ollama.com/v1`) | ✅ |
+| LiteLLM model registration + virtual key + round-trip through proxy | ✅ usage returned |
+| **Real vision extraction — `gemma3:4b`** on the sample invoice | ✅ read vendor `ACME SUPPLIES LLC`, invoice `INV-2026-0042`, total `88.0 USD`; 764 real tokens |
+| **Real vision extraction — `kimi-k2.7-code`** (the specified model) | ✅ also read the invoice correctly (it is multimodal) |
+| Full `pytest` after cost change | ✅ **19 passed** (cost assertion added) |
+
+**Two real bugs/gaps this surfaced and fixed:**
+
+1. **Ollama Cloud LiteLLM wiring was wrong.** `llm_provisioning.litellm_model_string` returned
+   `ollama/<model>` (targets a *local* Ollama daemon). Verified live that Ollama Cloud is
+   OpenAI-compatible at `https://ollama.com/v1`; corrected to `openai/<model>` (+ that api_base from
+   the tenant credential). The `# unverified` comment is now resolved.
+2. **VS-15 recorded `cost_usd = 0` always.** The playbook emitted usage without a cost. Now
+   `extraction` reads LiteLLM's `x-litellm-response-cost` header into `meta["cost_usd"]` and the
+   playbook threads it into `record_usage`. (For Ollama Cloud the header is absent → `0.0`, correct:
+   it's subscription-priced with no LiteLLM price map. For OpenAI/Anthropic the header carries the
+   real per-call cost.) The DB-gated test now asserts the captured cost.
+
+## Still needs real infra to confirm (smaller surface now)
+
+1. **`reconcile_tenant` vs live LiteLLM spend** — the reconcile logic is unit-shaped; running it
+   against real accrued spend needs a priced provider (OpenAI/Anthropic) so cost is non-zero.
 2. **Postmark webhook** HTTP path (VS-8/VS-11) — parser + branch logic are unit-tested; a real
-   inbound POST would exercise the rate-limiter and event rows end to end.
+   inbound POST (or a local authenticated `curl` against a running backend — no real Postmark
+   needed) would exercise the rate-limiter and event rows end to end. Not yet run.
 
 ## How to run
 
@@ -199,6 +222,8 @@ column; real-Postgres test DB; composed email create-and-assign endpoint.
 - **`LedgerReadiness` type** still imported into two shared frontend files (a type, not a branch).
   Left as-is; genericize (`SydekykReadiness`) only at Sydekyk #2.
 - **`0004` bundles VS-12 + VS-15** columns/tables in one migration (both land in the same pass).
+- **Ollama Cloud model string corrected** (`openai/` + `https://ollama.com/v1`) and **per-call cost
+  capture added** (`x-litellm-response-cost`) — both surfaced by the live LLM test, see above.
 
 ## Recommended follow-ups (post-merge)
 

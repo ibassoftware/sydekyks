@@ -33,7 +33,7 @@ def _patch_happy_path(monkeypatch, engine):
         extraction, "extract_bill_data",
         lambda *a, **k: (True, "ok", _fake_bill(),
                          {"usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
-                          "request_id": f"req-{uuid.uuid4()}", "model": "ledger-hosted"}),
+                          "request_id": f"req-{uuid.uuid4()}", "model": "ledger-hosted", "cost_usd": 0.0042}),
     )
     monkeypatch.setattr(odoo, "connect", lambda *a, **k: (True, "ok", object()))
     monkeypatch.setattr(odoo, "find_partner", lambda *a, **k: {"id": 1, "name": "ACME"})
@@ -69,6 +69,7 @@ def test_playbook_success_and_usage(db, engine, seeded, monkeypatch):
     usage = db.query(UsageRecord).filter(UsageRecord.mission_id == mission.id).all()
     assert len(usage) == 1
     assert usage[0].total_tokens == 15
+    assert usage[0].cost_usd == 0.0042  # VS-15: per-call cost captured from LiteLLM header
 
 
 def test_missing_odoo_marks_setup_failure(db, engine, seeded, monkeypatch):

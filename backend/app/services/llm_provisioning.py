@@ -9,10 +9,11 @@ def litellm_model_string(provider: str, model: str) -> str:
     if provider == "anthropic":
         return f"anthropic/{model}"
     if provider == "ollama_cloud":
-        # NOTE: unverified — Ollama Cloud may expose an OpenAI-compatible API instead of the
-        # native Ollama one. Confirm the correct prefix against a real account before relying
-        # on this in production.
-        return f"ollama/{model}"
+        # Verified against a live Ollama Cloud account (2026-07-05): the hosted API is
+        # OpenAI-compatible at https://ollama.com/v1, so it must be driven through LiteLLM's
+        # `openai/` provider with that api_base — NOT the `ollama/` prefix (which targets a local
+        # Ollama daemon). The api_base is supplied by the tenant credential / hosted assignment.
+        return f"openai/{model}"
     raise ValueError(f"Unknown provider: {provider}")
 
 
