@@ -5,7 +5,7 @@ import { api, type Gadget, type GadgetLink } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { Badge, Button, Card, Input, Label, Modal, PageShell } from "../components/ui";
 
-export default function Integrations() {
+export default function Gadgets() {
   const { user } = useAuth();
   const canManage = user?.role === "commander";
   const [gadgets, setGadgets] = useState<Gadget[] | null>(null);
@@ -83,7 +83,7 @@ export default function Integrations() {
         <div className="relative overflow-hidden rounded-2xl border border-gold-700/30 bg-gradient-to-br from-ink-800 via-ink-900 to-ink-950 px-8 py-10">
           <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-gold-500/10 blur-3xl" />
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-500">Gadget Links</p>
-          <h1 className="mt-2 text-4xl font-bold text-[#f5eee0]">Integrations</h1>
+          <h1 className="mt-2 text-4xl font-bold text-[#f5eee0]">Utility Belt</h1>
           <p className="mt-3 max-w-2xl text-sm text-[#b9ad98]">
             Connect your HQ's own systems as Gadget Links so your Sydekyks can read and act on real data. Add an
             instance below, then test the connection before putting it to work.
@@ -110,7 +110,7 @@ export default function Integrations() {
                       + Connect Instance
                     </Button>
                   ) : (
-                    <p className="mt-5 text-xs text-[#8a7f6d]">Ask your Commander to connect this integration.</p>
+                    <p className="mt-5 text-xs text-[#8a7f6d]">Ask your Commander to connect this Gadget.</p>
                   )}
                 </Card>
               ))

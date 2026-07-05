@@ -35,8 +35,8 @@ export default function TenantDashboard() {
             <Link to="/hq/roster" className="text-sm font-semibold text-gold-400 hover:text-gold-300">
               Roster
             </Link>
-            <Link to="/hq/integrations" className="text-sm font-semibold text-gold-400 hover:text-gold-300">
-              Integrations
+            <Link to="/hq/gadgets" className="text-sm font-semibold text-gold-400 hover:text-gold-300">
+              Gadgets
             </Link>
             <span className="text-sm text-[#b9ad98]">{user?.email}</span>
             <Button variant="ghost" onClick={handleLogout}>

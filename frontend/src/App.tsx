@@ -6,7 +6,7 @@ import Login from "./pages/Login";
 import Admin from "./pages/Admin";
 import TenantDashboard from "./pages/TenantDashboard";
 import Roster from "./pages/Roster";
-import Integrations from "./pages/Integrations";
+import Gadgets from "./pages/Gadgets";
 
 export default function App() {
   return (
@@ -40,10 +40,10 @@ export default function App() {
             }
           />
           <Route
-            path="/hq/integrations"
+            path="/hq/gadgets"
             element={
               <ProtectedRoute roles={["commander", "hero"]}>
-                <Integrations />
+                <Gadgets />
               </ProtectedRoute>
             }
           />
