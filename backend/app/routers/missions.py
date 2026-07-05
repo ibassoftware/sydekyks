@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.deps import require_commander, require_tenant_member
 from app.db.session import get_db
-from app.models.mission import Mission, MissionDocument
+from app.models.mission import Mission, MissionDocument, MissionStep
 from app.models.sydekyk import Sydekyk
 from app.models.user import User
 from app.schemas.mission import MissionDetailOut, MissionOut, MissionPage, MissionStepOut
@@ -25,7 +25,9 @@ def _filename(db: Session, mission_id: uuid.UUID) -> str | None:
     return doc[0] if doc else None
 
 
-def _mission_out(m: Mission, *, filename: str | None, source: str | None, sydekyk_name: str | None) -> MissionOut:
+def _mission_out(
+    m: Mission, *, filename: str | None, source: str | None, sydekyk_name: str | None, last_step_key: str | None = None
+) -> MissionOut:
     return MissionOut(
         id=m.id,
         sydekyk_id=m.sydekyk_id,
@@ -38,6 +40,7 @@ def _mission_out(m: Mission, *, filename: str | None, source: str | None, sydeky
         result_summary=m.result_summary,
         error_message=m.error_message,
         document_filename=filename,
+        last_step_key=last_step_key,
         parent_mission_id=m.parent_mission_id,
         root_mission_id=m.root_mission_id,
         attempt_number=m.attempt_number,
@@ -122,6 +125,32 @@ def list_all_missions(
     rows = base.order_by(Mission.created_at.desc()).limit(limit).offset(offset).all()
     items = [_mission_out(m, filename=fn, source=src, sydekyk_name=name) for m, fn, src, name in rows]
     return MissionPage(items=items, total=total, limit=limit, offset=offset)
+
+
+@router.get("/missions/active", response_model=list[MissionOut])
+def list_active_missions(user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+    """Currently queued/running Missions for the tenant — powers the live activity toast, roster
+    badges, and dashboard count. Kept small (only active runs), so the per-row latest-step lookup is
+    cheap."""
+    rows = (
+        db.query(Mission, MissionDocument.filename, MissionDocument.source, Sydekyk.name)
+        .outerjoin(MissionDocument, MissionDocument.mission_id == Mission.id)
+        .outerjoin(Sydekyk, Sydekyk.id == Mission.sydekyk_id)
+        .filter(Mission.tenant_id == user.tenant_id, Mission.status.in_(["queued", "running"]))
+        .order_by(Mission.created_at.desc())
+        .all()
+    )
+    out = []
+    for m, fn, src, name in rows:
+        last_step = (
+            db.query(MissionStep.step_key)
+            .filter(MissionStep.mission_id == m.id)
+            .order_by(MissionStep.step_index.desc())
+            .first()
+        )
+        out.append(_mission_out(m, filename=fn, source=src, sydekyk_name=name,
+                                last_step_key=last_step[0] if last_step else None))
+    return out
 
 
 @router.get("/missions/export")

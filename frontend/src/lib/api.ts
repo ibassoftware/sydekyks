@@ -220,6 +220,7 @@ export interface Mission {
   result_summary: Record<string, unknown> | null;
   error_message: string | null;
   document_filename: string | null;
+  last_step_key: string | null;
   parent_mission_id: string | null;
   root_mission_id: string | null;
   attempt_number: number;

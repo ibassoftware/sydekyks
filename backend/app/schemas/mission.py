@@ -31,6 +31,7 @@ class MissionOut(BaseModel):
     result_summary: dict | None
     error_message: str | None
     document_filename: str | None
+    last_step_key: str | None = None  # latest recorded step — for the live activity toast
     parent_mission_id: uuid.UUID | None = None
     root_mission_id: uuid.UUID | None = None
     attempt_number: int = 1

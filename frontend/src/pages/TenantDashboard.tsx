@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, type Dashboard } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { HeaderActivity, RecentMissionsStrip } from "../lib/activity";
 import { Button, Card, PageShell } from "../components/ui";
 
 export default function TenantDashboard() {
@@ -48,6 +49,7 @@ export default function TenantDashboard() {
                 Settings
               </Link>
             )}
+            <HeaderActivity />
             <span className="text-sm text-[#b9ad98]">{user?.email}</span>
             <Button variant="ghost" onClick={handleLogout}>
               Log out
@@ -102,6 +104,10 @@ export default function TenantDashboard() {
                 )}
               </Card>
             </div>
+
+            <Card className="mt-6 p-6">
+              <RecentMissionsStrip />
+            </Card>
 
             <Card className="mt-6 flex flex-col items-center gap-4 p-10 text-center">
               <p className="text-[#b9ad98]">Activate Sydekyks from the Roster to put them to work for your team.</p>

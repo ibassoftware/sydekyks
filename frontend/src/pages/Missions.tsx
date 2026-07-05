@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, type MissionDetail, type MissionPage, type MissionStatus } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { HeaderActivity } from "../lib/activity";
 import { Badge, Button, Card, PageShell } from "../components/ui";
 import { MissionDetailPanel } from "../components/DocumentIntakeSection";
 
@@ -86,6 +87,7 @@ export default function Missions() {
           <div className="flex items-center gap-4">
             <Link to="/hq/roster" className="text-sm font-semibold text-gold-400 hover:text-gold-300">Roster</Link>
             <Link to="/hq/gadgets" className="text-sm font-semibold text-gold-400 hover:text-gold-300">Gadgets</Link>
+            <HeaderActivity />
             <span className="text-sm text-[#b9ad98]">{user?.email}</span>
             <Button variant="ghost" onClick={() => { logout(); navigate("/login"); }}>Log out</Button>
           </div>

@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, type Sydekyk } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { useActivity, HeaderActivity } from "../lib/activity";
 import { Badge, Button, Card, PageShell } from "../components/ui";
 
 export default function Roster() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { activeSydekykIds } = useActivity();
   const [sydekyks, setSydekyks] = useState<Sydekyk[] | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const canManage = user?.role === "commander";
@@ -37,6 +39,7 @@ export default function Roster() {
             <span className="text-2xl">⚡</span> SYDEKYKS
           </Link>
           <div className="flex items-center gap-4">
+            <HeaderActivity />
             <span className="text-sm text-[#b9ad98]">{user?.email}</span>
             <Link to="/hq">
               <Button variant="ghost">Back to HQ</Button>
@@ -68,6 +71,7 @@ export default function Roster() {
                 sydekyk={s}
                 canManage={canManage}
                 pending={pendingId === s.id}
+                working={activeSydekykIds.has(s.id)}
                 onOpen={() => navigate(`/hq/roster/${s.id}`)}
                 onToggleInstall={() => toggleInstall(s)}
               />
@@ -83,20 +87,33 @@ function SydekykCard({
   sydekyk,
   canManage,
   pending,
+  working,
   onOpen,
   onToggleInstall,
 }: {
   sydekyk: Sydekyk;
   canManage: boolean;
   pending: boolean;
+  working: boolean;
   onOpen: () => void;
   onToggleInstall: () => void;
 }) {
   return (
     <Card
       onClick={onOpen}
-      className="group relative cursor-pointer overflow-hidden transition-transform duration-300 hover:-translate-y-1 hover:border-gold-500/60 hover:shadow-[0_0_30px_-8px_rgba(212,168,40,0.5)]"
+      className={`group relative cursor-pointer overflow-hidden transition-transform duration-300 hover:-translate-y-1 hover:border-gold-500/60 hover:shadow-[0_0_30px_-8px_rgba(212,168,40,0.5)] ${
+        working ? "border-gold-500/70 shadow-[0_0_30px_-6px_rgba(212,168,40,0.55)]" : ""
+      }`}
     >
+      {working && (
+        <div className="absolute left-3 top-3 z-30 inline-flex items-center gap-1.5 rounded-full border border-gold-500/50 bg-ink-950/70 px-2.5 py-1 text-[11px] font-semibold text-gold-300 backdrop-blur-sm">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold-400 opacity-75" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gold-400" />
+          </span>
+          Working…
+        </div>
+      )}
       <div className="relative aspect-[912/1199] w-full overflow-hidden bg-ink-950">
         <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_20%,_var(--color-gold-600)_0%,_transparent_65%)] opacity-25 transition-opacity duration-300 group-hover:opacity-40" />
         <img
