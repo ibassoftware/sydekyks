@@ -58,6 +58,7 @@ def _patch_happy_path(
     monkeypatch.setattr(odoo_bills, "get_account_default_taxes", lambda *a, **k: account_tax_ids or [])
     monkeypatch.setattr(odoo_bills, "has_purchase_taxes_configured", lambda *a, **k: any_purchase_tax)
     monkeypatch.setattr(odoo_bills, "create_vendor_bill", lambda *a, **k: (True, "ok", 100, []))
+    monkeypatch.setattr(odoo_bills, "attach_document", lambda *a, **k: (True, "attached"))
     monkeypatch.setattr(odoo_bills, "post_bill", lambda *a, **k: (True, "ok"))
     monkeypatch.setattr(odoo_bills, "read_bill", lambda *a, **k: {"name": "BILL/100"})
 
@@ -92,6 +93,8 @@ def test_playbook_success_and_usage(db, engine, seeded, monkeypatch):
     assert done.status == "succeeded"
     assert done.result_summary["posted"] is True
     assert done.result_summary["odoo_move_id"] == 100
+    attach_step = next(s for s in done.steps if s.step_key == "attach_document")
+    assert attach_step.status == "succeeded"
     # VS-15: a usage record was attributed to this Mission — one for classify_document, one for
     # extract_bill_data (two distinct LLM calls, keyed by distinct litellm_request_id).
     usage = db.query(UsageRecord).filter(UsageRecord.mission_id == mission.id).all()

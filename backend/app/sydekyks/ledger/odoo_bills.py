@@ -5,6 +5,8 @@ partner_id + invoice_date + ref + invoice_line_ids[(0,0,{name,quantity,price_uni
 journal and currency auto-default; action_post posts it.
 """
 
+import base64
+
 from app.services.odoo import OdooClient, OdooError
 
 _EXPENSE_TYPES = ["expense", "expense_direct_cost"]
@@ -169,3 +171,25 @@ def read_bill(client: OdooClient, move_id: int) -> dict | None:
         "account.move", "read", [[move_id]], {"fields": ["name", "state", "amount_total", "currency_id"]}
     )
     return rows[0] if rows else None
+
+
+def attach_document(
+    client: OdooClient, *, move_id: int, filename: str, content_bytes: bytes, mimetype: str
+) -> tuple[bool, str]:
+    """Attach the original uploaded bill (PDF/image, not the rasterized OCR pages) to the vendor
+    bill record as an ir.attachment, so a human reviewing it in Odoo sees the source evidence next
+    to the extracted data — not just Ledger's interpretation of it."""
+    try:
+        client.create(
+            "ir.attachment",
+            {
+                "name": filename,
+                "datas": base64.b64encode(content_bytes).decode("ascii"),
+                "res_model": "account.move",
+                "res_id": move_id,
+                "mimetype": mimetype,
+            },
+        )
+        return True, "attached"
+    except OdooError as exc:
+        return False, f"Could not attach the original document: {exc}"

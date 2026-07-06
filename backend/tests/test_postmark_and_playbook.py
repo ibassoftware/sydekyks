@@ -48,6 +48,7 @@ def test_playbook_steps_metadata_matches_expected_keys():
         "resolve_currency",
         "resolve_tax",
         "create_bill",
+        "attach_document",
         "post_bill",
     ]
     for step in PLAYBOOK_STEPS:

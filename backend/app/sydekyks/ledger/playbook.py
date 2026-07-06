@@ -50,6 +50,9 @@ PLAYBOOK_STEPS = [
     {"key": "create_bill", "title": "Create the vendor bill",
      "description": "Compute a confidence score and create the draft bill in Odoo with its line items and narration.",
      "likely_failures": "Required Odoo fields unmet (marked needs-review) or an Odoo error."},
+    {"key": "attach_document", "title": "Attach the original document",
+     "description": "Attach the originally uploaded bill (PDF/image) to the Odoo record as evidence, so a human can compare it against the extracted data.",
+     "likely_failures": "Best-effort — an attachment failure never fails the Mission; the bill itself is already created."},
     {"key": "post_bill", "title": "Post when confident",
      "description": "If confidence meets the auto-post threshold, post the bill; otherwise leave it as a draft for a human.",
      "likely_failures": "Odoo rejects posting; bill stays draft."},
@@ -363,7 +366,18 @@ def run(db: Session, mission: Mission) -> None:
             "odoo_move_id": move_id, "confidence": score})
         idx += 1
 
-        # --- Step 9: optional auto-post ---------------------------------------------------------
+        # --- Step 9: attach the original document (best-effort — never fails the Mission) --------
+        # The bill was already created correctly; a failed attachment is a nice-to-have miss, not a
+        # reason to mark a successful bill-creation Mission as failed.
+        attach_ok, attach_msg = odoo_bills.attach_document(
+            client, move_id=move_id, filename=document.filename,
+            content_bytes=document_bytes, mimetype=document.content_type,
+        )
+        record_step(db, mission, idx, "attach_document", "gadget_call", "succeeded" if attach_ok else "failed",
+                    error=None if attach_ok else attach_msg)
+        idx += 1
+
+        # --- Step 10: optional auto-post ---------------------------------------------------------
         posted = False
         if will_post:
             ok, msg = odoo_bills.post_bill(client, move_id)
