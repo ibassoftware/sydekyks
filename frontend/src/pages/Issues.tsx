@@ -211,10 +211,15 @@ export default function Issues() {
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center gap-1 text-xs font-semibold text-gold-400 hover:text-gold-300"
                                   >
-                                    Open bill in Odoo →
+                                    Review draft in Odoo →
                                   </a>
                                 )}
                               </div>
+                              {issue.odoo_bill_url && (
+                                <p className="mt-1 text-[11px] text-[#8a7f6d]">
+                                  A draft bill was created but not posted — add the tax and post it once fixed.
+                                </p>
+                              )}
                             </div>
                           </div>
                           {canManage && (
