@@ -307,6 +307,7 @@ export interface TenantIssue {
   occurrence_count: number;
   first_seen_at: string;
   last_seen_at: string;
+  resolved_at: string | null;
 }
 
 export interface MissionReviewItem {
@@ -319,6 +320,7 @@ export interface MissionReviewItem {
 
 export interface IssuesOut {
   config_issues: TenantIssue[];
+  resolved_issues: TenantIssue[];
   missions_needing_review: MissionReviewItem[];
 }
 

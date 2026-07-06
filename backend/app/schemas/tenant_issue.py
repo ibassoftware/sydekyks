@@ -15,6 +15,7 @@ class TenantIssueOut(BaseModel):
     occurrence_count: int
     first_seen_at: datetime
     last_seen_at: datetime
+    resolved_at: datetime | None = None
 
 
 class MissionReviewItem(BaseModel):
@@ -27,4 +28,5 @@ class MissionReviewItem(BaseModel):
 
 class IssuesOut(BaseModel):
     config_issues: list[TenantIssueOut]
+    resolved_issues: list[TenantIssueOut]
     missions_needing_review: list[MissionReviewItem]

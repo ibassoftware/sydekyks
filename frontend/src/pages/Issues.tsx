@@ -1,16 +1,62 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
-import { api, type IssuesOut } from "../lib/api";
+import { api, type IssuesOut, type TenantIssue } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { HeaderActivity } from "../lib/activity";
 import { Badge, Button, Card, PageShell } from "../components/ui";
+
+function timeAgo(iso: string): string {
+  const sec = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (sec < 60) return "just now";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 30) return `${day}d ago`;
+  return `${Math.floor(day / 30)}mo ago`;
+}
+
+function WarningIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  );
+}
+
+function CheckIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+  );
+}
+
+function DocIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+    </svg>
+  );
+}
 
 export default function Issues() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const canManage = user?.role === "commander";
+
   const [issues, setIssues] = useState<IssuesOut | null>(null);
-  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [leavingIds, setLeavingIds] = useState<Set<string>>(new Set());
+  const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
+  const [showResolved, setShowResolved] = useState(false);
+  const [undoIssue, setUndoIssue] = useState<TenantIssue | null>(null);
+  const undoTimerRef = useRef<number | null>(null);
 
   const load = useCallback(() => {
     api.get<IssuesOut>("/tenant/issues").then((res) => setIssues(res.data));
@@ -20,17 +66,78 @@ export default function Issues() {
     load();
   }, [load]);
 
-  async function resolve(id: string) {
-    setResolvingId(id);
-    try {
-      await api.post(`/tenant/issues/${id}/resolve`);
-      load();
-    } finally {
-      setResolvingId(null);
-    }
+  useEffect(() => () => {
+    if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
+  }, []);
+
+  function triggerUndo(issue: TenantIssue) {
+    if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
+    setUndoIssue(issue);
+    undoTimerRef.current = window.setTimeout(() => setUndoIssue(null), 6000);
   }
 
-  const total = (issues?.config_issues.length ?? 0) + (issues?.missions_needing_review.length ?? 0);
+  function markBusy(id: string, busy: boolean) {
+    setBusyIds((prev) => {
+      const next = new Set(prev);
+      if (busy) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  function resolve(issue: TenantIssue) {
+    markBusy(issue.id, true);
+    setLeavingIds((prev) => new Set(prev).add(issue.id));
+    window.setTimeout(() => {
+      setIssues((prev) =>
+        prev
+          ? {
+              ...prev,
+              config_issues: prev.config_issues.filter((i) => i.id !== issue.id),
+              resolved_issues: [
+                { ...issue, status: "resolved", resolved_at: new Date().toISOString() },
+                ...prev.resolved_issues,
+              ],
+            }
+          : prev
+      );
+      setLeavingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(issue.id);
+        return next;
+      });
+      markBusy(issue.id, false);
+      triggerUndo(issue);
+    }, 220);
+    api.post(`/tenant/issues/${issue.id}/resolve`).catch(load);
+  }
+
+  function reopen(issue: TenantIssue) {
+    markBusy(issue.id, true);
+    setIssues((prev) =>
+      prev
+        ? {
+            ...prev,
+            resolved_issues: prev.resolved_issues.filter((i) => i.id !== issue.id),
+            config_issues: [{ ...issue, status: "open", resolved_at: null }, ...prev.config_issues],
+          }
+        : prev
+    );
+    markBusy(issue.id, false);
+    api.post(`/tenant/issues/${issue.id}/reopen`).catch(load);
+  }
+
+  function handleUndoClick() {
+    if (!undoIssue) return;
+    const issue = undoIssue;
+    setUndoIssue(null);
+    if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
+    reopen(issue);
+  }
+
+  const openCount = issues?.config_issues.length ?? 0;
+  const flaggedCount = issues?.missions_needing_review.length ?? 0;
+  const totalOpen = openCount + flaggedCount;
 
   return (
     <PageShell>
@@ -53,54 +160,113 @@ export default function Issues() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-gold-500">Attention Needed</p>
           <h1 className="mt-1 text-3xl font-bold text-[#f5eee0]">Issues</h1>
-          <p className="mt-1 text-sm text-[#8a7f6d]">
-            Standing configuration gaps and Missions your Sydekyks flagged for manual review.
-          </p>
         </div>
 
         {!issues ? (
           <p className="mt-8 text-sm text-[#b9ad98]">Loading…</p>
-        ) : total === 0 ? (
-          <Card className="mt-8 p-10 text-center">
-            <p className="text-sm text-[#b9ad98]">Nothing needs your attention right now.</p>
-          </Card>
         ) : (
-          <div className="mt-8 grid gap-8">
+          <div className="mt-8 grid gap-6">
+            {/* Hero: celebratory all-clear, or an urgency banner */}
+            {totalOpen === 0 ? (
+              <Card className="relative overflow-hidden p-10 text-center">
+                <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-gold-500/10 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-gold-500/10 blur-3xl" />
+                <div className="relative">
+                  <div
+                    className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gold-500/10 text-gold-400 shadow-[0_0_40px_-8px_rgba(212,168,40,0.6)]"
+                    style={{ animation: "popIn 0.5s ease-out" }}
+                  >
+                    <CheckIcon className="h-9 w-9" />
+                  </div>
+                  <h2 className="mt-5 text-2xl font-bold text-[#f5eee0]">All clear</h2>
+                  <p className="mx-auto mt-1.5 max-w-md text-sm text-[#b9ad98]">
+                    Nothing needs your attention right now — your Sydekyks are running smoothly.
+                  </p>
+                </div>
+              </Card>
+            ) : (
+              <Card className="relative overflow-hidden p-6">
+                <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-red-500/10 blur-3xl" />
+                <div className="relative flex flex-wrap items-center gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-500/10 text-red-400">
+                    <WarningIcon className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-red-400/90">Action needed</p>
+                    <h2 className="mt-0.5 text-xl font-bold text-[#f5eee0]">
+                      {totalOpen} {totalOpen === 1 ? "thing needs" : "things need"} your attention
+                    </h2>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Stat tiles */}
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Card className="p-5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Config Issues</p>
+                <p className="mt-2 text-3xl font-bold text-[#f5eee0]">{openCount}</p>
+              </Card>
+              <Card className="p-5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Missions Flagged</p>
+                <p className="mt-2 text-3xl font-bold text-[#f5eee0]">{flaggedCount}</p>
+              </Card>
+              <Card className="p-5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Recently Resolved</p>
+                <p className="mt-2 text-3xl font-bold text-[#f5eee0]">{issues.resolved_issues.length}</p>
+              </Card>
+            </div>
+
+            {/* Config issues */}
             {issues.config_issues.length > 0 && (
               <section>
                 <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Configuration Issues</p>
                 <div className="mt-3 grid gap-3">
-                  {issues.config_issues.map((issue) => (
-                    <Card key={issue.id} className="p-4">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <Badge tone="danger">Needs action</Badge>
-                            {issue.sydekyk_name && <span className="text-xs text-[#8a7f6d]">{issue.sydekyk_name}</span>}
+                  {issues.config_issues.map((issue, i) => (
+                    <div
+                      key={issue.id}
+                      style={{ animation: `fadeIn 0.3s ease-out ${i * 40}ms both` }}
+                      className={`transition-all duration-200 ease-out ${
+                        leavingIds.has(issue.id) ? "scale-95 opacity-0" : "scale-100 opacity-100"
+                      }`}
+                    >
+                      <Card className="relative overflow-hidden p-4">
+                        <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-red-500 to-amber-500" />
+                        <div className="flex items-start justify-between gap-4 pl-3">
+                          <div className="flex min-w-0 gap-3">
+                            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500/10 text-red-400">
+                              <WarningIcon className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="text-sm font-semibold text-[#ede6da]">{issue.title}</p>
+                                {issue.sydekyk_name && <Badge tone="neutral">{issue.sydekyk_name}</Badge>}
+                              </div>
+                              {issue.detail && <p className="mt-1 text-sm text-[#b9ad98]">{issue.detail}</p>}
+                              <p className="mt-2 text-xs text-[#8a7f6d]">
+                                Seen {issue.occurrence_count}× · last {timeAgo(issue.last_seen_at)}
+                              </p>
+                            </div>
                           </div>
-                          <p className="mt-1.5 text-sm font-semibold text-[#ede6da]">{issue.title}</p>
-                          {issue.detail && <p className="mt-1 text-sm text-[#b9ad98]">{issue.detail}</p>}
-                          <p className="mt-2 text-xs text-[#8a7f6d]">
-                            Seen {issue.occurrence_count}× · last {new Date(issue.last_seen_at).toLocaleString()}
-                          </p>
+                          {canManage && (
+                            <Button
+                              variant="ghost"
+                              className="shrink-0 px-3 py-1.5 text-xs"
+                              disabled={busyIds.has(issue.id)}
+                              onClick={() => resolve(issue)}
+                            >
+                              {busyIds.has(issue.id) ? "…" : "Mark resolved"}
+                            </Button>
+                          )}
                         </div>
-                        {canManage && (
-                          <Button
-                            variant="ghost"
-                            className="shrink-0 px-3 py-1.5 text-xs"
-                            disabled={resolvingId === issue.id}
-                            onClick={() => resolve(issue.id)}
-                          >
-                            {resolvingId === issue.id ? "…" : "Mark resolved"}
-                          </Button>
-                        )}
-                      </div>
-                    </Card>
+                      </Card>
+                    </div>
                   ))}
                 </div>
               </section>
             )}
 
+            {/* Missions needing review */}
             {issues.missions_needing_review.length > 0 && (
               <section>
                 <div className="flex items-center justify-between">
@@ -112,21 +278,91 @@ export default function Issues() {
                 <div className="mt-3 divide-y divide-ink-700/60 overflow-hidden rounded-lg border border-ink-700">
                   {issues.missions_needing_review.map((m) => (
                     <div key={m.mission_id} className="flex items-center gap-3 px-4 py-3">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-amber-400">
+                        <DocIcon className="h-3.5 w-3.5" />
+                      </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm text-[#ede6da]">{m.document_filename ?? "document"}</p>
                         <p className="mt-0.5 truncate text-xs text-[#8a7f6d]">
                           {m.sydekyk_name} · {m.reason ?? "Flagged for review"}
                         </p>
                       </div>
-                      <span className="shrink-0 text-xs text-[#8a7f6d]">{new Date(m.created_at).toLocaleDateString()}</span>
+                      <span className="shrink-0 text-xs text-[#8a7f6d]">{timeAgo(m.created_at)}</span>
                     </div>
                   ))}
                 </div>
               </section>
             )}
+
+            {/* Recently resolved (collapsible, reopenable) */}
+            {issues.resolved_issues.length > 0 && (
+              <section>
+                <button onClick={() => setShowResolved((v) => !v)} className="flex w-full items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">
+                    Recently Resolved ({issues.resolved_issues.length})
+                  </p>
+                  <span className="text-xs text-[#8a7f6d]">{showResolved ? "Hide ▲" : "Show ▼"}</span>
+                </button>
+                {showResolved && (
+                  <div className="mt-3 grid gap-2">
+                    {issues.resolved_issues.map((issue) => (
+                      <div
+                        key={issue.id}
+                        style={{ animation: "fadeIn 0.2s ease-out" }}
+                        className="flex items-center justify-between gap-4 rounded-lg border border-ink-700 bg-ink-900/40 px-4 py-3"
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <CheckIcon className="h-4 w-4 shrink-0 text-gold-400" />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm text-[#b9ad98] line-through decoration-[#8a7f6d]/50">
+                              {issue.title}
+                            </p>
+                            <p className="text-xs text-[#8a7f6d]">
+                              Resolved {issue.resolved_at ? timeAgo(issue.resolved_at) : ""}
+                            </p>
+                          </div>
+                        </div>
+                        {canManage && (
+                          <Button
+                            variant="ghost"
+                            className="shrink-0 px-3 py-1.5 text-xs"
+                            disabled={busyIds.has(issue.id)}
+                            onClick={() => reopen(issue)}
+                          >
+                            {busyIds.has(issue.id) ? "…" : "Reopen"}
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
           </div>
         )}
       </main>
+
+      {undoIssue &&
+        createPortal(
+          <div className="pointer-events-none fixed bottom-4 right-4 z-50">
+            <div
+              className="pointer-events-auto relative w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gold-600/40 bg-gradient-to-b from-ink-800 to-ink-900 p-4 shadow-xl"
+              style={{ animation: "fadeIn 0.2s ease-out" }}
+            >
+              <div className="flex items-center gap-3">
+                <CheckIcon className="h-5 w-5 shrink-0 text-gold-400" />
+                <p className="min-w-0 flex-1 truncate text-sm text-[#ede6da]">Issue resolved</p>
+                <button onClick={handleUndoClick} className="shrink-0 text-xs font-semibold text-gold-400 hover:text-gold-300">
+                  Undo
+                </button>
+              </div>
+              <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gold-600/20">
+                <div key={undoIssue.id} className="h-full bg-gold-400" style={{ animation: "shrinkWidth 6s linear forwards" }} />
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </PageShell>
   );
 }

@@ -51,3 +51,15 @@ def resolve_issue(db: Session, issue: TenantIssue, resolved_by_user_id: uuid.UUI
     db.commit()
     db.refresh(issue)
     return issue
+
+
+def reopen_issue(db: Session, issue: TenantIssue) -> TenantIssue:
+    """Undo a resolve — a human decided too soon, or the fix didn't stick. Deliberately does NOT
+    touch occurrence_count/last_seen_at (those track actual detection events, not this manual
+    action)."""
+    issue.status = "open"
+    issue.resolved_at = None
+    issue.resolved_by_user_id = None
+    db.commit()
+    db.refresh(issue)
+    return issue
