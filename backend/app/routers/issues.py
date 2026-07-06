@@ -15,11 +15,12 @@ from app.services import tenant_issues as tenant_issues_svc
 router = APIRouter(prefix="/api/tenant", tags=["issues"], dependencies=[Depends(require_tenant_member)])
 
 
-def _issue_out(issue: TenantIssue, sydekyk_name: str | None) -> TenantIssueOut:
+def _issue_out(db: Session, issue: TenantIssue, sydekyk_name: str | None) -> TenantIssueOut:
     return TenantIssueOut(
         id=issue.id, sydekyk_id=issue.sydekyk_id, sydekyk_name=sydekyk_name, kind=issue.kind,
         title=issue.title, detail=issue.detail, status=issue.status, occurrence_count=issue.occurrence_count,
         first_seen_at=issue.first_seen_at, last_seen_at=issue.last_seen_at, resolved_at=issue.resolved_at,
+        odoo_bill_url=tenant_issues_svc.resolve_odoo_bill_url(db, issue),
     )
 
 
@@ -36,7 +37,7 @@ def list_issues(user: User = Depends(require_tenant_member), db: Session = Depen
         .order_by(TenantIssue.last_seen_at.desc())
         .all()
     )
-    config_issues = [_issue_out(i, name) for i, name in rows]
+    config_issues = [_issue_out(db, i, name) for i, name in rows]
 
     resolved_rows = (
         db.query(TenantIssue, Sydekyk.name)
@@ -46,7 +47,7 @@ def list_issues(user: User = Depends(require_tenant_member), db: Session = Depen
         .limit(20)
         .all()
     )
-    resolved_issues = [_issue_out(i, name) for i, name in resolved_rows]
+    resolved_issues = [_issue_out(db, i, name) for i, name in resolved_rows]
 
     mission_rows = (
         db.query(Mission, MissionDocument.filename, Sydekyk.name)
@@ -79,7 +80,7 @@ def resolve_issue(issue_id: uuid.UUID, user: User = Depends(require_commander), 
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Issue not found")
     tenant_issues_svc.resolve_issue(db, issue, user.id)
     sydekyk = db.get(Sydekyk, issue.sydekyk_id) if issue.sydekyk_id else None
-    return _issue_out(issue, sydekyk.name if sydekyk else None)
+    return _issue_out(db, issue, sydekyk.name if sydekyk else None)
 
 
 @router.post("/issues/{issue_id}/reopen", response_model=TenantIssueOut)
@@ -90,4 +91,4 @@ def reopen_issue(issue_id: uuid.UUID, user: User = Depends(require_commander), d
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Issue not found")
     tenant_issues_svc.reopen_issue(db, issue)
     sydekyk = db.get(Sydekyk, issue.sydekyk_id) if issue.sydekyk_id else None
-    return _issue_out(issue, sydekyk.name if sydekyk else None)
+    return _issue_out(db, issue, sydekyk.name if sydekyk else None)

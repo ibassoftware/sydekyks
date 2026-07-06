@@ -31,6 +31,12 @@ class TenantIssue(Base):
     sydekyk_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("sydekyks.id", ondelete="CASCADE"), nullable=True
     )
+    # The most recent Mission that hit this gap — lets the UI deep-link to the actual Odoo bill
+    # (via that Mission's result_summary.odoo_move_id) rather than making a human hunt for it.
+    # Updated on every recurrence, not just creation, so the link always points at the latest bill.
+    mission_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("missions.id", ondelete="SET NULL"), nullable=True
+    )
     kind: Mapped[str] = mapped_column(String(50), nullable=False)  # e.g. "missing_tax_config"
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     detail: Mapped[str | None] = mapped_column(Text, nullable=True)

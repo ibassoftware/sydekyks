@@ -153,14 +153,17 @@ def test_missing_tax_config_blocks_auto_post_and_reports_issue(db, engine, seede
     assert len(issues) == 1
     assert issues[0].kind == "missing_tax_config"
     assert issues[0].occurrence_count == 1
+    assert issues[0].mission_id == mission.id  # links to the bill for the "Open in Odoo" deep link
 
-    # A second bill hitting the same gap upserts the SAME issue rather than creating a duplicate.
+    # A second bill hitting the same gap upserts the SAME issue rather than creating a duplicate,
+    # and repoints the link at the LATEST bill.
     mission2 = _make_mission(db, seeded)
     missions_svc.run_mission(mission2.id)
     db.expire_all()
     issues = db.query(TenantIssue).filter(TenantIssue.tenant_id == seeded["tenant"].id).all()
     assert len(issues) == 1
     assert issues[0].occurrence_count == 2
+    assert issues[0].mission_id == mission2.id
 
 
 def test_non_bill_document_rejected_before_extraction(db, engine, seeded, monkeypatch):

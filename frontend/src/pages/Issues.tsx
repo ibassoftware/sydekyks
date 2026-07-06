@@ -243,9 +243,21 @@ export default function Issues() {
                                 {issue.sydekyk_name && <Badge tone="neutral">{issue.sydekyk_name}</Badge>}
                               </div>
                               {issue.detail && <p className="mt-1 text-sm text-[#b9ad98]">{issue.detail}</p>}
-                              <p className="mt-2 text-xs text-[#8a7f6d]">
-                                Seen {issue.occurrence_count}× · last {timeAgo(issue.last_seen_at)}
-                              </p>
+                              <div className="mt-2 flex flex-wrap items-center gap-3">
+                                <p className="text-xs text-[#8a7f6d]">
+                                  Seen {issue.occurrence_count}× · last {timeAgo(issue.last_seen_at)}
+                                </p>
+                                {issue.odoo_bill_url && (
+                                  <a
+                                    href={issue.odoo_bill_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-xs font-semibold text-gold-400 hover:text-gold-300"
+                                  >
+                                    Open bill in Odoo →
+                                  </a>
+                                )}
+                              </div>
                             </div>
                           </div>
                           {canManage && (
@@ -317,9 +329,21 @@ export default function Issues() {
                             <p className="truncate text-sm text-[#b9ad98] line-through decoration-[#8a7f6d]/50">
                               {issue.title}
                             </p>
-                            <p className="text-xs text-[#8a7f6d]">
-                              Resolved {issue.resolved_at ? timeAgo(issue.resolved_at) : ""}
-                            </p>
+                            <div className="flex flex-wrap items-center gap-3">
+                              <p className="text-xs text-[#8a7f6d]">
+                                Resolved {issue.resolved_at ? timeAgo(issue.resolved_at) : ""}
+                              </p>
+                              {issue.odoo_bill_url && (
+                                <a
+                                  href={issue.odoo_bill_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs font-semibold text-gold-400 hover:text-gold-300"
+                                >
+                                  Open bill in Odoo →
+                                </a>
+                              )}
+                            </div>
                           </div>
                         </div>
                         {canManage && (

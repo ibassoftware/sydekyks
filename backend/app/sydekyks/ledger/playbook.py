@@ -324,7 +324,7 @@ def run(db: Session, mission: Mission) -> None:
             tenant_issues.report_issue(
                 db, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id,
                 kind="missing_tax_config", title="Ledger flagged a bill with no matching tax configuration",
-                detail=tax_review_reason,
+                detail=tax_review_reason, mission_id=mission.id,
             )
         else:
             record_step(db, mission, idx, "resolve_tax", "gadget_call", "succeeded", output={

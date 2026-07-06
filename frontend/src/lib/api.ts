@@ -308,6 +308,7 @@ export interface TenantIssue {
   first_seen_at: string;
   last_seen_at: string;
   resolved_at: string | null;
+  odoo_bill_url: string | null;
 }
 
 export interface MissionReviewItem {

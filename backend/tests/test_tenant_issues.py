@@ -1,9 +1,22 @@
 """Tenant Issue resolve/reopen cycle (DB-gated)."""
 
 from app.core.security import hash_password
+from app.models.mission import Mission
 from app.models.tenant_issue import TenantIssue
 from app.models.user import User
 from app.services import tenant_issues
+
+
+def _make_mission(db, seeded, result_summary=None):
+    mission = Mission(
+        tenant_id=seeded["tenant"].id, sydekyk_id=seeded["ledger"].id, mode="workflow_run",
+        signal_type="manual_upload", playbook_key="ledger.vendor_bill_ingest", status="succeeded",
+        result_summary=result_summary,
+    )
+    db.add(mission)
+    db.commit()
+    db.refresh(mission)
+    return mission
 
 
 def _make_commander(db, tenant_id):
@@ -78,3 +91,49 @@ def test_recurring_issue_reopens_itself_if_already_resolved(db, seeded):
     assert recurred.status == "open"
     assert recurred.resolved_at is None
     assert recurred.occurrence_count == 2
+
+
+def test_resolve_odoo_bill_url_none_without_linked_mission(db, seeded):
+    issue = tenant_issues.report_issue(
+        db, tenant_id=seeded["tenant"].id, sydekyk_id=seeded["ledger"].id, kind="missing_tax_config",
+        title="t", detail="d",
+    )
+    assert issue.mission_id is None
+    assert tenant_issues.resolve_odoo_bill_url(db, issue) is None
+
+
+def test_resolve_odoo_bill_url_none_without_move_id(db, seeded):
+    mission = _make_mission(db, seeded, result_summary={"needs_review": True})  # no odoo_move_id
+    issue = tenant_issues.report_issue(
+        db, tenant_id=seeded["tenant"].id, sydekyk_id=seeded["ledger"].id, kind="missing_tax_config",
+        title="t", detail="d", mission_id=mission.id,
+    )
+    assert tenant_issues.resolve_odoo_bill_url(db, issue) is None
+
+
+def test_resolve_odoo_bill_url_builds_link_when_bill_exists(db, seeded):
+    """seeded fixture's Odoo link has url='http://odoo' and is assigned to Ledger's 'erp' role."""
+    mission = _make_mission(db, seeded, result_summary={"odoo_move_id": 42})
+    issue = tenant_issues.report_issue(
+        db, tenant_id=seeded["tenant"].id, sydekyk_id=seeded["ledger"].id, kind="missing_tax_config",
+        title="t", detail="d", mission_id=mission.id,
+    )
+    url = tenant_issues.resolve_odoo_bill_url(db, issue)
+    assert url == "http://odoo/web#id=42&model=account.move&view_type=form"
+
+
+def test_report_issue_updates_mission_id_on_recurrence(db, seeded):
+    """The link should always point at the LATEST bill, not the first one that hit the gap."""
+    mission1 = _make_mission(db, seeded, result_summary={"odoo_move_id": 1})
+    mission2 = _make_mission(db, seeded, result_summary={"odoo_move_id": 2})
+
+    tenant_issues.report_issue(
+        db, tenant_id=seeded["tenant"].id, sydekyk_id=seeded["ledger"].id, kind="missing_tax_config",
+        title="t", detail="d", mission_id=mission1.id,
+    )
+    updated = tenant_issues.report_issue(
+        db, tenant_id=seeded["tenant"].id, sydekyk_id=seeded["ledger"].id, kind="missing_tax_config",
+        title="t", detail="d", mission_id=mission2.id,
+    )
+    assert updated.mission_id == mission2.id
+    assert tenant_issues.resolve_odoo_bill_url(db, updated) == "http://odoo/web#id=2&model=account.move&view_type=form"

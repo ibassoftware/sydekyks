@@ -16,6 +16,7 @@ class TenantIssueOut(BaseModel):
     first_seen_at: datetime
     last_seen_at: datetime
     resolved_at: datetime | None = None
+    odoo_bill_url: str | None = None
 
 
 class MissionReviewItem(BaseModel):
