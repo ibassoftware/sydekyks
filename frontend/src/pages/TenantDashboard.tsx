@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { api, type Dashboard } from "../lib/api";
-import { useAuth } from "../lib/auth";
-import { HeaderActivity, RecentMissionsStrip } from "../lib/activity";
-import { Button, Card, PageShell } from "../components/ui";
+import { RecentMissionsStrip } from "../lib/activity";
+import { Button, Card } from "../components/ui";
+import { HQShell } from "../components/HQShell";
 
 export default function TenantDashboard() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -18,49 +16,12 @@ export default function TenantDashboard() {
     });
   }, []);
 
-  function handleLogout() {
-    logout();
-    navigate("/login");
-  }
-
   const hasQuota = !!dashboard?.power_meter_quota;
   const powerPct =
     dashboard && hasQuota ? Math.min(100, Math.round((dashboard.power_meter_used / dashboard.power_meter_quota!) * 100)) : 0;
 
   return (
-    <PageShell>
-      <header className="border-b border-ink-700 bg-ink-900/60">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2 text-lg font-bold tracking-wide text-gold-300">
-            <span className="text-2xl">⚡</span> SYDEKYKS
-          </div>
-          <div className="flex items-center gap-4">
-            <Link to="/hq/roster" className="text-sm font-semibold text-gold-400 hover:text-gold-300">
-              Roster
-            </Link>
-            <Link to="/hq/missions" className="text-sm font-semibold text-gold-400 hover:text-gold-300">
-              Missions
-            </Link>
-            <Link to="/hq/issues" className="text-sm font-semibold text-gold-400 hover:text-gold-300">
-              Issues
-            </Link>
-            <Link to="/hq/gadgets" className="text-sm font-semibold text-gold-400 hover:text-gold-300">
-              Gadgets
-            </Link>
-            {user?.role === "commander" && (
-              <Link to="/hq/settings" className="text-sm font-semibold text-gold-400 hover:text-gold-300">
-                Settings
-              </Link>
-            )}
-            <HeaderActivity />
-            <span className="text-sm text-[#b9ad98]">{user?.email}</span>
-            <Button variant="ghost" onClick={handleLogout}>
-              Log out
-            </Button>
-          </div>
-        </div>
-      </header>
-
+    <HQShell>
       <main className="mx-auto max-w-6xl px-6 py-10">
         {loading || !dashboard ? (
           <p className="text-sm text-[#b9ad98]">Loading your HQ…</p>
@@ -126,6 +87,6 @@ export default function TenantDashboard() {
           </>
         )}
       </main>
-    </PageShell>
+    </HQShell>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import axios from "axios";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   api,
   type LedgerReadiness,
@@ -11,7 +11,8 @@ import {
   type SydekykLLMConfigTestResult,
 } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { Badge, Button, Card, Input, Label, PageShell } from "../components/ui";
+import { Badge, Button, Card, Input, Label } from "../components/ui";
+import { HQShell } from "../components/HQShell";
 import { DocumentIntakeSection } from "../components/DocumentIntakeSection";
 import { registryForSlug } from "../sydekyks/registry";
 
@@ -60,21 +61,7 @@ export default function SydekykDetail() {
   const active = sydekyk && (sydekyk.installed || sydekyk.is_exclusive);
 
   return (
-    <PageShell>
-      <header className="border-b border-ink-700 bg-ink-900/60">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <Link to="/hq" className="flex items-center gap-2 text-lg font-bold tracking-wide text-gold-300">
-            <span className="text-2xl">⚡</span> SYDEKYKS
-          </Link>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-[#b9ad98]">{user?.email}</span>
-            <Link to="/hq/roster">
-              <Button variant="ghost">Back to Roster</Button>
-            </Link>
-          </div>
-        </div>
-      </header>
-
+    <HQShell>
       <main className="mx-auto max-w-5xl px-6 py-10">
         <button onClick={() => navigate("/hq/roster")} className="mb-6 text-sm text-gold-400 hover:text-gold-300">
           ← Roster
@@ -201,7 +188,7 @@ export default function SydekykDetail() {
           </div>
         )}
       </main>
-    </PageShell>
+    </HQShell>
   );
 }
 

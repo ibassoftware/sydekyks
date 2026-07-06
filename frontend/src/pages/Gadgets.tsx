@@ -1,9 +1,9 @@
 import { useEffect, useState, type FormEvent } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
 import { api, type Gadget, type GadgetLink } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { Badge, Button, Card, Input, Label, Modal, PageShell } from "../components/ui";
+import { Badge, Button, Card, Input, Label, Modal } from "../components/ui";
+import { HQShell } from "../components/HQShell";
 
 export default function Gadgets() {
   const { user } = useAuth();
@@ -64,21 +64,7 @@ export default function Gadgets() {
   }
 
   return (
-    <PageShell>
-      <header className="border-b border-ink-700 bg-ink-900/60">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link to="/hq" className="flex items-center gap-2 text-lg font-bold tracking-wide text-gold-300">
-            <span className="text-2xl">⚡</span> SYDEKYKS
-          </Link>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-[#b9ad98]">{user?.email}</span>
-            <Link to="/hq">
-              <Button variant="ghost">Back to HQ</Button>
-            </Link>
-          </div>
-        </div>
-      </header>
-
+    <HQShell>
       <main className="mx-auto max-w-6xl px-6 py-12">
         <div className="relative overflow-hidden rounded-2xl border border-gold-700/30 bg-gradient-to-br from-ink-800 via-ink-900 to-ink-950 px-8 py-10">
           <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-gold-500/10 blur-3xl" />
@@ -208,7 +194,7 @@ export default function Gadgets() {
           <GadgetLinkForm mode="edit" link={editingLink} onCancel={() => setEditingLink(null)} onSaved={handleUpdated} />
         )}
       </Modal>
-    </PageShell>
+    </HQShell>
   );
 }
 

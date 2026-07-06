@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import { api, type MissionDetail, type MissionPage, type MissionStatus } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { HeaderActivity } from "../lib/activity";
-import { Badge, Button, Card, PageShell } from "../components/ui";
+import { Badge, Button, Card } from "../components/ui";
+import { HQShell } from "../components/HQShell";
 import { MissionDetailPanel } from "../components/DocumentIntakeSection";
 
 const PAGE_SIZE = 25;
@@ -16,8 +15,7 @@ function StatusBadge({ status }: { status: MissionStatus }) {
 }
 
 export default function Missions() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const canManage = user?.role === "commander";
 
   const [page, setPage] = useState<MissionPage | null>(null);
@@ -78,23 +76,7 @@ export default function Missions() {
   const pageEnd = Math.min(offset + PAGE_SIZE, total);
 
   return (
-    <PageShell>
-      <header className="border-b border-ink-700 bg-ink-900/60">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link to="/hq" className="flex items-center gap-2 text-lg font-bold tracking-wide text-gold-300">
-            <span className="text-2xl">⚡</span> SYDEKYKS
-          </Link>
-          <div className="flex items-center gap-4">
-            <Link to="/hq/roster" className="text-sm font-semibold text-gold-400 hover:text-gold-300">Roster</Link>
-            <Link to="/hq/issues" className="text-sm font-semibold text-gold-400 hover:text-gold-300">Issues</Link>
-            <Link to="/hq/gadgets" className="text-sm font-semibold text-gold-400 hover:text-gold-300">Gadgets</Link>
-            <HeaderActivity />
-            <span className="text-sm text-[#b9ad98]">{user?.email}</span>
-            <Button variant="ghost" onClick={() => { logout(); navigate("/login"); }}>Log out</Button>
-          </div>
-        </div>
-      </header>
-
+    <HQShell>
       <main className="mx-auto max-w-6xl px-6 py-10">
         <div className="flex items-center justify-between">
           <div>
@@ -175,6 +157,6 @@ export default function Missions() {
           </div>
         )}
       </main>
-    </PageShell>
+    </HQShell>
   );
 }

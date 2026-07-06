@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { api, type IssuesOut, type TenantIssue } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { HeaderActivity } from "../lib/activity";
-import { Badge, Button, Card, PageShell } from "../components/ui";
+import { Badge, Button, Card } from "../components/ui";
+import { HQShell } from "../components/HQShell";
+import { CheckIcon, DocIcon, WarningIcon } from "../components/icons";
 
 function timeAgo(iso: string): string {
   const sec = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -18,37 +19,8 @@ function timeAgo(iso: string): string {
   return `${Math.floor(day / 30)}mo ago`;
 }
 
-function WarningIcon({ className = "" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-      <line x1="12" y1="9" x2="12" y2="13" />
-      <line x1="12" y1="17" x2="12.01" y2="17" />
-    </svg>
-  );
-}
-
-function CheckIcon({ className = "" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-      <polyline points="22 4 12 14.01 9 11.01" />
-    </svg>
-  );
-}
-
-function DocIcon({ className = "" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <polyline points="14 2 14 8 20 8" />
-    </svg>
-  );
-}
-
 export default function Issues() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const canManage = user?.role === "commander";
 
   const [issues, setIssues] = useState<IssuesOut | null>(null);
@@ -140,22 +112,7 @@ export default function Issues() {
   const totalOpen = openCount + flaggedCount;
 
   return (
-    <PageShell>
-      <header className="border-b border-ink-700 bg-ink-900/60">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <Link to="/hq" className="flex items-center gap-2 text-lg font-bold tracking-wide text-gold-300">
-            <span className="text-2xl">⚡</span> SYDEKYKS
-          </Link>
-          <div className="flex items-center gap-4">
-            <Link to="/hq/roster" className="text-sm font-semibold text-gold-400 hover:text-gold-300">Roster</Link>
-            <Link to="/hq/missions" className="text-sm font-semibold text-gold-400 hover:text-gold-300">Missions</Link>
-            <HeaderActivity />
-            <span className="text-sm text-[#b9ad98]">{user?.email}</span>
-            <Button variant="ghost" onClick={() => { logout(); navigate("/login"); }}>Log out</Button>
-          </div>
-        </div>
-      </header>
-
+    <HQShell>
       <main className="mx-auto max-w-5xl px-6 py-10">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-gold-500">Attention Needed</p>
@@ -387,6 +344,6 @@ export default function Issues() {
           </div>,
           document.body
         )}
-    </PageShell>
+    </HQShell>
   );
 }
