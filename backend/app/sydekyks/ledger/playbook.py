@@ -23,6 +23,9 @@ PLAYBOOK_KEY = "ledger.vendor_bill_ingest"
 # Read-only, human-facing description of the fixed Playbook (VS-5). Single source of truth: the
 # `key`s here MUST match the step_keys `run()` records below, and a test asserts that invariant.
 PLAYBOOK_STEPS = [
+    {"key": "classify_document", "title": "Check it's actually a bill",
+     "description": "Quick check that the uploaded document is a vendor bill/invoice/receipt before running full extraction.",
+     "likely_failures": "The document doesn't look like a bill (e.g. a random photo, resume, or unrelated file) — Mission fails immediately, no Odoo bill created."},
     {"key": "extract_bill_data", "title": "Extract bill data",
      "description": "Read the uploaded/emailed bill with the assigned vision model and pull vendor, invoice number, dates, totals and line items.",
      "likely_failures": "AI engine not configured, or the model can't read images/PDFs."},
@@ -137,7 +140,7 @@ def run(db: Session, mission: Mission) -> None:
 
     settings = _get_ledger_settings(db, mission.tenant_id)
 
-    # --- Step 1: extract bill data via the tenant's assigned AI engine ---------------------------
+    # --- Step 1: classify — is this actually a bill? -----------------------------------------------
     llm = (
         db.query(TenantSydekykLLMConfig)
         .filter(
@@ -147,16 +150,42 @@ def run(db: Session, mission: Mission) -> None:
         .first()
     )
     if llm is None or not llm.litellm_virtual_key_encrypted or not llm.litellm_model_alias:
-        record_step(db, mission, idx, "extract_bill_data", "llm_call", "failed",
+        record_step(db, mission, idx, "classify_document", "llm_call", "failed",
                     error="No AI engine configured for Ledger. Pick one in the Roster AI Engine section.")
         _finish(db, mission, "failed", {}, "No AI engine configured", failure_category="setup")
         return
-
     virtual_key = decrypt_secret(llm.litellm_virtual_key_encrypted)
-    ok, msg, bill, meta = extraction.extract_bill_data(
-        virtual_key, llm.litellm_model_alias, document_bytes, document.content_type
-    )
+
+    # Rasterize once (PDF pages -> PNG, capped at 3) and reuse for both the classify and extract
+    # calls — avoids rendering a multi-page PDF twice.
+    image_uris, img_err = extraction.document_to_image_uris(document_bytes, document.content_type)
+    if img_err:
+        record_step(db, mission, idx, "classify_document", "internal", "failed", error=img_err)
+        _finish(db, mission, "failed", {}, img_err, failure_category="validation")
+        return
+
+    ok, msg, classification, meta = extraction.classify_document(virtual_key, llm.litellm_model_alias, image_uris)
     # VS-15: attribute this hosted-AI call to (tenant, sydekyk, mission), keyed by request id.
+    _emit_usage(db, mission, llm, meta)
+    if not ok or classification is None:
+        record_step(db, mission, idx, "classify_document", "llm_call", "failed", error=msg)
+        _finish(db, mission, "failed", {}, msg, failure_category="transient")
+        return
+    if not classification.is_bill:
+        reason = (
+            f"This doesn't look like a vendor bill (looks like: "
+            f"{classification.document_type_guess or 'unrecognized document'}). {classification.reason}"
+        ).strip()
+        record_step(db, mission, idx, "classify_document", "llm_call", "failed", error=reason, output={
+            "is_bill": False, "document_type_guess": classification.document_type_guess})
+        _finish(db, mission, "failed", {}, reason, failure_category="validation")
+        return
+    record_step(db, mission, idx, "classify_document", "llm_call", "succeeded", output={
+        "is_bill": True, "document_type_guess": classification.document_type_guess})
+    idx += 1
+
+    # --- Step 2: extract bill data via the tenant's assigned AI engine -----------------------------
+    ok, msg, bill, meta = extraction.extract_bill_data(virtual_key, llm.litellm_model_alias, image_uris)
     _emit_usage(db, mission, llm, meta)
     if not ok or bill is None:
         record_step(db, mission, idx, "extract_bill_data", "llm_call", "failed", error=msg)

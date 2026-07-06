@@ -28,15 +28,25 @@ def _fake_bill(currency="USD", tax_amount=None):
     )
 
 
-def _patch_happy_path(monkeypatch, engine, *, bill=None, currency_id=1, account_tax_ids=None, any_purchase_tax=True):
+def _patch_happy_path(
+    monkeypatch, engine, *, bill=None, currency_id=1, account_tax_ids=None, any_purchase_tax=True, is_bill=True,
+):
     # run_mission opens its own SessionLocal — bind it to the test engine.
     monkeypatch.setattr(missions_svc, "SessionLocal", sessionmaker(bind=engine))
 
     monkeypatch.setattr(
+        extraction, "classify_document",
+        lambda *a, **k: (True, "ok", extraction.DocumentClassification(
+            is_bill=is_bill, document_type_guess="invoice" if is_bill else "photo",
+            reason="looks like a vendor invoice" if is_bill else "no vendor/total/line items visible"),
+                         {"usage": {"prompt_tokens": 4, "completion_tokens": 2, "total_tokens": 6},
+                          "request_id": f"req-classify-{uuid.uuid4()}", "model": "ledger-hosted", "cost_usd": 0.0}),
+    )
+    monkeypatch.setattr(
         extraction, "extract_bill_data",
         lambda *a, **k: (True, "ok", bill or _fake_bill(),
                          {"usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
-                          "request_id": f"req-{uuid.uuid4()}", "model": "ledger-hosted", "cost_usd": 0.0042}),
+                          "request_id": f"req-extract-{uuid.uuid4()}", "model": "ledger-hosted", "cost_usd": 0.0042}),
     )
     monkeypatch.setattr(odoo, "connect", lambda *a, **k: (True, "ok", object()))
     monkeypatch.setattr(odoo, "find_partner", lambda *a, **k: {"id": 1, "name": "ACME"})
@@ -82,11 +92,12 @@ def test_playbook_success_and_usage(db, engine, seeded, monkeypatch):
     assert done.status == "succeeded"
     assert done.result_summary["posted"] is True
     assert done.result_summary["odoo_move_id"] == 100
-    # VS-15: a usage record was attributed to this Mission.
+    # VS-15: a usage record was attributed to this Mission — one for classify_document, one for
+    # extract_bill_data (two distinct LLM calls, keyed by distinct litellm_request_id).
     usage = db.query(UsageRecord).filter(UsageRecord.mission_id == mission.id).all()
-    assert len(usage) == 1
-    assert usage[0].total_tokens == 15
-    assert usage[0].cost_usd == 0.0042  # VS-15: per-call cost captured from LiteLLM header
+    assert len(usage) == 2
+    assert sum(u.total_tokens for u in usage) == 21  # 6 (classify) + 15 (extract)
+    assert sum(u.cost_usd for u in usage) == 0.0042  # VS-15: per-call cost captured from LiteLLM header
 
 
 def test_auto_post_disabled_by_default_never_posts(db, engine, seeded, monkeypatch):
@@ -150,6 +161,28 @@ def test_missing_tax_config_blocks_auto_post_and_reports_issue(db, engine, seede
     issues = db.query(TenantIssue).filter(TenantIssue.tenant_id == seeded["tenant"].id).all()
     assert len(issues) == 1
     assert issues[0].occurrence_count == 2
+
+
+def test_non_bill_document_rejected_before_extraction(db, engine, seeded, monkeypatch):
+    """A photo/resume/random file must be rejected at classify_document — never reach extraction,
+    never create anything in Odoo, and never be auto-retried (it's a validation failure)."""
+    _patch_happy_path(monkeypatch, engine, is_bill=False)
+    mission = _make_mission(db, seeded)
+
+    missions_svc.run_mission(mission.id)
+
+    db.expire_all()
+    done = db.get(Mission, mission.id)
+    assert done.status == "failed"
+    assert done.failure_category == "validation"
+    assert "doesn't look like a vendor bill" in done.error_message
+    # Only the classify_document step ran — extract_bill_data never got a chance to run.
+    step_keys = [s.step_key for s in done.steps]
+    assert step_keys == ["classify_document"]
+    # Only the classification call's usage was attributed — no extraction call happened.
+    usage = db.query(UsageRecord).filter(UsageRecord.mission_id == mission.id).all()
+    assert len(usage) == 1
+    assert usage[0].total_tokens == 6
 
 
 def test_missing_odoo_marks_setup_failure(db, engine, seeded, monkeypatch):

@@ -150,7 +150,10 @@ def vision_test(user: User = Depends(require_commander), db: Session = Depends(g
     from app.sydekyks.ledger import extraction
 
     virtual_key = decrypt_secret(llm.litellm_virtual_key_encrypted)
-    ok, msg, bill, _meta = extraction.extract_bill_data(virtual_key, llm.litellm_model_alias, sample, "image/png")
+    image_uris, img_err = extraction.document_to_image_uris(sample, "image/png")
+    if img_err:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=img_err)
+    ok, msg, bill, _meta = extraction.extract_bill_data(virtual_key, llm.litellm_model_alias, image_uris)
     passed = bool(ok and bill is not None)
 
     s = _settings(db, user.tenant_id)

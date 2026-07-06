@@ -42,23 +42,52 @@ def test_coerce_normalizes_currency_and_numbers():
     assert bill.line_items[0].amount == 50.0
 
 
-def test_image_data_uris_passthrough_for_images():
-    uris, err = extraction._image_data_uris(b"\x89PNG fake", "image/png")
+def test_document_to_image_uris_passthrough_for_images():
+    uris, err = extraction.document_to_image_uris(b"\x89PNG fake", "image/png")
     assert err is None
     assert len(uris) == 1 and uris[0].startswith("data:image/png;base64,")
 
 
-def test_image_data_uris_rasterizes_pdf_to_png():
+def test_document_to_image_uris_rasterizes_pdf_to_png():
     import io
 
     from PIL import Image
 
     buf = io.BytesIO()
     Image.new("RGB", (200, 200), "white").save(buf, format="PDF")
-    uris, err = extraction._image_data_uris(buf.getvalue(), "application/pdf")
+    uris, err = extraction.document_to_image_uris(buf.getvalue(), "application/pdf")
     assert err is None
     # A PDF becomes one-or-more PNG image parts (not a PDF data URI).
     assert len(uris) >= 1 and all(u.startswith("data:image/png;base64,") for u in uris)
+
+
+def test_document_to_image_uris_caps_pdf_pages_at_three():
+    import io
+
+    from PIL import Image
+
+    pages = [Image.new("RGB", (100, 100), "white") for _ in range(5)]
+    buf = io.BytesIO()
+    pages[0].save(buf, format="PDF", save_all=True, append_images=pages[1:])
+    uris, err = extraction.document_to_image_uris(buf.getvalue(), "application/pdf")
+    assert err is None
+    assert len(uris) == 3  # capped, even though the PDF has 5 pages
+
+
+def test_coerce_classification_defaults():
+    c = extraction._coerce_classification({})
+    assert c.is_bill is False
+    assert c.document_type_guess == ""
+    assert c.reason == ""
+
+
+def test_coerce_classification_reads_fields():
+    c = extraction._coerce_classification({
+        "is_bill": True, "document_type_guess": "invoice", "reason": "has vendor, total, line items",
+    })
+    assert c.is_bill is True
+    assert c.document_type_guess == "invoice"
+    assert c.reason == "has vendor, total, line items"
 
 
 def test_coerce_skips_unparseable_line_items():

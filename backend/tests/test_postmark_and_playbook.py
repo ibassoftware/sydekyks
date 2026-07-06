@@ -39,6 +39,7 @@ def test_playbook_steps_metadata_matches_expected_keys():
     """Guards against the read-only Playbook panel (VS-5) drifting from what run() records."""
     keys = [s["key"] for s in PLAYBOOK_STEPS]
     assert keys == [
+        "classify_document",
         "extract_bill_data",
         "connect_odoo",
         "lookup_vendor",
