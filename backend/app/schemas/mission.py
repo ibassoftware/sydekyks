@@ -33,6 +33,7 @@ class MissionOut(BaseModel):
     error_message: str | None
     document_filename: str | None
     last_step_key: str | None = None  # latest recorded step — for the live activity toast
+    reviewed: bool = False  # human sign-off on a needs_review Mission
     odoo_bill_url: str | None = None  # only populated on the mission-detail endpoint, not list rows
     parent_mission_id: uuid.UUID | None = None
     root_mission_id: uuid.UUID | None = None

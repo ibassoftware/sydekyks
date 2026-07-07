@@ -1,10 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { api, type Mission, type MissionDetail } from "./api";
+import { api, type IssuesCount, type Mission, type MissionDetail } from "./api";
 import { useAuth } from "./auth";
 
 const POLL_MS = 3000;
+const ISSUES_POLL_MS = 15000;
 const FINISHED_TTL_MS = 5000;
 
 // Humanize a playbook step_key for the toast, e.g. "extract_bill_data" -> "Extracting bill data".
@@ -20,9 +21,10 @@ interface ActivityValue {
   active: Mission[];
   activeSydekykIds: Set<string>;
   count: number;
+  issuesCount: number;
 }
 
-const ActivityContext = createContext<ActivityValue>({ active: [], activeSydekykIds: new Set(), count: 0 });
+const ActivityContext = createContext<ActivityValue>({ active: [], activeSydekykIds: new Set(), count: 0, issuesCount: 0 });
 
 export function useActivity() {
   return useContext(ActivityContext);
@@ -34,6 +36,7 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
 
   const [active, setActive] = useState<Mission[]>([]);
   const [finished, setFinished] = useState<Finished[]>([]);
+  const [issuesCount, setIssuesCount] = useState(0);
   const prevActive = useRef<Map<string, Mission>>(new Map());
 
   const poll = useCallback(async () => {
@@ -74,10 +77,30 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(id);
   }, [enabled, poll]);
 
+  const pollIssues = useCallback(async () => {
+    try {
+      const res = await api.get<IssuesCount>("/tenant/issues/count");
+      setIssuesCount(res.data.total);
+    } catch {
+      // ignore transient poll errors
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!enabled) {
+      setIssuesCount(0);
+      return;
+    }
+    pollIssues();
+    const id = setInterval(pollIssues, ISSUES_POLL_MS);
+    return () => clearInterval(id);
+  }, [enabled, pollIssues]);
+
   const value: ActivityValue = {
     active,
     activeSydekykIds: new Set(active.map((m) => m.sydekyk_id)),
     count: active.length,
+    issuesCount,
   };
 
   return (

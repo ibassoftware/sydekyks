@@ -30,7 +30,7 @@ export function HQSidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { count } = useActivity();
+  const { count, issuesCount } = useActivity();
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSE_KEY) === "1");
 
   useEffect(() => {
@@ -43,10 +43,11 @@ export function HQSidebar() {
     { to: "/hq", label: "Command Center", icon: HomeIcon, match: (p) => p === "/hq" },
     { to: "/hq/roster", label: "Roster", icon: UsersIcon, match: (p) => p.startsWith("/hq/roster") },
     { to: "/hq/missions", label: "Missions", icon: BoltIcon, match: (p) => p.startsWith("/hq/missions"), badge: count || undefined },
-    { to: "/hq/issues", label: "Issues", icon: WarningIcon, match: (p) => p.startsWith("/hq/issues") },
+    { to: "/hq/issues", label: "Issues", icon: WarningIcon, match: (p) => p.startsWith("/hq/issues"), badge: issuesCount || undefined },
     { to: "/hq/gadgets", label: "Utility Belt", icon: ToolIcon, match: (p) => p.startsWith("/hq/gadgets") },
   ];
   if (canManage) {
+    items.push({ to: "/hq/team", label: "Team", icon: ShieldIcon, match: (p) => p.startsWith("/hq/team") });
     items.push({ to: "/hq/settings", label: "Settings", icon: GearIcon, match: (p) => p.startsWith("/hq/settings") });
   }
 

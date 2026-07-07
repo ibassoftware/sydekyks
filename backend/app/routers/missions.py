@@ -1,19 +1,21 @@
 import csv
 import io
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.core.deps import require_commander, require_tenant_member
+from app.core.deps import require_tenant_member
 from app.db.session import get_db
 from app.models.mission import Mission, MissionDocument, MissionStep
 from app.models.sydekyk import Sydekyk
 from app.models.user import User
+from app.services import permissions
 from app.schemas.mission import MissionDetailOut, MissionOut, MissionPage, MissionStepOut
+from app.schemas.tenant_issue import MissionReviewStatusOut
 from app.services import gadget_links
 from app.services.error_display import friendly_message
 from app.services.missions import apply_mission_filters, retry_mission
@@ -45,6 +47,7 @@ def _mission_out(
         error_message=friendly_message(m.error_message),
         document_filename=filename,
         last_step_key=last_step_key,
+        reviewed=m.reviewed_at is not None,
         parent_mission_id=m.parent_mission_id,
         root_mission_id=m.root_mission_id,
         attempt_number=m.attempt_number,
@@ -214,11 +217,12 @@ def get_mission(mission_id: uuid.UUID, user: User = Depends(require_tenant_membe
 
 
 @router.post("/missions/{mission_id}/retry", response_model=MissionOut, status_code=status.HTTP_201_CREATED)
-async def retry(mission_id: uuid.UUID, user: User = Depends(require_commander), db: Session = Depends(get_db)):
+async def retry(mission_id: uuid.UUID, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
     """Retry a failed Mission by creating a new linked Mission that replays the original (VS-4)."""
     original = db.get(Mission, mission_id)
     if original is None or original.tenant_id != user.tenant_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mission not found")
+    permissions.assert_can_use(db, user, original.sydekyk_id)
     try:
         new_mission = retry_mission(db, original)
     except ValueError as exc:
@@ -229,3 +233,36 @@ async def retry(mission_id: uuid.UUID, user: User = Depends(require_commander), 
     return _mission_out(new_mission, filename=_filename(db, new_mission.id), source="web_upload"
                         if original.signal_type == "manual_upload" else "email",
                         sydekyk_name=sydekyk.name if sydekyk else None)
+
+
+def _review_status(m: Mission, reviewer_email: str | None) -> MissionReviewStatusOut:
+    return MissionReviewStatusOut(
+        mission_id=m.id, reviewed=m.reviewed_at is not None,
+        reviewed_at=m.reviewed_at, reviewed_by_email=reviewer_email,
+    )
+
+
+@router.post("/missions/{mission_id}/review", response_model=MissionReviewStatusOut)
+def mark_reviewed(mission_id: uuid.UUID, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+    """Sign off on a Mission the Playbook flagged for review — records who cleared it and when."""
+    mission = db.get(Mission, mission_id)
+    if mission is None or mission.tenant_id != user.tenant_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mission not found")
+    permissions.assert_can_use(db, user, mission.sydekyk_id)
+    mission.reviewed_at = datetime.now(timezone.utc)
+    mission.reviewed_by_user_id = user.id
+    db.commit()
+    return _review_status(mission, user.email)
+
+
+@router.delete("/missions/{mission_id}/review", response_model=MissionReviewStatusOut)
+def unmark_reviewed(mission_id: uuid.UUID, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+    """Undo a review sign-off — puts the Mission back in the needs-review queue."""
+    mission = db.get(Mission, mission_id)
+    if mission is None or mission.tenant_id != user.tenant_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mission not found")
+    permissions.assert_can_use(db, user, mission.sydekyk_id)
+    mission.reviewed_at = None
+    mission.reviewed_by_user_id = None
+    db.commit()
+    return _review_status(mission, None)

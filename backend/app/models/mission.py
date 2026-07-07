@@ -38,6 +38,12 @@ class Mission(Base):
     )
     root_mission_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
     attempt_number: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    # Human sign-off on a Mission the Playbook flagged for review (result_summary.needs_review).
+    # Records who cleared it and when, so the Issues/Missions "Reviewed" badge has an audit trail.
+    reviewed_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    reviewed_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
     started_at: Mapped[datetime | None] = mapped_column(nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(nullable=True)

@@ -14,6 +14,13 @@ function StatusBadge({ status }: { status: MissionStatus }) {
   return <Badge tone="neutral">Queued</Badge>;
 }
 
+function ReviewBadge({ mission }: { mission: MissionPage["items"][number] }) {
+  const needsReview = Boolean(mission.result_summary?.needs_review);
+  if (mission.reviewed) return <Badge tone="gold">Reviewed</Badge>;
+  if (needsReview) return <Badge tone="danger">Needs review</Badge>;
+  return null;
+}
+
 export default function Missions() {
   const { user } = useAuth();
   const canManage = user?.role === "commander";
@@ -127,6 +134,7 @@ export default function Missions() {
                     </div>
                     <div className="flex items-center gap-2">
                       {m.source === "email" && <Badge tone="neutral">Email</Badge>}
+                      <ReviewBadge mission={m} />
                       <StatusBadge status={m.status} />
                     </div>
                   </button>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useSearchParams } from "react-router-dom";
-import { api, type IssuesOut, type TenantIssue } from "../lib/api";
+import { api, type IssuesOut, type MissionReviewItem, type MissionReviewStatus, type TenantIssue } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { Badge, Button, Card } from "../components/ui";
 import { HQShell } from "../components/HQShell";
@@ -30,6 +30,7 @@ export default function Issues() {
   const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
   const [showResolved, setShowResolved] = useState(false);
   const [undoIssue, setUndoIssue] = useState<TenantIssue | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const undoTimerRef = useRef<number | null>(null);
 
   const load = useCallback(() => {
@@ -110,8 +111,41 @@ export default function Issues() {
     reopen(issue);
   }
 
+  function toggleExpand(id: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function setReviewed(m: MissionReviewItem, reviewed: boolean) {
+    markBusy(m.mission_id, true);
+    try {
+      const res = reviewed
+        ? await api.post<MissionReviewStatus>(`/tenant/missions/${m.mission_id}/review`)
+        : await api.delete<MissionReviewStatus>(`/tenant/missions/${m.mission_id}/review`);
+      setIssues((prev) =>
+        prev
+          ? {
+              ...prev,
+              missions_needing_review: prev.missions_needing_review.map((x) =>
+                x.mission_id === m.mission_id
+                  ? { ...x, reviewed: res.data.reviewed, reviewed_at: res.data.reviewed_at, reviewed_by_email: res.data.reviewed_by_email }
+                  : x
+              ),
+            }
+          : prev
+      );
+    } finally {
+      markBusy(m.mission_id, false);
+    }
+  }
+
   const openCount = issues?.config_issues.length ?? 0;
-  const flaggedCount = issues?.missions_needing_review.length ?? 0;
+  // Only Missions still awaiting review count as "needs attention"; reviewed ones stay listed with a badge.
+  const flaggedCount = issues?.missions_needing_review.filter((m) => !m.reviewed).length ?? 0;
   const totalOpen = openCount + flaggedCount;
 
   return (
@@ -261,20 +295,92 @@ export default function Issues() {
                   </Link>
                 </div>
                 <div className="mt-3 divide-y divide-ink-700/60 overflow-hidden rounded-lg border border-ink-700">
-                  {issues.missions_needing_review.map((m) => (
-                    <div key={m.mission_id} className="flex items-center gap-3 px-4 py-3">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-amber-400">
-                        <DocIcon className="h-3.5 w-3.5" />
+                  {issues.missions_needing_review.map((m) => {
+                    const open = expanded.has(m.mission_id);
+                    return (
+                      <div key={m.mission_id} className={m.reviewed ? "bg-ink-900/30" : ""}>
+                        <button
+                          onClick={() => toggleExpand(m.mission_id)}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-ink-800/40"
+                        >
+                          <div
+                            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+                              m.reviewed ? "bg-gold-500/10 text-gold-400" : "bg-amber-500/10 text-amber-400"
+                            }`}
+                          >
+                            {m.reviewed ? <CheckIcon className="h-3.5 w-3.5" /> : <DocIcon className="h-3.5 w-3.5" />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="truncate text-sm text-[#ede6da]">{m.document_filename ?? "document"}</p>
+                              {m.reviewed ? <Badge tone="gold">Reviewed</Badge> : <Badge tone="danger">Needs review</Badge>}
+                            </div>
+                            <p className="mt-0.5 truncate text-xs text-[#8a7f6d]">
+                              {m.sydekyk_name} · {m.reason ?? "Flagged for review"}
+                            </p>
+                          </div>
+                          <span className="shrink-0 text-xs text-[#8a7f6d]">{timeAgo(m.created_at)}</span>
+                          <span className="shrink-0 text-[#8a7f6d]">{open ? "▾" : "▸"}</span>
+                        </button>
+
+                        {open && (
+                          <div className="border-t border-ink-700/60 bg-ink-900/40 px-4 py-4">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Why it needs review</p>
+                            <p className="mt-1 text-sm text-[#d8cdb9]">{m.reason ?? "The Playbook flagged this Mission for a human to review."}</p>
+
+                            {(m.vendor_name || m.invoice_number || m.total != null) && (
+                              <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-3">
+                                {m.vendor_name && <Detail label="Vendor" value={m.vendor_name} />}
+                                {m.invoice_number && <Detail label="Invoice #" value={m.invoice_number} />}
+                                {m.total != null && (
+                                  <Detail label="Total" value={`${m.total.toLocaleString()} ${m.currency ?? ""}`.trim()} />
+                                )}
+                                {m.duplicate && <Detail label="Flag" value="Suspected duplicate" />}
+                                <Detail label="Auto-posted" value={m.posted ? "Yes" : "No"} />
+                              </div>
+                            )}
+
+                            <div className="mt-4 flex flex-wrap items-center gap-3">
+                              {m.odoo_bill_url && (
+                                <a
+                                  href={m.odoo_bill_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 rounded-md border border-gold-600/40 bg-gold-500/10 px-3 py-1.5 text-xs font-semibold text-gold-300 hover:bg-gold-500/20"
+                                >
+                                  Open draft in Odoo →
+                                </a>
+                              )}
+                              {m.reviewed ? (
+                                <div className="flex items-center gap-3">
+                                  <span className="text-xs text-[#8a7f6d]">
+                                    Reviewed by {m.reviewed_by_email ?? "a teammate"}
+                                    {m.reviewed_at ? ` · ${timeAgo(m.reviewed_at)}` : ""}
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    className="px-3 py-1.5 text-xs"
+                                    disabled={busyIds.has(m.mission_id)}
+                                    onClick={() => setReviewed(m, false)}
+                                  >
+                                    {busyIds.has(m.mission_id) ? "…" : "Undo review"}
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button
+                                  className="px-3 py-1.5 text-xs"
+                                  disabled={busyIds.has(m.mission_id)}
+                                  onClick={() => setReviewed(m, true)}
+                                >
+                                  {busyIds.has(m.mission_id) ? "…" : "Mark reviewed"}
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm text-[#ede6da]">{m.document_filename ?? "document"}</p>
-                        <p className="mt-0.5 truncate text-xs text-[#8a7f6d]">
-                          {m.sydekyk_name} · {m.reason ?? "Flagged for review"}
-                        </p>
-                      </div>
-                      <span className="shrink-0 text-xs text-[#8a7f6d]">{timeAgo(m.created_at)}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             )}
@@ -361,5 +467,14 @@ export default function Issues() {
           document.body
         )}
     </HQShell>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[11px] uppercase tracking-wider text-[#8a7f6d]">{label}</p>
+      <p className="text-[#ede6da]">{value}</p>
+    </div>
   );
 }
