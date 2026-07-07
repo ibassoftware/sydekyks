@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import String
+from sqlalchemy import BigInteger, Float, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -15,6 +15,9 @@ class Tenant(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     plan: Mapped[str] = mapped_column(String(50), nullable=False, default="starter")
+    # Per-tenant cap overrides — null means "inherit the plan tier's default" (see app.services.metering).
+    monthly_token_cap_override: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    gpu_seconds_per_hour_cap_override: Mapped[float | None] = mapped_column(Float, nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
     users: Mapped[list["User"]] = relationship(back_populates="tenant", cascade="all, delete-orphan")

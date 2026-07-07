@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.crypto import decrypt_secret
 from app.models.gadget import TenantGadgetLink
 from app.models.gadget_requirement import SydekykGadgetRequirement, TenantSydekykGadgetAssignment
-from app.models.llm_provider import TenantSydekykLLMConfig
+from app.models.llm_provider import SydekykHostedAssignment, TenantSydekykLLMConfig
 from app.models.mission import Mission, MissionDocument
 from app.services import document_storage, odoo
 from app.services.missions import record_step, register_playbook
@@ -76,6 +76,23 @@ def _finish(
     db.commit()
 
 
+def _real_model(db: Session, mission: Mission, llm) -> str | None:
+    """The underlying model actually running — NOT the LiteLLM alias. This is what usage is
+    attributed to and what per-model GPU multipliers key on (so an admin keys "kimi-k2.7-code",
+    not "sydekyk-ledger-core"). For Power Core the real model lives on the hosted assignment;
+    for BYOK it's the config's own model."""
+    if llm.provider != "power_core":
+        return llm.model or llm.litellm_model_alias
+    assignment = (
+        db.query(SydekykHostedAssignment)
+        .filter(SydekykHostedAssignment.sydekyk_id == mission.sydekyk_id)
+        .first()
+    )
+    if assignment and assignment.hosted_model:
+        return assignment.hosted_model
+    return llm.litellm_model_alias
+
+
 def _emit_usage(db: Session, mission: Mission, llm, meta: dict) -> None:
     """Best-effort usage attribution — never let a usage-logging hiccup fail the Mission."""
     try:
@@ -87,7 +104,7 @@ def _emit_usage(db: Session, mission: Mission, llm, meta: dict) -> None:
             sydekyk_id=mission.sydekyk_id,
             mission_id=mission.id,
             provider=llm.provider,
-            model=llm.litellm_model_alias,
+            model=_real_model(db, mission, llm),
             usage=meta.get("usage"),
             litellm_request_id=meta.get("request_id"),
             cost_usd=float(meta.get("cost_usd") or 0.0),
@@ -157,6 +174,25 @@ def run(db: Session, mission: Mission) -> None:
                     error="No AI engine configured for Ledger. Pick one in the Roster AI Engine section.")
         _finish(db, mission, "failed", {}, "No AI engine configured", failure_category="setup")
         return
+
+    # Pre-flight quota/capacity gate (monthly token budget + rolling-hour GPU-second cap). Checked
+    # BEFORE spending any tokens; on deny the Mission fails cleanly and a standing tenant Issue is
+    # raised so it surfaces in Issues, not just the Missions log.
+    from app.services import tenant_issues, usage_guard
+
+    allowed, deny_reason = usage_guard.check_allowed(
+        db, mission.tenant_id, mission.sydekyk_id, llm.litellm_model_alias
+    )
+    if not allowed:
+        record_step(db, mission, idx, "quota_check", "internal", "failed", error=deny_reason)
+        tenant_issues.report_issue(
+            db, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id,
+            kind="quota_exceeded", title="AI usage limit reached — Ledger paused",
+            detail=deny_reason, mission_id=mission.id,
+        )
+        _finish(db, mission, "failed", {}, deny_reason, failure_category="quota")
+        return
+
     virtual_key = decrypt_secret(llm.litellm_virtual_key_encrypted)
 
     # Rasterize once (PDF pages -> PNG, capped at 3) and reuse for both the classify and extract

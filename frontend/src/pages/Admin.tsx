@@ -4,6 +4,7 @@ import { api, type HostedAssignment, type ProviderKey, type SydekykAdmin, type S
 import { useAuth } from "../lib/auth";
 import { Badge, Button, Card, Input, Label, Modal, PageShell } from "../components/ui";
 import { Link, useNavigate } from "react-router-dom";
+import CommandCenterMetering from "./CommandCenterMetering";
 
 const PROVIDER_LABELS: Record<string, string> = {
   openai: "OpenAI",
@@ -372,6 +373,8 @@ export default function Admin() {
             </table>
           )}
         </Card>
+
+        <CommandCenterMetering />
       </main>
 
       <Modal open={!!editingProviderKey} onClose={() => setEditingProviderKey(null)}>

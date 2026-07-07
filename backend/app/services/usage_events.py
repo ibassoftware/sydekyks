@@ -33,16 +33,23 @@ def record_usage(
             return None
 
     usage = usage or {}
+    prompt_tokens = int(usage.get("prompt_tokens") or 0)
+    completion_tokens = int(usage.get("completion_tokens") or 0)
+    # Freeze the GPU-second estimate now, from the then-current rate config + model multiplier.
+    from app.services import metering
+
+    estimated_gpu_seconds = metering.estimate_gpu_seconds(db, model, prompt_tokens, completion_tokens)
     record = UsageRecord(
         tenant_id=tenant_id,
         sydekyk_id=sydekyk_id,
         mission_id=mission_id,
         provider=provider,
         model=model,
-        prompt_tokens=int(usage.get("prompt_tokens") or 0),
-        completion_tokens=int(usage.get("completion_tokens") or 0),
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
         total_tokens=int(usage.get("total_tokens") or 0),
         cost_usd=cost_usd,
+        estimated_gpu_seconds=estimated_gpu_seconds,
         litellm_request_id=litellm_request_id,
     )
     db.add(record)

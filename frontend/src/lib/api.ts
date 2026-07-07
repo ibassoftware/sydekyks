@@ -34,11 +34,15 @@ export interface Dashboard {
   tenant_name: string;
   tenant_slug: string;
   plan: string;
+  plan_display_name: string;
   roster_sydekyk_count: number;
   exclusive_sydekyk_count: number;
-  power_meter_used: number;
-  power_meter_quota: number | null;
-  power_meter_stale: boolean;
+  tokens_used_this_month: number;
+  monthly_token_cap: number;
+  token_throttled: boolean;
+  gpu_seconds_used_last_hour: number;
+  gpu_seconds_per_hour_cap: number;
+  gpu_throttled: boolean;
 }
 
 export interface LedgerDailyTrend {
@@ -60,6 +64,24 @@ export interface LedgerInsights {
   estimated_manual_cost: number;
   ai_cost: number;
   estimated_net_savings: number;
+}
+
+// --- HQ team management (RBAC) ---
+
+export interface TeamUser {
+  id: string;
+  email: string;
+  role: Role;
+  created_at: string;
+  is_self: boolean;
+}
+
+export interface SydekykPermission {
+  sydekyk_id: string;
+  sydekyk_name: string;
+  is_exclusive: boolean;
+  can_use: boolean;
+  can_configure: boolean;
 }
 
 export interface Sydekyk {
@@ -202,6 +224,47 @@ export interface ProviderKeyUpdate {
   api_base?: string;
 }
 
+// --- GPU-second metering + per-tenant plan caps (Command Center) ---
+
+export interface MeteringConfig {
+  prompt_rate: number;
+  generation_rate: number;
+}
+
+export interface ModelRate {
+  model: string;
+  multiplier: number;
+}
+
+export interface PlanTier {
+  key: string;
+  display_name: string;
+  monthly_token_cap: number;
+  gpu_seconds_per_hour_cap: number;
+  sort_order: number;
+}
+
+export interface TenantUsageLimit {
+  tenant_id: string;
+  tenant_name: string;
+  plan: string;
+  plan_display_name: string;
+  monthly_token_cap: number;
+  tokens_used_this_month: number;
+  token_throttled: boolean;
+  gpu_seconds_per_hour_cap: number;
+  gpu_seconds_used_last_hour: number;
+  gpu_throttled: boolean;
+  monthly_token_cap_override: number | null;
+  gpu_seconds_per_hour_cap_override: number | null;
+}
+
+export interface TenantPlanUpdate {
+  plan: string;
+  monthly_token_cap_override: number | null;
+  gpu_seconds_per_hour_cap_override: number | null;
+}
+
 export interface HostedAssignment {
   sydekyk_id: string;
   hosted_provider: string | null;
@@ -243,6 +306,7 @@ export interface Mission {
   error_message: string | null;
   document_filename: string | null;
   last_step_key: string | null;
+  reviewed?: boolean;
   odoo_bill_url?: string | null;  // only populated on the mission-detail endpoint
   parent_mission_id: string | null;
   root_mission_id: string | null;
@@ -339,12 +403,35 @@ export interface MissionReviewItem {
   document_filename: string | null;
   reason: string | null;
   created_at: string;
+  odoo_bill_url: string | null;
+  vendor_name: string | null;
+  invoice_number: string | null;
+  total: number | null;
+  currency: string | null;
+  posted: boolean | null;
+  duplicate: boolean | null;
+  reviewed: boolean;
+  reviewed_at: string | null;
+  reviewed_by_email: string | null;
 }
 
 export interface IssuesOut {
   config_issues: TenantIssue[];
   resolved_issues: TenantIssue[];
   missions_needing_review: MissionReviewItem[];
+}
+
+export interface IssuesCount {
+  config_issues: number;
+  missions_needing_review: number;
+  total: number;
+}
+
+export interface MissionReviewStatus {
+  mission_id: string;
+  reviewed: boolean;
+  reviewed_at: string | null;
+  reviewed_by_email: string | null;
 }
 
 export interface EligibleLink {

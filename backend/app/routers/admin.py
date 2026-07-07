@@ -10,17 +10,28 @@ from app.core.deps import require_super_admin
 from app.core.security import hash_password
 from app.db.session import get_db
 from app.models.llm_provider import CentralProviderKey, SydekykHostedAssignment
+from app.models.metering import ModelRateProfile, PlanTier
 from app.models.mission import Mission, MissionDocument
 from app.models.sydekyk import Sydekyk
 from app.models.tenant import Tenant
 from app.models.user import User
 from app.schemas.hosted_assignment import HostedAssignmentOut, HostedAssignmentUpdate
+from app.schemas.metering import (
+    MeteringConfigOut,
+    MeteringConfigUpdate,
+    ModelRateOut,
+    ModelRateUpsert,
+    PlanTierOut,
+    PlanTierUpdate,
+    TenantPlanUpdate,
+    TenantUsageLimitOut,
+)
 from app.schemas.mission import MissionDetailOut, MissionOut, MissionPage, MissionStepOut
 from app.schemas.provider_key import ProviderKeyOut, ProviderKeyUpdate
 from app.schemas.sydekyk import SydekykAdminOut, SydekykModelUpdate
 from app.schemas.sydekyk_llm_config import SydekykUsageOut
 from app.schemas.tenant import TenantCreate, TenantOut
-from app.services import gadget_links, llm_provisioning
+from app.services import gadget_links, llm_provisioning, metering
 from app.services.missions import apply_mission_filters
 from app.services.usage import get_sydekyk_total_usage
 
@@ -210,6 +221,121 @@ def get_sydekyk_usage(sydekyk_id: uuid.UUID, db: Session = Depends(get_db)):
     _get_roster_sydekyk(db, sydekyk_id)
     spend, stale = get_sydekyk_total_usage(db, sydekyk_id)
     return SydekykUsageOut(spend_used=spend, stale=stale)
+
+
+# ---------------------------------------------------------------------------
+# GPU-second metering config + per-tenant plan caps (Command Center)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/metering-config", response_model=MeteringConfigOut)
+def get_metering_config(db: Session = Depends(get_db)):
+    cfg = metering.get_config(db)
+    return MeteringConfigOut(prompt_rate=cfg.prompt_rate, generation_rate=cfg.generation_rate)
+
+
+@router.put("/metering-config", response_model=MeteringConfigOut)
+def update_metering_config(payload: MeteringConfigUpdate, db: Session = Depends(get_db)):
+    cfg = metering.get_config(db)
+    cfg.prompt_rate = payload.prompt_rate
+    cfg.generation_rate = payload.generation_rate
+    db.commit()
+    db.refresh(cfg)
+    return MeteringConfigOut(prompt_rate=cfg.prompt_rate, generation_rate=cfg.generation_rate)
+
+
+@router.get("/model-rates", response_model=list[ModelRateOut])
+def list_model_rates(db: Session = Depends(get_db)):
+    rows = db.query(ModelRateProfile).order_by(ModelRateProfile.model.asc()).all()
+    return [ModelRateOut(model=r.model, multiplier=r.multiplier) for r in rows]
+
+
+@router.put("/model-rates", response_model=ModelRateOut)
+def upsert_model_rate(payload: ModelRateUpsert, db: Session = Depends(get_db)):
+    """Set (create or update) a model's GPU multiplier, keyed by the model string."""
+    row = db.query(ModelRateProfile).filter(ModelRateProfile.model == payload.model).first()
+    if row is None:
+        row = ModelRateProfile(model=payload.model, multiplier=payload.multiplier)
+        db.add(row)
+    else:
+        row.multiplier = payload.multiplier
+    db.commit()
+    db.refresh(row)
+    return ModelRateOut(model=row.model, multiplier=row.multiplier)
+
+
+@router.delete("/model-rates/{model}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_model_rate(model: str, db: Session = Depends(get_db)):
+    db.query(ModelRateProfile).filter(ModelRateProfile.model == model).delete()
+    db.commit()
+
+
+@router.get("/plan-tiers", response_model=list[PlanTierOut])
+def list_plan_tiers(db: Session = Depends(get_db)):
+    rows = db.query(PlanTier).order_by(PlanTier.sort_order.asc()).all()
+    return [
+        PlanTierOut(
+            key=r.key, display_name=r.display_name, monthly_token_cap=r.monthly_token_cap,
+            gpu_seconds_per_hour_cap=r.gpu_seconds_per_hour_cap, sort_order=r.sort_order,
+        )
+        for r in rows
+    ]
+
+
+@router.put("/plan-tiers/{key}", response_model=PlanTierOut)
+def update_plan_tier(key: str, payload: PlanTierUpdate, db: Session = Depends(get_db)):
+    tier = db.get(PlanTier, key)
+    if tier is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown plan tier")
+    tier.display_name = payload.display_name
+    tier.monthly_token_cap = payload.monthly_token_cap
+    tier.gpu_seconds_per_hour_cap = payload.gpu_seconds_per_hour_cap
+    db.commit()
+    db.refresh(tier)
+    return PlanTierOut(
+        key=tier.key, display_name=tier.display_name, monthly_token_cap=tier.monthly_token_cap,
+        gpu_seconds_per_hour_cap=tier.gpu_seconds_per_hour_cap, sort_order=tier.sort_order,
+    )
+
+
+def _tenant_usage_out(db: Session, tenant: Tenant, plan_names: dict[str, str]) -> TenantUsageLimitOut:
+    summary = metering.tenant_usage_summary(db, tenant)
+    return TenantUsageLimitOut(
+        tenant_id=tenant.id, tenant_name=tenant.name, plan=tenant.plan,
+        plan_display_name=plan_names.get(tenant.plan, tenant.plan.title()),
+        monthly_token_cap=summary["monthly_token_cap"],
+        tokens_used_this_month=summary["tokens_used_this_month"],
+        token_throttled=summary["token_throttled"],
+        gpu_seconds_per_hour_cap=summary["gpu_seconds_per_hour_cap"],
+        gpu_seconds_used_last_hour=summary["gpu_seconds_used_last_hour"],
+        gpu_throttled=summary["gpu_throttled"],
+        monthly_token_cap_override=tenant.monthly_token_cap_override,
+        gpu_seconds_per_hour_cap_override=tenant.gpu_seconds_per_hour_cap_override,
+    )
+
+
+@router.get("/tenant-usage", response_model=list[TenantUsageLimitOut])
+def list_tenant_usage(db: Session = Depends(get_db)):
+    """Per-tenant token (month) + GPU-second (hour) usage vs caps, for the Command Center table."""
+    plan_names = {t.key: t.display_name for t in db.query(PlanTier).all()}
+    tenants = db.query(Tenant).order_by(Tenant.created_at.desc()).all()
+    return [_tenant_usage_out(db, t, plan_names) for t in tenants]
+
+
+@router.put("/tenants/{tenant_id}/plan", response_model=TenantUsageLimitOut)
+def update_tenant_plan(tenant_id: uuid.UUID, payload: TenantPlanUpdate, db: Session = Depends(get_db)):
+    tenant = db.get(Tenant, tenant_id)
+    if tenant is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found")
+    if db.get(PlanTier, payload.plan) is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown plan tier")
+    tenant.plan = payload.plan
+    tenant.monthly_token_cap_override = payload.monthly_token_cap_override
+    tenant.gpu_seconds_per_hour_cap_override = payload.gpu_seconds_per_hour_cap_override
+    db.commit()
+    db.refresh(tenant)
+    plan_names = {t.key: t.display_name for t in db.query(PlanTier).all()}
+    return _tenant_usage_out(db, tenant, plan_names)
 
 
 # ---------------------------------------------------------------------------

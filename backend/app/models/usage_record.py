@@ -29,5 +29,8 @@ class UsageRecord(Base):
     completion_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     total_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     cost_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    # Estimated GPU-seconds for this call, frozen at write time from the then-current rate config
+    # + the model's multiplier (see app.services.metering). Powers the rolling-hour capacity cap.
+    estimated_gpu_seconds: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     litellm_request_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
