@@ -169,6 +169,17 @@ export function MissionDetailPanel({
       {detail.result_summary &&
         (Summary ? <Summary summary={detail.result_summary} /> : <GenericSummary summary={detail.result_summary} />)}
 
+      {detail.odoo_bill_url && (
+        <a
+          href={detail.odoo_bill_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex w-fit items-center gap-1 text-xs font-semibold text-gold-400 hover:text-gold-300"
+        >
+          Open bill in Odoo →
+        </a>
+      )}
+
       {detail.error_message && <p className="text-sm text-red-400">{detail.error_message}</p>}
 
       {detail.status === "failed" && canManage && (

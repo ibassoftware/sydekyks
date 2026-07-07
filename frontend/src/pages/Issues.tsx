@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { api, type IssuesOut, type TenantIssue } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { Badge, Button, Card } from "../components/ui";
@@ -22,6 +22,8 @@ function timeAgo(iso: string): string {
 export default function Issues() {
   const { user } = useAuth();
   const canManage = user?.role === "commander";
+  const [searchParams] = useSearchParams();
+  const sydekykId = searchParams.get("sydekyk_id");
 
   const [issues, setIssues] = useState<IssuesOut | null>(null);
   const [leavingIds, setLeavingIds] = useState<Set<string>>(new Set());
@@ -31,8 +33,9 @@ export default function Issues() {
   const undoTimerRef = useRef<number | null>(null);
 
   const load = useCallback(() => {
-    api.get<IssuesOut>("/tenant/issues").then((res) => setIssues(res.data));
-  }, []);
+    const params = sydekykId ? { sydekyk_id: sydekykId } : undefined;
+    api.get<IssuesOut>("/tenant/issues", { params }).then((res) => setIssues(res.data));
+  }, [sydekykId]);
 
   useEffect(() => {
     load();
@@ -117,6 +120,14 @@ export default function Issues() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-gold-500">Attention Needed</p>
           <h1 className="mt-1 text-3xl font-bold text-[#f5eee0]">Issues</h1>
+          {sydekykId && (
+            <p className="mt-1 text-xs text-[#8a7f6d]">
+              Showing this Sydekyk only ·{" "}
+              <Link to="/hq/issues" className="text-gold-400 hover:text-gold-300">
+                Clear filter
+              </Link>
+            </p>
+          )}
         </div>
 
         {!issues ? (

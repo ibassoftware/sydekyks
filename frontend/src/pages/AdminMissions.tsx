@@ -178,6 +178,17 @@ function AdminMissionDetail({ detail }: { detail: MissionDetail }) {
         </div>
       )}
 
+      {detail.odoo_bill_url && (
+        <a
+          href={detail.odoo_bill_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex w-fit items-center gap-1 text-xs font-semibold text-gold-400 hover:text-gold-300"
+        >
+          Open bill in Odoo →
+        </a>
+      )}
+
       {detail.error_message && (
         <div>
           <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-red-400/80">Raw error</p>

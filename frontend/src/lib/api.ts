@@ -222,6 +222,7 @@ export interface Mission {
   error_message: string | null;
   document_filename: string | null;
   last_step_key: string | null;
+  odoo_bill_url?: string | null;  // only populated on the mission-detail endpoint
   parent_mission_id: string | null;
   root_mission_id: string | null;
   attempt_number: number;

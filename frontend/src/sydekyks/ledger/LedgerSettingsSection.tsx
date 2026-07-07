@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { Link } from "react-router-dom";
 import {
   api,
   type EmailInboxOut,
+  type IssuesOut,
   type LedgerReadiness,
   type LedgerSettings,
   type Sydekyk,
   type VisionTestResult,
 } from "../../lib/api";
-import { Button, Label } from "../../components/ui";
+import { Badge, Button, Label } from "../../components/ui";
 import { GadgetRequirementList } from "../../components/GadgetRequirementList";
 import { LedgerReadinessCard } from "./LedgerReadinessCard";
 
@@ -45,6 +47,8 @@ export function LedgerSettingsSection({
   return (
     <div className="grid gap-6">
       <LedgerReadinessCard onReadiness={onReadiness} />
+
+      <IssuesQuickLink sydekykId={sydekyk.id} />
 
       <div id="gadgets">
         <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Integrations</p>
@@ -115,6 +119,32 @@ export function LedgerSettingsSection({
         </div>
       )}
     </div>
+  );
+}
+
+function IssuesQuickLink({ sydekykId }: { sydekykId: string }) {
+  const [issues, setIssues] = useState<IssuesOut | null>(null);
+
+  useEffect(() => {
+    api.get<IssuesOut>("/tenant/issues", { params: { sydekyk_id: sydekykId } }).then((res) => setIssues(res.data));
+  }, [sydekykId]);
+
+  if (!issues) return null;
+  const total = issues.config_issues.length + issues.missions_needing_review.length;
+
+  return (
+    <Link
+      to={`/hq/issues?sydekyk_id=${sydekykId}`}
+      className="flex items-center justify-between rounded-lg border border-ink-700 px-4 py-3 transition-colors hover:border-gold-500/60"
+    >
+      <div>
+        <p className="text-sm font-semibold text-[#ede6da]">Issues</p>
+        <p className="text-xs text-[#8a7f6d]">
+          {total === 0 ? "Nothing needs attention" : `${total} ${total === 1 ? "thing needs" : "things need"} attention`}
+        </p>
+      </div>
+      {total > 0 ? <Badge tone="danger">{total}</Badge> : <Badge tone="gold">All clear</Badge>}
+    </Link>
   );
 }
 
