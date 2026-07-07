@@ -3,12 +3,13 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.deps import require_commander, require_tenant_member
+from app.core.deps import require_tenant_member
 from app.db.session import get_db
 from app.models.gadget import Gadget, TenantGadgetLink
 from app.models.gadget_requirement import SydekykGadgetRequirement, TenantSydekykGadgetAssignment
 from app.models.user import User
 from app.schemas.gadget_requirement import EligibleLink, GadgetAssignmentUpdate, GadgetRequirementOut
+from app.services import permissions
 
 router = APIRouter(prefix="/api/tenant", tags=["gadget-assignments"], dependencies=[Depends(require_tenant_member)])
 
@@ -59,9 +60,10 @@ def set_assignment(
     sydekyk_id: uuid.UUID,
     requirement_id: uuid.UUID,
     payload: GadgetAssignmentUpdate,
-    user: User = Depends(require_commander),
+    user: User = Depends(require_tenant_member),
     db: Session = Depends(get_db),
 ):
+    permissions.assert_can_configure(db, user, sydekyk_id)
     req = (
         db.query(SydekykGadgetRequirement)
         .filter(SydekykGadgetRequirement.id == requirement_id, SydekykGadgetRequirement.sydekyk_id == sydekyk_id)
@@ -109,9 +111,10 @@ def set_assignment(
 def clear_assignment(
     sydekyk_id: uuid.UUID,
     requirement_id: uuid.UUID,
-    user: User = Depends(require_commander),
+    user: User = Depends(require_tenant_member),
     db: Session = Depends(get_db),
 ):
+    permissions.assert_can_configure(db, user, sydekyk_id)
     db.query(TenantSydekykGadgetAssignment).filter(
         TenantSydekykGadgetAssignment.tenant_id == user.tenant_id,
         TenantSydekykGadgetAssignment.requirement_id == requirement_id,

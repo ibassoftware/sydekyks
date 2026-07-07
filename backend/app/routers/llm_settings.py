@@ -20,7 +20,7 @@ from app.schemas.sydekyk_llm_config import (
     SydekykUsageOut,
     TenantUsageBreakdownItem,
 )
-from app.services import llm_provisioning, provider_catalog
+from app.services import llm_provisioning, permissions, provider_catalog
 from app.services.litellm_admin import test_completion
 from app.services.usage import get_sydekyk_config_usage, get_tenant_usage_breakdown
 
@@ -164,9 +164,10 @@ def get_sydekyk_llm_config(sydekyk_id: uuid.UUID, user: User = Depends(require_t
 def update_sydekyk_llm_config(
     sydekyk_id: uuid.UUID,
     payload: SydekykLLMConfigUpdate,
-    user: User = Depends(require_commander),
+    user: User = Depends(require_tenant_member),
     db: Session = Depends(get_db),
 ):
+    permissions.assert_can_configure(db, user, sydekyk_id)
     tenant = db.get(Tenant, user.tenant_id)
     if tenant is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found")
@@ -239,7 +240,8 @@ def update_sydekyk_llm_config(
 
 
 @router.post("/sydekyks/{sydekyk_id}/llm-config/test", response_model=SydekykLLMConfigTestResult)
-def test_sydekyk_llm_config(sydekyk_id: uuid.UUID, user: User = Depends(require_commander), db: Session = Depends(get_db)):
+def test_sydekyk_llm_config(sydekyk_id: uuid.UUID, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+    permissions.assert_can_configure(db, user, sydekyk_id)
     config = (
         db.query(TenantSydekykLLMConfig)
         .filter(TenantSydekykLLMConfig.tenant_id == user.tenant_id, TenantSydekykLLMConfig.sydekyk_id == sydekyk_id)

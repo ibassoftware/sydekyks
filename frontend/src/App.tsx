@@ -13,6 +13,7 @@ import Gadgets from "./pages/Gadgets";
 import Missions from "./pages/Missions";
 import Issues from "./pages/Issues";
 import Settings from "./pages/Settings";
+import Team from "./pages/Team";
 
 export default function App() {
   return (
@@ -83,6 +84,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={["commander", "hero"]}>
                 <Issues />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hq/team"
+            element={
+              <ProtectedRoute roles={["commander"]}>
+                <Team />
               </ProtectedRoute>
             }
           />

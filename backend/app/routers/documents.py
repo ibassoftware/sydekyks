@@ -11,6 +11,7 @@ from app.db.session import get_db
 from app.models.sydekyk import Sydekyk, SydekykInstall
 from app.models.user import User
 from app.schemas.mission import MissionOut
+from app.services import permissions
 from app.services.missions import create_mission_for_document
 from app.services.queue import enqueue_mission
 
@@ -54,6 +55,7 @@ async def upload_documents(
     )
     if sydekyk is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sydekyk not found")
+    permissions.assert_can_use(db, user, sydekyk_id)
     if not sydekyk.accepts_document_uploads or not sydekyk.playbook_key:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This Sydekyk doesn't accept document uploads")
     if not sydekyk.is_exclusive:

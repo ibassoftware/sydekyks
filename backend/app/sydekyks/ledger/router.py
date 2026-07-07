@@ -8,8 +8,9 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings as app_settings
 from app.core.crypto import decrypt_secret, encrypt_secret
-from app.core.deps import require_commander, require_tenant_member
+from app.core.deps import require_tenant_member
 from app.db.session import get_db
+from app.services import permissions
 from app.models.gadget import Gadget, TenantGadgetLink
 from app.models.gadget_requirement import SydekykGadgetRequirement, TenantSydekykGadgetAssignment
 from app.models.llm_provider import TenantSydekykLLMConfig
@@ -78,8 +79,9 @@ def get_settings(user: User = Depends(require_tenant_member), db: Session = Depe
 
 @router.put("/settings", response_model=LedgerSettingsOut)
 def update_settings(
-    payload: LedgerSettingsUpdate, user: User = Depends(require_commander), db: Session = Depends(get_db)
+    payload: LedgerSettingsUpdate, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)
 ):
+    permissions.assert_can_configure(db, user, _ledger_sydekyk(db, user).id)
     s = _settings(db, user.tenant_id)
     s.auto_create_partner = payload.auto_create_partner
     s.auto_post_enabled = payload.auto_post_enabled
@@ -145,10 +147,11 @@ def _sample_invoice_png() -> bytes | None:
 
 
 @router.post("/vision-test", response_model=VisionTestResult)
-def vision_test(user: User = Depends(require_commander), db: Session = Depends(get_db)):
+def vision_test(user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
     """Validate that the configured engine can actually read a bill, against a bundled sample (VS-12).
     Persists the result on Ledger settings so readiness can gate on it."""
     sydekyk = _ledger_sydekyk(db, user)
+    permissions.assert_can_configure(db, user, sydekyk.id)
     llm = (
         db.query(TenantSydekykLLMConfig)
         .filter(TenantSydekykLLMConfig.tenant_id == user.tenant_id, TenantSydekykLLMConfig.sydekyk_id == sydekyk.id)
@@ -183,11 +186,12 @@ def vision_test(user: User = Depends(require_commander), db: Session = Depends(g
 
 @router.post("/email-inbox", response_model=EmailInboxOut, status_code=status.HTTP_201_CREATED)
 def create_email_inbox(
-    payload: EmailInboxCreate, user: User = Depends(require_commander), db: Session = Depends(get_db)
+    payload: EmailInboxCreate, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)
 ):
     """Composed create-and-assign (VS-2): create an email Gadget Link and assign it to Ledger's
     `inbox` requirement in one transaction, so the tenant never lands in a half-configured state."""
     sydekyk = _ledger_sydekyk(db, user)
+    permissions.assert_can_configure(db, user, sydekyk.id)
     gadget = db.query(Gadget).filter(Gadget.slug == "email").first()
     if gadget is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email Gadget not available")
