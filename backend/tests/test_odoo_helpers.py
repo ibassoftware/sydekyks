@@ -36,21 +36,19 @@ def test_find_currency_id_returns_none_when_absent():
     assert odoo.find_currency_id(client, "XYZ") is None
 
 
-def test_get_account_default_taxes_reads_account_tax_ids():
-    client = _FakeClient(execute_kw_results={("account.account", "read"): [{"tax_ids": [5, 6]}]})
-    assert odoo_bills.get_account_default_taxes(client, 10) == [5, 6]
+def test_list_active_currencies():
+    client = _FakeClient(search_read_results={"res.currency": [{"id": 1, "name": "USD"}, {"id": 2, "name": "EUR"}]})
+    assert odoo.list_active_currencies(client) == [{"id": 1, "name": "USD"}, {"id": 2, "name": "EUR"}]
 
 
-def test_get_account_default_taxes_empty_when_none_set():
-    client = _FakeClient(execute_kw_results={("account.account", "read"): [{"tax_ids": False}]})
-    assert odoo_bills.get_account_default_taxes(client, 10) == []
+def test_list_active_purchase_taxes():
+    client = _FakeClient(search_read_results={"account.tax": [{"id": 5, "name": "10% VAT", "amount": 10}]})
+    assert odoo_bills.list_active_purchase_taxes(client) == [{"id": 5, "name": "10% VAT", "amount": 10}]
 
 
-def test_has_purchase_taxes_configured():
-    with_taxes = _FakeClient(search_read_results={"account.tax": [{"id": 1}]})
-    without_taxes = _FakeClient(search_read_results={"account.tax": []})
-    assert odoo_bills.has_purchase_taxes_configured(with_taxes) is True
-    assert odoo_bills.has_purchase_taxes_configured(without_taxes) is False
+def test_list_expense_accounts():
+    client = _FakeClient(search_read_results={"account.account": [{"id": 10, "code": "6000", "name": "Office Expenses"}]})
+    assert odoo_bills.list_expense_accounts(client) == [{"id": 10, "code": "6000", "name": "Office Expenses"}]
 
 
 def test_attach_document_success():

@@ -98,3 +98,59 @@ def test_coerce_skips_unparseable_line_items():
     })
     # The malformed row is dropped, the good one survives.
     assert len(bill.line_items) == 1
+
+
+def _fake_bill_for_match():
+    return extraction.BillExtraction(vendor_name="ACME", total=88.0, currency="USD", tax_amount=8.0)
+
+
+def test_match_bill_to_odoo_accepts_ids_actually_offered(monkeypatch):
+    monkeypatch.setattr(
+        extraction, "_llm_completion",
+        lambda *a, **k: (True, "ok", {"currency_id": 1, "tax_id": 5, "account_id": 10, "reasoning": "matches"},
+                         {"usage": None, "request_id": "r1", "model": "m", "cost_usd": 0.0}),
+    )
+    ok, msg, match, meta = extraction.match_bill_to_odoo(
+        "vkey", "model", _fake_bill_for_match(),
+        available_currencies=[{"id": 1, "name": "USD"}],
+        available_taxes=[{"id": 5, "name": "10% VAT", "amount": 10}],
+        available_accounts=[{"id": 10, "code": "6000", "name": "Office"}],
+    )
+    assert ok is True
+    assert match.currency_id == 1
+    assert match.tax_id == 5
+    assert match.account_id == 10
+    assert match.reasoning == "matches"
+
+
+def test_match_bill_to_odoo_never_trusts_a_hallucinated_id(monkeypatch):
+    """If the model returns an id that was never in the list we offered it, treat it as no match
+    — never silently apply a currency/tax/account we didn't actually present as an option."""
+    monkeypatch.setattr(
+        extraction, "_llm_completion",
+        lambda *a, **k: (True, "ok", {"currency_id": 999, "tax_id": 999, "account_id": 999, "reasoning": "hallucinated"},
+                         {"usage": None, "request_id": "r1", "model": "m", "cost_usd": 0.0}),
+    )
+    ok, msg, match, meta = extraction.match_bill_to_odoo(
+        "vkey", "model", _fake_bill_for_match(),
+        available_currencies=[{"id": 1, "name": "USD"}],
+        available_taxes=[{"id": 5, "name": "10% VAT", "amount": 10}],
+        available_accounts=[{"id": 10, "code": "6000", "name": "Office"}],
+    )
+    assert ok is True
+    assert match.currency_id is None
+    assert match.tax_id is None
+    assert match.account_id is None
+
+
+def test_match_bill_to_odoo_passes_through_null_fields(monkeypatch):
+    monkeypatch.setattr(
+        extraction, "_llm_completion",
+        lambda *a, **k: (True, "ok", {"currency_id": None, "tax_id": None, "account_id": None, "reasoning": "unsure"},
+                         {"usage": None, "request_id": "r1", "model": "m", "cost_usd": 0.0}),
+    )
+    ok, msg, match, meta = extraction.match_bill_to_odoo(
+        "vkey", "model", _fake_bill_for_match(), available_currencies=[], available_taxes=[], available_accounts=[],
+    )
+    assert ok is True
+    assert match.currency_id is None and match.tax_id is None and match.account_id is None

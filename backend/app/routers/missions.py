@@ -14,6 +14,7 @@ from app.models.mission import Mission, MissionDocument, MissionStep
 from app.models.sydekyk import Sydekyk
 from app.models.user import User
 from app.schemas.mission import MissionDetailOut, MissionOut, MissionPage, MissionStepOut
+from app.services import gadget_links
 from app.services.error_display import friendly_message
 from app.services.missions import apply_mission_filters, retry_mission
 from app.services.queue import enqueue_mission
@@ -198,6 +199,13 @@ def get_mission(mission_id: uuid.UUID, user: User = Depends(require_tenant_membe
         source=doc[1] if doc else None,
         sydekyk_name=sydekyk.name if sydekyk else None,
     )
+    # Only the detail endpoint pays for this lookup (not list rows) — a link straight to the Odoo
+    # bill this Mission created, if any.
+    move_id = (mission.result_summary or {}).get("odoo_move_id")
+    if move_id:
+        base.odoo_bill_url = gadget_links.build_odoo_bill_url(
+            db, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id, move_id=move_id
+        )
     steps = [MissionStepOut.model_validate(s, from_attributes=True) for s in mission.steps]
     # Sanitize step-level errors too — this is exactly where a raw provider payload would otherwise
     # surface in the tenant-facing step trail.

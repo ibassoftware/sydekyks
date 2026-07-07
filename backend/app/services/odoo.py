@@ -134,6 +134,13 @@ def create_partner(client: OdooClient, name: str, is_company: bool = True, extra
     return client.create("res.partner", values)
 
 
+def list_active_currencies(client: OdooClient) -> list[dict]:
+    """Every currency enabled in this Odoo instance — id + ISO code — so an AI (or anything else)
+    matching a bill's currency can ground its choice in what's actually usable here, instead of
+    guessing a bare code blind."""
+    return client.search_read("res.currency", [["active", "=", True]], ["id", "name"])
+
+
 def find_currency_id(client: OdooClient, iso_code: str) -> int | None:
     """Look up an Odoo res.currency id by its 3-letter ISO code (e.g. 'USD'). Prefers an active
     currency record when duplicates exist (a currency can be present but disabled)."""

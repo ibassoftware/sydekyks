@@ -25,31 +25,37 @@ def _issue_out(db: Session, issue: TenantIssue, sydekyk_name: str | None) -> Ten
 
 
 @router.get("/issues", response_model=IssuesOut)
-def list_issues(user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+def list_issues(
+    sydekyk_id: uuid.UUID | None = None,
+    user: User = Depends(require_tenant_member),
+    db: Session = Depends(get_db),
+):
     """Everything needing a tenant human's attention: standing config issues (e.g. missing Odoo
     tax setup) plus recent Missions the Playbook flagged for manual review. Also returns the most
     recently resolved issues so a Commander can reopen one after the fact, not just via the
-    immediate undo toast."""
-    rows = (
+    immediate undo toast. Optionally scoped to one Sydekyk (e.g. linked from its Roster detail
+    page) — omit to see everything across the tenant."""
+    open_q = (
         db.query(TenantIssue, Sydekyk.name)
         .outerjoin(Sydekyk, Sydekyk.id == TenantIssue.sydekyk_id)
         .filter(TenantIssue.tenant_id == user.tenant_id, TenantIssue.status == "open")
-        .order_by(TenantIssue.last_seen_at.desc())
-        .all()
     )
+    if sydekyk_id is not None:
+        open_q = open_q.filter(TenantIssue.sydekyk_id == sydekyk_id)
+    rows = open_q.order_by(TenantIssue.last_seen_at.desc()).all()
     config_issues = [_issue_out(db, i, name) for i, name in rows]
 
-    resolved_rows = (
+    resolved_q = (
         db.query(TenantIssue, Sydekyk.name)
         .outerjoin(Sydekyk, Sydekyk.id == TenantIssue.sydekyk_id)
         .filter(TenantIssue.tenant_id == user.tenant_id, TenantIssue.status == "resolved")
-        .order_by(TenantIssue.resolved_at.desc())
-        .limit(20)
-        .all()
     )
+    if sydekyk_id is not None:
+        resolved_q = resolved_q.filter(TenantIssue.sydekyk_id == sydekyk_id)
+    resolved_rows = resolved_q.order_by(TenantIssue.resolved_at.desc()).limit(20).all()
     resolved_issues = [_issue_out(db, i, name) for i, name in resolved_rows]
 
-    mission_rows = (
+    mission_q = (
         db.query(Mission, MissionDocument.filename, Sydekyk.name)
         .outerjoin(MissionDocument, MissionDocument.mission_id == Mission.id)
         .outerjoin(Sydekyk, Sydekyk.id == Mission.sydekyk_id)
@@ -57,10 +63,10 @@ def list_issues(user: User = Depends(require_tenant_member), db: Session = Depen
             Mission.tenant_id == user.tenant_id,
             Mission.result_summary["needs_review"].astext == "true",
         )
-        .order_by(Mission.created_at.desc())
-        .limit(50)
-        .all()
     )
+    if sydekyk_id is not None:
+        mission_q = mission_q.filter(Mission.sydekyk_id == sydekyk_id)
+    mission_rows = mission_q.order_by(Mission.created_at.desc()).limit(50).all()
     missions_needing_review = [
         MissionReviewItem(
             mission_id=m.id, sydekyk_name=name, document_filename=fn,

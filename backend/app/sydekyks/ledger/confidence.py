@@ -3,7 +3,7 @@ def compute_confidence(
     *,
     partner_matched_exact: bool,
     partner_auto_created: bool,
-    account_source: str,  # "history" | "guessed"
+    account_source: str,  # "history" | "ai_matched" | "guessed"
     duplicate_check: str,  # "clear" | "flagged" | "inconclusive"
 ) -> int:
     """Blend the model's self-reported confidence with deterministic penalties. Ledger's own
@@ -16,7 +16,9 @@ def compute_confidence(
         score -= 5  # fuzzy match, not exact
 
     if account_source == "guessed":
-        score -= 20  # no history to anchor the expense account
+        score -= 20  # no history AND no confident AI match — fell back to a generic default
+    elif account_source == "ai_matched":
+        score -= 8  # no vendor history, but the AI reasoned a specific match from the chart of accounts
 
     if duplicate_check == "inconclusive":
         score -= 15

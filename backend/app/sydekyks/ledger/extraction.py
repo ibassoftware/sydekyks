@@ -179,17 +179,23 @@ def _empty_meta(model_alias: str) -> dict:
     return {"usage": None, "request_id": None, "model": model_alias, "cost_usd": 0.0}
 
 
-def _vision_completion(
+def _llm_completion(
     virtual_key: str, model_alias: str, prompt: str, image_uris: list[str], timeout: float
 ) -> tuple[bool, str, dict | None, dict]:
-    """Shared LiteLLM vision-completion plumbing used by both classify_document and
-    extract_bill_data: sends `prompt` + `image_uris`, parses the JSON response, and captures
-    usage/cost/request_id for VS-15 attribution. Callers coerce the parsed JSON into their own
-    result dataclass. No pre-check of vision support — we let the provider reject it and surface a
-    clear message, since BYOK model strings are freeform."""
+    """Shared LiteLLM completion plumbing used by classify_document/extract_bill_data (vision) and
+    match_bill_to_odoo (text-only, image_uris=[]): sends `prompt` (+ `image_uris` if any), parses
+    the JSON response, and captures usage/cost/request_id for VS-15 attribution. Callers coerce the
+    parsed JSON into their own result dataclass. No pre-check of vision support — we let the
+    provider reject it and surface a clear message, since BYOK model strings are freeform."""
     meta = _empty_meta(model_alias)
-    content = [{"type": "text", "text": prompt}]
-    content += [{"type": "image_url", "image_url": {"url": uri}} for uri in image_uris]
+    if image_uris:
+        content = [{"type": "text", "text": prompt}]
+        content += [{"type": "image_url", "image_url": {"url": uri}} for uri in image_uris]
+    else:
+        # Plain string content for text-only calls — broader provider compatibility than an
+        # array-of-parts with no image part (some OpenAI-compatible backends expect a bare string
+        # when there's nothing else to attach).
+        content = prompt
     payload = {"model": model_alias, "messages": [{"role": "user", "content": content}], "temperature": 0}
 
     try:
@@ -237,7 +243,7 @@ def classify_document(
     """Cheap pre-check run before the full extraction call: is this actually a bill? Prevents
     Ledger from hallucinating a plausible-looking BillExtraction out of an unrelated document
     (a photo, a resume, a contract, ...)."""
-    ok, msg, raw, meta = _vision_completion(virtual_key, model_alias, _CLASSIFY_PROMPT, image_uris, timeout)
+    ok, msg, raw, meta = _llm_completion(virtual_key, model_alias, _CLASSIFY_PROMPT, image_uris, timeout)
     if not ok or raw is None:
         return ok, msg, None, meta
     return True, "ok", _coerce_classification(raw), meta
@@ -249,7 +255,111 @@ def extract_bill_data(
     """Vision completion through the tenant's assigned engine (via its LiteLLM virtual key).
     Returns (ok, message, extraction, meta) where meta carries {usage, request_id, model, cost_usd}
     for billing-grade usage attribution (VS-15)."""
-    ok, msg, raw, meta = _vision_completion(virtual_key, model_alias, _EXTRACTION_PROMPT, image_uris, timeout)
+    ok, msg, raw, meta = _llm_completion(virtual_key, model_alias, _EXTRACTION_PROMPT, image_uris, timeout)
     if not ok or raw is None:
         return ok, msg, None, meta
     return True, "ok", _coerce(raw), meta
+
+
+@dataclass
+class BillMatch:
+    """The AI's grounded match of the extracted bill against what's ACTUALLY configured in the
+    tenant's Odoo — every id here MUST be validated by the caller against what was actually
+    offered (an id outside that list is a hallucination and must never be trusted)."""
+
+    currency_id: int | None = None
+    tax_id: int | None = None
+    account_id: int | None = None
+    reasoning: str = ""
+
+
+_MATCH_PROMPT_TEMPLATE = """You are Ledger, an accounts-payable assistant reconciling an extracted \
+vendor bill against what is ACTUALLY configured in this tenant's Odoo instance. Given the bill's \
+extracted data and the currencies / purchase taxes / expense accounts really enabled in Odoo, \
+decide which currency, which tax (if any), and which expense account best apply.
+
+Bill data:
+{bill_json}
+
+Currencies enabled in Odoo (id: ISO code):
+{currencies_json}
+
+Purchase taxes enabled in Odoo (id: name, rate %):
+{taxes_json}
+
+Expense accounts in the chart of accounts (id: code, name):
+{accounts_json}
+{history_hint}
+
+Respond with ONLY a JSON object (no prose, no markdown fences):
+{{
+  "currency_id": integer id from the currencies list that best matches the bill's currency, or null if none plausibly match,
+  "tax_id": integer id from the purchase taxes list whose rate matches the tax implied by the bill (tax_amount vs subtotal), or null if the bill has no tax or no listed tax's rate matches,
+  "account_id": integer id from the expense accounts list that best fits what was purchased (judge from the line item descriptions and vendor), or null if you aren't reasonably confident,
+  "reasoning": short string explaining your choices
+}}
+
+You MUST only return ids that are EXACTLY present in the lists above — never invent an id. If \
+unsure about any field, return null for it rather than guessing."""
+
+
+def match_bill_to_odoo(
+    virtual_key: str,
+    model_alias: str,
+    bill: BillExtraction,
+    available_currencies: list[dict],
+    available_taxes: list[dict],
+    available_accounts: list[dict],
+    historical_account_id: int | None = None,
+    timeout: float = 45.0,
+) -> tuple[bool, str, BillMatch | None, dict]:
+    """Grounds currency/tax/account selection in what's ACTUALLY configured in the tenant's Odoo,
+    instead of a raw code-guess (currency), the expense account's single default (tax), or "first
+    plain expense account" (account). Text-only completion — no image needed, extraction already
+    read the bill. `historical_account_id`, if given, is passed only as a hint the AI may confirm;
+    the CALLER still decides whether to trust history over the AI's account suggestion."""
+    bill_summary = {
+        "vendor_name": bill.vendor_name,
+        "currency_as_read": bill.currency,
+        "subtotal": bill.subtotal,
+        "tax_amount": bill.tax_amount,
+        "total": bill.total,
+        "line_items": [
+            {"description": li.description, "amount": li.amount} for li in bill.line_items
+        ],
+    }
+    history_hint = (
+        f"\nThis vendor's prior bills were usually coded to expense account id {historical_account_id} "
+        "— prefer it unless the line items clearly suggest a different account."
+        if historical_account_id is not None else ""
+    )
+    prompt = _MATCH_PROMPT_TEMPLATE.format(
+        bill_json=json.dumps(bill_summary),
+        currencies_json=json.dumps(available_currencies),
+        taxes_json=json.dumps(available_taxes),
+        accounts_json=json.dumps(available_accounts),
+        history_hint=history_hint,
+    )
+    ok, msg, raw, meta = _llm_completion(virtual_key, model_alias, prompt, [], timeout)
+    if not ok or raw is None:
+        return ok, msg, None, meta
+
+    valid_currency_ids = {c["id"] for c in available_currencies}
+    valid_tax_ids = {t["id"] for t in available_taxes}
+    valid_account_ids = {a["id"] for a in available_accounts}
+
+    currency_id = raw.get("currency_id")
+    if currency_id is not None and currency_id not in valid_currency_ids:
+        currency_id = None  # never trust an id we didn't actually offer
+    tax_id = raw.get("tax_id")
+    if tax_id is not None and tax_id not in valid_tax_ids:
+        tax_id = None
+    account_id = raw.get("account_id")
+    if account_id is not None and account_id not in valid_account_ids:
+        account_id = None
+
+    match = BillMatch(
+        currency_id=currency_id, tax_id=tax_id, account_id=account_id,
+        reasoning=str(raw.get("reasoning") or ""),
+    )
+    return True, "ok", match, meta

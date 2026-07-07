@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.models.mission import Mission
 from app.models.tenant_issue import TenantIssue
-from app.services.gadget_links import find_assigned_link
+from app.services.gadget_links import build_odoo_bill_url
 
 
 def report_issue(
@@ -62,11 +62,7 @@ def resolve_odoo_bill_url(db: Session, issue: TenantIssue) -> str | None:
     move_id = mission.result_summary.get("odoo_move_id")
     if not move_id:
         return None
-    link = find_assigned_link(db, tenant_id=issue.tenant_id, sydekyk_id=issue.sydekyk_id, role_key="erp")
-    if link is None or not link.url:
-        return None
-    # The classic Odoo web-client form-view route — stable across Odoo versions for direct linking.
-    return f"{link.url.rstrip('/')}/web#id={move_id}&model=account.move&view_type=form"
+    return build_odoo_bill_url(db, tenant_id=issue.tenant_id, sydekyk_id=issue.sydekyk_id, move_id=move_id)
 
 
 def resolve_issue(db: Session, issue: TenantIssue, resolved_by_user_id: uuid.UUID) -> TenantIssue:

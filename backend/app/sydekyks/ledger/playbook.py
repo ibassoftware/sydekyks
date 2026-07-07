@@ -39,14 +39,14 @@ PLAYBOOK_STEPS = [
      "description": "Look for an existing bill with the same invoice number (or a near-match by amount) to avoid double entry.",
      "likely_failures": "None fatal — a suspected duplicate is flagged for review."},
     {"key": "infer_account", "title": "Infer the expense account",
-     "description": "Reuse the vendor's historical account, else fall back to a default expense account.",
-     "likely_failures": "No expense account available in Odoo."},
+     "description": "Reuse the vendor's historical account if one exists; otherwise ask the AI to match the bill's line items against the real chart of accounts.",
+     "likely_failures": "No expense account available in Odoo at all."},
     {"key": "resolve_currency", "title": "Resolve currency",
-     "description": "Match the bill's stated currency to an enabled Odoo currency, so the bill is created in the right denomination.",
-     "likely_failures": "The stated currency isn't enabled in Odoo (marked needs-review, no bill created)."},
+     "description": "Ask the AI to match the bill's currency against Odoo's ACTUALLY-enabled currencies (falling back to an exact-code lookup), so the bill is created in the right denomination.",
+     "likely_failures": "No enabled Odoo currency matches the bill (marked needs-review, no bill created)."},
     {"key": "resolve_tax", "title": "Resolve tax",
-     "description": "Apply the expense account's default purchase tax, if one is configured.",
-     "likely_failures": "The bill has tax but no matching tax is configured in Odoo (bill created as a draft, flagged for review, never auto-posted)."},
+     "description": "Ask the AI to match the bill's tax against every active purchase tax rate configured in Odoo — not just the expense account's default.",
+     "likely_failures": "The bill has tax but no configured Odoo tax rate matches it (bill created as a draft, flagged for review, never auto-posted)."},
     {"key": "create_bill", "title": "Create the vendor bill",
      "description": "Compute a confidence score and create the draft bill in Odoo with its line items and narration.",
      "likely_failures": "Required Odoo fields unmet (marked needs-review) or an Odoo error."},
@@ -262,11 +262,37 @@ def run(db: Session, mission: Mission) -> None:
             })
             return
 
-        # --- Step 5: infer expense account ------------------------------------------------------
+        # --- Steps 5-7: infer account, resolve currency, resolve tax — all AI-grounded against
+        # what's ACTUALLY configured in Odoo (one shared LLM call), not a blind code guess -------
+        # Historical vendor-account usage is a strong, cheap, reliable signal — trust it first and
+        # skip second-guessing it with the AI. Only when there's no history do we lean on the AI's
+        # chart-of-accounts match (passed the history as a hint either way, for its reasoning).
         account_id = odoo_bills.get_historical_account_id(client, partner_id)
-        account_source = "history" if account_id else "guessed"
+        account_source = "history" if account_id else None
+
+        available_currencies = odoo.list_active_currencies(client)
+        available_taxes = odoo_bills.list_active_purchase_taxes(client)
+        available_accounts = odoo_bills.list_expense_accounts(client)
+        match_ok, match_msg, match, match_meta = extraction.match_bill_to_odoo(
+            virtual_key, llm.litellm_model_alias, bill,
+            available_currencies, available_taxes, available_accounts,
+            historical_account_id=account_id,
+        )
+        _emit_usage(db, mission, llm, match_meta)
+
+        ai_currency_id = match.currency_id if match_ok and match else None
+        ai_tax_id = match.tax_id if match_ok and match else None
+        ai_account_id = match.account_id if match_ok and match else None
+        match_reasoning = match.reasoning if match_ok and match else ""
+
+        # --- Step 5: infer expense account ------------------------------------------------------
         if account_id is None:
-            account_id = odoo_bills.default_expense_account_id(client)
+            if ai_account_id is not None:
+                account_id = ai_account_id
+                account_source = "ai_matched"
+            else:
+                account_id = odoo_bills.default_expense_account_id(client)
+                account_source = "guessed"
         if account_id is None:
             record_step(db, mission, idx, "infer_account", "gadget_call", "failed",
                         error="No expense account available in Odoo")
@@ -274,20 +300,22 @@ def run(db: Session, mission: Mission) -> None:
                     failure_category="validation")
             return
         record_step(db, mission, idx, "infer_account", "gadget_call", "succeeded", output={
-            "account_id": account_id, "source": account_source})
+            "account_id": account_id, "source": account_source,
+            "reasoning": match_reasoning if account_source == "ai_matched" else None})
         idx += 1
 
         # --- Step 6: resolve currency (currency-aware) ------------------------------------------
         # A PDF/image bill states its currency; Odoo previously always defaulted to the company's
-        # currency regardless — silently wrong for any bill not in that currency. Resolve the
-        # extracted ISO code to an Odoo res.currency id, or refuse to create a (mis-denominated)
-        # bill rather than guess.
+        # currency regardless — silently wrong for any bill not in that currency. The AI matches
+        # the bill against Odoo's ACTUALLY-enabled currencies (falling back to a plain exact-code
+        # lookup if it declines); if nothing resolves, refuse to create a (mis-denominated) bill
+        # rather than guess.
         currency_id = None
         if bill.currency:
-            currency_id = odoo.find_currency_id(client, bill.currency)
+            currency_id = ai_currency_id or odoo.find_currency_id(client, bill.currency)
             if currency_id is None:
                 record_step(db, mission, idx, "resolve_currency", "gadget_call", "succeeded", output={
-                    "requested": bill.currency, "resolved": False})
+                    "requested": bill.currency, "resolved": False, "reasoning": match_reasoning})
                 idx += 1
                 _finish(db, mission, "succeeded", {
                     "vendor_name": bill.vendor_name, "invoice_number": bill.invoice_number,
@@ -297,27 +325,29 @@ def run(db: Session, mission: Mission) -> None:
                 })
                 return
             record_step(db, mission, idx, "resolve_currency", "gadget_call", "succeeded", output={
-                "requested": bill.currency, "resolved": True, "currency_id": currency_id})
+                "requested": bill.currency, "resolved": True, "currency_id": currency_id,
+                "reasoning": match_reasoning})
         else:
+            currency_id = ai_currency_id  # the AI may still infer one from vendor/context
             record_step(db, mission, idx, "resolve_currency", "gadget_call", "succeeded", output={
-                "requested": None, "resolved": False, "note": "No currency extracted — Odoo default applies"})
+                "requested": None, "resolved": currency_id is not None, "currency_id": currency_id})
         idx += 1
 
         # --- Step 7: resolve tax (tax-aware) -----------------------------------------------------
-        # If the bill states tax but the expense account has no default purchase tax configured,
-        # still create the draft (the line amounts are correct) but never auto-post it, and flag a
-        # standing tenant Issue — this is an Odoo configuration gap, not a one-off bill problem.
-        tax_ids = odoo_bills.get_account_default_taxes(client, account_id)
+        # The AI matches the bill's tax against ALL of the instance's active purchase taxes by
+        # rate (not just the expense account's single default). If the bill states tax but nothing
+        # matches, still create the draft (line amounts are correct) but never auto-post it, and
+        # flag a standing tenant Issue — this is an Odoo configuration gap, not a one-off problem.
+        tax_ids = [ai_tax_id] if ai_tax_id is not None else []
         tax_needs_review = False
         tax_review_reason: str | None = None
         if tax_ids:
             record_step(db, mission, idx, "resolve_tax", "gadget_call", "succeeded", output={
-                "tax_ids": tax_ids, "source": "account_default"})
+                "tax_ids": tax_ids, "source": "ai_matched", "reasoning": match_reasoning})
         elif bill.tax_amount and bill.tax_amount > 0:
-            any_purchase_tax = odoo_bills.has_purchase_taxes_configured(client)
             tax_review_reason = (
-                "This bill includes tax, but the expense account has no default purchase tax in Odoo."
-                if any_purchase_tax else
+                "This bill includes tax, but no configured Odoo tax rate matches it."
+                if available_taxes else
                 "This bill includes tax, but this Odoo instance has no purchase taxes configured at all."
             )
             record_step(db, mission, idx, "resolve_tax", "gadget_call", "succeeded", output={

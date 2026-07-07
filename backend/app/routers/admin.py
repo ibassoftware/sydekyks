@@ -20,7 +20,7 @@ from app.schemas.provider_key import ProviderKeyOut, ProviderKeyUpdate
 from app.schemas.sydekyk import SydekykAdminOut, SydekykModelUpdate
 from app.schemas.sydekyk_llm_config import SydekykUsageOut
 from app.schemas.tenant import TenantCreate, TenantOut
-from app.services import llm_provisioning
+from app.services import gadget_links, llm_provisioning
 from app.services.missions import apply_mission_filters
 from app.services.usage import get_sydekyk_total_usage
 
@@ -292,5 +292,10 @@ def get_any_mission(mission_id: uuid.UUID, db: Session = Depends(get_db)):
         mission, filename=doc[0] if doc else None, source=doc[1] if doc else None,
         sydekyk_name=sydekyk.name if sydekyk else None, tenant_name=tenant.name if tenant else None,
     )
+    move_id = (mission.result_summary or {}).get("odoo_move_id")
+    if move_id:
+        base.odoo_bill_url = gadget_links.build_odoo_bill_url(
+            db, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id, move_id=move_id
+        )
     steps = [MissionStepOut.model_validate(s, from_attributes=True) for s in mission.steps]
     return MissionDetailOut(**base.model_dump(), steps=steps)

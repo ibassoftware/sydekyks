@@ -1,8 +1,8 @@
 """End-to-end Mission execution with a fake Odoo + fake extraction (DB-gated).
 
 Exercises the Ledger playbook success path, a setup-failure path (with failure_category), retry
-lineage, usage emission, the opt-in auto-post gate, currency resolution, and tax-config flagging —
-all without a real Odoo or LLM.
+lineage, usage emission, the opt-in auto-post gate, AI-grounded currency/tax/account matching, and
+tax-config flagging — all without a real Odoo or LLM.
 """
 
 import uuid
@@ -29,7 +29,9 @@ def _fake_bill(currency="USD", tax_amount=None):
 
 
 def _patch_happy_path(
-    monkeypatch, engine, *, bill=None, currency_id=1, account_tax_ids=None, any_purchase_tax=True, is_bill=True,
+    monkeypatch, engine, *, bill=None, is_bill=True,
+    ai_currency_id=1, ai_tax_id=None, ai_account_id=None,
+    fallback_currency_id=None, available_taxes=None, historical_account_id=10,
 ):
     # run_mission opens its own SessionLocal — bind it to the test engine.
     monkeypatch.setattr(missions_svc, "SessionLocal", sessionmaker(bind=engine))
@@ -50,13 +52,26 @@ def _patch_happy_path(
     )
     monkeypatch.setattr(odoo, "connect", lambda *a, **k: (True, "ok", object()))
     monkeypatch.setattr(odoo, "find_partner", lambda *a, **k: {"id": 1, "name": "ACME"})
-    monkeypatch.setattr(odoo, "find_currency_id", lambda *a, **k: currency_id)
+    # Fallback deterministic lookup — only exercised when the AI declines to match a currency.
+    monkeypatch.setattr(odoo, "find_currency_id", lambda *a, **k: fallback_currency_id)
+    monkeypatch.setattr(odoo, "list_active_currencies", lambda *a, **k: [{"id": 1, "name": "USD"}])
     monkeypatch.setattr(odoo_bills, "find_duplicate_bills", lambda *a, **k: [])
     monkeypatch.setattr(odoo_bills, "find_bills_near", lambda *a, **k: [])
-    monkeypatch.setattr(odoo_bills, "get_historical_account_id", lambda *a, **k: 10)
+    monkeypatch.setattr(odoo_bills, "get_historical_account_id", lambda *a, **k: historical_account_id)
     monkeypatch.setattr(odoo_bills, "default_expense_account_id", lambda *a, **k: 10)
-    monkeypatch.setattr(odoo_bills, "get_account_default_taxes", lambda *a, **k: account_tax_ids or [])
-    monkeypatch.setattr(odoo_bills, "has_purchase_taxes_configured", lambda *a, **k: any_purchase_tax)
+    monkeypatch.setattr(
+        odoo_bills, "list_expense_accounts",
+        lambda *a, **k: [{"id": 10, "code": "6000", "name": "Office Expenses"}, {"id": 11, "code": "6100", "name": "Software"}],
+    )
+    taxes = available_taxes if available_taxes is not None else [{"id": 5, "name": "10% VAT", "amount": 10}]
+    monkeypatch.setattr(odoo_bills, "list_active_purchase_taxes", lambda *a, **k: taxes)
+    monkeypatch.setattr(
+        extraction, "match_bill_to_odoo",
+        lambda *a, **k: (True, "ok", extraction.BillMatch(
+            currency_id=ai_currency_id, tax_id=ai_tax_id, account_id=ai_account_id, reasoning="matched"),
+                         {"usage": {"prompt_tokens": 8, "completion_tokens": 4, "total_tokens": 12},
+                          "request_id": f"req-match-{uuid.uuid4()}", "model": "ledger-hosted", "cost_usd": 0.0007}),
+    )
     monkeypatch.setattr(odoo_bills, "create_vendor_bill", lambda *a, **k: (True, "ok", 100, []))
     monkeypatch.setattr(odoo_bills, "attach_document", lambda *a, **k: (True, "attached"))
     monkeypatch.setattr(odoo_bills, "post_bill", lambda *a, **k: (True, "ok"))
@@ -95,12 +110,29 @@ def test_playbook_success_and_usage(db, engine, seeded, monkeypatch):
     assert done.result_summary["odoo_move_id"] == 100
     attach_step = next(s for s in done.steps if s.step_key == "attach_document")
     assert attach_step.status == "succeeded"
-    # VS-15: a usage record was attributed to this Mission — one for classify_document, one for
-    # extract_bill_data (two distinct LLM calls, keyed by distinct litellm_request_id).
+    account_step = next(s for s in done.steps if s.step_key == "infer_account")
+    assert account_step.output["source"] == "history"  # historical lookup wins over AI suggestion
+    # VS-15: a usage record was attributed to this Mission — one each for classify_document,
+    # extract_bill_data, and match_bill_to_odoo (three distinct LLM calls).
     usage = db.query(UsageRecord).filter(UsageRecord.mission_id == mission.id).all()
-    assert len(usage) == 2
-    assert sum(u.total_tokens for u in usage) == 21  # 6 (classify) + 15 (extract)
-    assert sum(u.cost_usd for u in usage) == 0.0042  # VS-15: per-call cost captured from LiteLLM header
+    assert len(usage) == 3
+    assert sum(u.total_tokens for u in usage) == 33  # 6 (classify) + 15 (extract) + 12 (match)
+    assert round(sum(u.cost_usd for u in usage), 4) == 0.0049
+
+
+def test_ai_matched_account_used_when_no_history(db, engine, seeded, monkeypatch):
+    """A new vendor (no billing history) should get the AI's chart-of-accounts match, not the
+    blind 'first expense account' fallback — and score a smaller confidence penalty for it."""
+    _patch_happy_path(monkeypatch, engine, historical_account_id=None, ai_account_id=11)
+    mission = _make_mission(db, seeded)
+
+    missions_svc.run_mission(mission.id)
+
+    db.expire_all()
+    done = db.get(Mission, mission.id)
+    account_step = next(s for s in done.steps if s.step_key == "infer_account")
+    assert account_step.output["source"] == "ai_matched"
+    assert account_step.output["account_id"] == 11
 
 
 def test_auto_post_disabled_by_default_never_posts(db, engine, seeded, monkeypatch):
@@ -118,8 +150,11 @@ def test_auto_post_disabled_by_default_never_posts(db, engine, seeded, monkeypat
 
 
 def test_unresolvable_currency_blocks_bill_creation(db, engine, seeded, monkeypatch):
-    """A stated currency that isn't enabled in Odoo must never be silently defaulted."""
-    _patch_happy_path(monkeypatch, engine, bill=_fake_bill(currency="EUR"), currency_id=None)
+    """A stated currency that isn't enabled in Odoo must never be silently defaulted — neither the
+    AI match nor the deterministic fallback found one."""
+    _patch_happy_path(
+        monkeypatch, engine, bill=_fake_bill(currency="EUR"), ai_currency_id=None, fallback_currency_id=None,
+    )
     _enable_auto_post(db, seeded["tenant"].id)
     mission = _make_mission(db, seeded)
 
@@ -137,8 +172,7 @@ def test_missing_tax_config_blocks_auto_post_and_reports_issue(db, engine, seede
     """A bill with tax but no matching Odoo tax config: draft is created, never auto-posted, and a
     standing TenantIssue is opened (upserted, not duplicated per Mission)."""
     _patch_happy_path(
-        monkeypatch, engine, bill=_fake_bill(tax_amount=8.0),
-        account_tax_ids=[], any_purchase_tax=False,
+        monkeypatch, engine, bill=_fake_bill(tax_amount=8.0), ai_tax_id=None, available_taxes=[],
     )
     _enable_auto_post(db, seeded["tenant"].id)
 
@@ -167,6 +201,25 @@ def test_missing_tax_config_blocks_auto_post_and_reports_issue(db, engine, seede
     assert len(issues) == 1
     assert issues[0].occurrence_count == 2
     assert issues[0].mission_id == mission2.id
+
+
+def test_ai_matched_tax_applied_when_confident(db, engine, seeded, monkeypatch):
+    """When the AI confidently matches a specific tax rate, that tax is applied and the bill is
+    NOT flagged for review — unlike the old account-default-only behavior, a match anywhere in
+    the instance's active purchase taxes is enough."""
+    _patch_happy_path(monkeypatch, engine, bill=_fake_bill(tax_amount=8.0), ai_tax_id=5)
+    _enable_auto_post(db, seeded["tenant"].id)
+    mission = _make_mission(db, seeded)
+
+    missions_svc.run_mission(mission.id)
+
+    db.expire_all()
+    done = db.get(Mission, mission.id)
+    assert done.result_summary["needs_review"] is False
+    assert done.result_summary["posted"] is True
+    tax_step = next(s for s in done.steps if s.step_key == "resolve_tax")
+    assert tax_step.output["tax_ids"] == [5]
+    assert tax_step.output["source"] == "ai_matched"
 
 
 def test_non_bill_document_rejected_before_extraction(db, engine, seeded, monkeypatch):

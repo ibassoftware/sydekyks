@@ -63,28 +63,30 @@ def get_historical_account_id(client: OdooClient, partner_id: int) -> int | None
 
 
 def default_expense_account_id(client: OdooClient) -> int | None:
-    """A reasonable generic fallback: the first plain 'expense' account."""
+    """Last-resort fallback if even AI-grounded matching (see extraction.match_bill_to_odoo)
+    comes back empty: the first plain 'expense' account."""
     accts = client.search_read(
         "account.account", [["account_type", "=", "expense"]], ["id", "code"], limit=1
     )
     return accts[0]["id"] if accts else None
 
 
-def get_account_default_taxes(client: OdooClient, account_id: int) -> list[int]:
-    """The purchase tax(es) configured as this expense account's default, if any."""
-    rows = client.execute_kw("account.account", "read", [[account_id]], {"fields": ["tax_ids"]})
-    if not rows:
-        return []
-    return rows[0].get("tax_ids") or []
-
-
-def has_purchase_taxes_configured(client: OdooClient) -> bool:
-    """Whether this Odoo instance has ANY active purchase tax defined at all — distinguishes
-    "nobody set a default tax on this account" from "this instance has no tax config at all"."""
-    rows = client.search_read(
-        "account.tax", [["type_tax_use", "=", "purchase"], ["active", "=", True]], ["id"], limit=1
+def list_expense_accounts(client: OdooClient) -> list[dict]:
+    """The tenant's chart of accounts, filtered to expense-type accounts — so an AI matching a
+    bill's line items (e.g. "software subscription" -> an IT/Software expense account) can choose
+    from what's REALLY configured here, not just history or a single generic default."""
+    return client.search_read(
+        "account.account", [["account_type", "in", _EXPENSE_TYPES]], ["id", "code", "name"], limit=200
     )
-    return bool(rows)
+
+
+def list_active_purchase_taxes(client: OdooClient) -> list[dict]:
+    """Every active purchase tax configured in this Odoo instance — id, name, and rate — so an AI
+    can match a bill's stated tax against a REAL, specific tax rate instead of the code defaulting
+    to whatever happened to be set on the expense account."""
+    return client.search_read(
+        "account.tax", [["type_tax_use", "=", "purchase"], ["active", "=", True]], ["id", "name", "amount"]
+    )
 
 
 def create_vendor_bill(
