@@ -16,12 +16,14 @@ from app.models.llm_provider import TenantSydekykLLMConfig
 from app.models.sydekyk import Sydekyk
 from app.models.user import User
 
+from app.sydekyks.ledger import insights as insights_svc
 from app.sydekyks.ledger import readiness as readiness_svc
 from app.sydekyks.ledger.models import LedgerTenantSettings
 from app.sydekyks.ledger.playbook import PLAYBOOK_KEY, PLAYBOOK_STEPS
 from app.sydekyks.ledger.schemas import (
     EmailInboxCreate,
     EmailInboxOut,
+    LedgerInsightsOut,
     LedgerPlaybook,
     LedgerReadiness,
     LedgerSettingsOut,
@@ -64,6 +66,8 @@ def _settings_out(s: LedgerTenantSettings) -> LedgerSettingsOut:
         auto_post_threshold=s.auto_post_threshold,
         ledger_vision_ok=s.ledger_vision_ok,
         ledger_vision_tested_at=s.ledger_vision_tested_at.isoformat() if s.ledger_vision_tested_at else None,
+        estimated_hourly_wage=s.estimated_hourly_wage,
+        estimated_minutes_per_bill=s.estimated_minutes_per_bill,
     )
 
 
@@ -80,9 +84,20 @@ def update_settings(
     s.auto_create_partner = payload.auto_create_partner
     s.auto_post_enabled = payload.auto_post_enabled
     s.auto_post_threshold = payload.auto_post_threshold
+    s.estimated_hourly_wage = payload.estimated_hourly_wage
+    s.estimated_minutes_per_bill = payload.estimated_minutes_per_bill
     db.commit()
     db.refresh(s)
     return _settings_out(s)
+
+
+@router.get("/insights", response_model=LedgerInsightsOut)
+def get_insights(user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+    """Dashboard trend + estimated-$-saved data (VS wow-dashboard)."""
+    sydekyk = _ledger_sydekyk(db, user)
+    activated = insights_svc.ledger_activated(db, user.tenant_id, sydekyk.id)
+    data = insights_svc.compute_insights(db, user.tenant_id, sydekyk.id)
+    return LedgerInsightsOut(activated=activated, **data)
 
 
 @router.get("/readiness", response_model=LedgerReadiness)

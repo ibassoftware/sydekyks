@@ -41,6 +41,27 @@ export interface Dashboard {
   power_meter_stale: boolean;
 }
 
+export interface LedgerDailyTrend {
+  date: string;
+  succeeded: number;
+  failed: number;
+}
+
+export interface LedgerInsights {
+  activated: boolean;
+  total_missions: number;
+  succeeded_missions: number;
+  failed_missions: number;
+  needs_review_missions: number;
+  posted_count: number;
+  daily_trend: LedgerDailyTrend[];
+  estimated_hourly_wage: number;
+  estimated_minutes_per_bill: number;
+  estimated_manual_cost: number;
+  ai_cost: number;
+  estimated_net_savings: number;
+}
+
 export interface Sydekyk {
   id: string;
   name: string;
@@ -347,4 +368,6 @@ export interface LedgerSettings {
   auto_post_threshold: number;
   ledger_vision_ok?: boolean | null;
   ledger_vision_tested_at?: string | null;
+  estimated_hourly_wage: number;
+  estimated_minutes_per_bill: number;
 }

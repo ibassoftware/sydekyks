@@ -118,6 +118,43 @@ export function LedgerSettingsSection({
           )}
         </div>
       )}
+
+      {settings && (
+        <div id="savings" className="grid gap-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Estimated Savings</p>
+          <p className="-mt-1 text-xs text-[#8a7f6d]">
+            Used to estimate the $ saved on your Dashboard — how much manual data entry a bill would otherwise take.
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Hourly wage ($)</Label>
+              <input
+                type="number"
+                min={0}
+                step={0.5}
+                className="w-full rounded-md border border-ink-700 bg-ink-900 px-3 py-1.5 text-sm text-[#ede6da] disabled:opacity-60"
+                disabled={!canManage || saving}
+                value={settings.estimated_hourly_wage}
+                onChange={(e) => setSettings({ ...settings, estimated_hourly_wage: Number(e.target.value) })}
+                onBlur={(e) => save({ ...settings, estimated_hourly_wage: Number(e.target.value) })}
+              />
+            </div>
+            <div>
+              <Label>Minutes to manually enter one bill</Label>
+              <input
+                type="number"
+                min={0}
+                step={0.5}
+                className="w-full rounded-md border border-ink-700 bg-ink-900 px-3 py-1.5 text-sm text-[#ede6da] disabled:opacity-60"
+                disabled={!canManage || saving}
+                value={settings.estimated_minutes_per_bill}
+                onChange={(e) => setSettings({ ...settings, estimated_minutes_per_bill: Number(e.target.value) })}
+                onBlur={(e) => save({ ...settings, estimated_minutes_per_bill: Number(e.target.value) })}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
