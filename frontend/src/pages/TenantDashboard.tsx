@@ -10,6 +10,39 @@ function compactNumber(n: number): string {
   return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
+function UsageMeter({
+  label,
+  used,
+  cap,
+  throttled,
+  caption,
+}: {
+  label: string;
+  used: number;
+  cap: number;
+  throttled: boolean;
+  caption: string;
+}) {
+  const pct = cap > 0 ? Math.min(100, (used / cap) * 100) : 0;
+  const barTone = throttled ? "bg-red-500" : pct > 80 ? "bg-amber-400" : "bg-gradient-to-r from-gold-600 to-gold-400";
+  return (
+    <Card className="p-6">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">{label}</p>
+        {throttled && <span className="rounded-full border border-red-700/50 bg-red-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-red-400">Paused</span>}
+      </div>
+      <p className="mt-2 text-2xl font-bold text-[#f5eee0]">
+        {compactNumber(used)}
+        <span className="text-base font-normal text-[#8a7f6d]"> / {compactNumber(cap)}</span>
+      </p>
+      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-ink-700">
+        <div className={`h-full rounded-full ${barTone}`} style={{ width: `${pct}%` }} />
+      </div>
+      <p className="mt-2 text-xs text-[#8a7f6d]">{caption}</p>
+    </Card>
+  );
+}
+
 export default function TenantDashboard() {
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [insights, setInsights] = useState<LedgerInsights | null>(null);
@@ -26,10 +59,6 @@ export default function TenantDashboard() {
       .catch(() => setInsights(null));
   }, []);
 
-  const hasQuota = !!dashboard?.power_meter_quota;
-  const powerPct =
-    dashboard && hasQuota ? Math.min(100, Math.round((dashboard.power_meter_used / dashboard.power_meter_quota!) * 100)) : 0;
-
   return (
     <HQShell>
       <main className="mx-auto max-w-6xl px-6 py-10">
@@ -40,10 +69,10 @@ export default function TenantDashboard() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-gold-500">Headquarters</p>
               <h1 className="mt-1 text-3xl font-bold text-[#f5eee0]">{dashboard.tenant_name}</h1>
-              <p className="mt-1 text-sm text-[#8a7f6d]">/{dashboard.tenant_slug} · {dashboard.plan} plan</p>
+              <p className="mt-1 text-sm text-[#8a7f6d]">/{dashboard.tenant_slug} · {dashboard.plan_display_name} plan</p>
             </div>
 
-            <div className="mt-8 grid gap-6 md:grid-cols-3">
+            <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               <Link to="/hq/roster">
                 <Card className="p-6 transition-colors hover:border-gold-500/60">
                   <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Roster Sydekyks</p>
@@ -58,25 +87,20 @@ export default function TenantDashboard() {
                   <p className="mt-1 text-sm text-[#8a7f6d]">Built just for your HQ</p>
                 </Card>
               </Link>
-              <Card className="p-6">
-                <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Estimated Power Usage</p>
-                <p className="mt-2 text-3xl font-bold text-[#f5eee0]">
-                  ${dashboard.power_meter_used.toFixed(2)}
-                  {hasQuota && (
-                    <span className="text-base font-normal text-[#8a7f6d]"> / ${dashboard.power_meter_quota!.toFixed(2)}</span>
-                  )}
-                </p>
-                {hasQuota ? (
-                  <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-ink-700">
-                    <div className="h-full rounded-full bg-gradient-to-r from-gold-600 to-gold-400" style={{ width: `${powerPct}%` }} />
-                  </div>
-                ) : (
-                  <p className="mt-3 text-sm text-[#8a7f6d]">No quota set</p>
-                )}
-                {dashboard.power_meter_stale && (
-                  <p className="mt-2 text-xs text-[#8a7f6d]">Showing last known value — reconnecting…</p>
-                )}
-              </Card>
+              <UsageMeter
+                label="Tokens this month"
+                used={dashboard.tokens_used_this_month}
+                cap={dashboard.monthly_token_cap}
+                throttled={dashboard.token_throttled}
+                caption="Resets on the 1st (00:01 UTC)"
+              />
+              <UsageMeter
+                label="AI capacity · past hour"
+                used={dashboard.gpu_seconds_used_last_hour}
+                cap={dashboard.gpu_seconds_per_hour_cap}
+                throttled={dashboard.gpu_throttled}
+                caption="GPU-seconds · rolling hour"
+              />
             </div>
 
             {insights && (insights.activated ? <LedgerInsightsSection insights={insights} /> : <LedgerNotActivatedCard />)}

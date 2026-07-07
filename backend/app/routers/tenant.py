@@ -9,9 +9,10 @@ from app.db.session import get_db
 from app.models.sydekyk import Sydekyk, SydekykInstall
 from app.models.tenant import Tenant
 from app.models.user import User
+from app.models.metering import PlanTier
 from app.schemas.dashboard import DashboardOut
 from app.schemas.sydekyk import SydekykOut
-from app.services.usage import get_tenant_dashboard_usage
+from app.services import metering
 
 router = APIRouter(prefix="/api/tenant", tags=["tenant"], dependencies=[Depends(require_tenant_member)])
 
@@ -61,18 +62,24 @@ def dashboard(user: User = Depends(require_tenant_member), db: Session = Depends
     sydekyks = _visible_sydekyks(db, tenant.id)
     roster_count = sum(1 for s in sydekyks if not s.is_exclusive and s.id in installed_ids)
     exclusive_count = sum(1 for s in sydekyks if s.is_exclusive)
-    used, stale = get_tenant_dashboard_usage(db, tenant)
+
+    usage = metering.tenant_usage_summary(db, tenant)
+    tier = db.get(PlanTier, tenant.plan)
 
     return DashboardOut(
         tenant_id=tenant.id,
         tenant_name=tenant.name,
         tenant_slug=tenant.slug,
         plan=tenant.plan,
+        plan_display_name=tier.display_name if tier else tenant.plan.title(),
         roster_sydekyk_count=roster_count,
         exclusive_sydekyk_count=exclusive_count,
-        power_meter_used=used,
-        power_meter_quota=None,
-        power_meter_stale=stale,
+        tokens_used_this_month=usage["tokens_used_this_month"],
+        monthly_token_cap=usage["monthly_token_cap"],
+        token_throttled=usage["token_throttled"],
+        gpu_seconds_used_last_hour=usage["gpu_seconds_used_last_hour"],
+        gpu_seconds_per_hour_cap=usage["gpu_seconds_per_hour_cap"],
+        gpu_throttled=usage["gpu_throttled"],
     )
 
 
