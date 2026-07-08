@@ -118,9 +118,11 @@ def create_mission_for_document(
     sha256_hash: str,
     source: str,
     signal_type: str,
+    trigger_context: dict | None = None,
 ) -> Mission:
     """Creates a Mission + its MissionDocument in one transaction. Caller commits and schedules
-    run_mission via BackgroundTasks. Used identically by the web-upload router and email webhook."""
+    run_mission via BackgroundTasks. Used identically by the web-upload router, email webhook, and
+    cron pollers. `trigger_context` carries optional per-trigger metadata for the playbook."""
     mission = Mission(
         tenant_id=tenant_id,
         user_id=user_id,
@@ -129,6 +131,7 @@ def create_mission_for_document(
         signal_type=signal_type,
         playbook_key=sydekyk.playbook_key or "",
         status="queued",
+        trigger_context=trigger_context,
     )
     db.add(mission)
     db.flush()
@@ -156,9 +159,12 @@ def retry_mission(db: Session, original: Mission) -> Mission:
     unique (mission_id, step_index). So a retry is a fresh Mission linked via `parent_mission_id`
     to its predecessor and `root_mission_id` to the head of the chain. The document bytes are
     copied through the DocumentStorage boundary (a no-op-cheap copy today; a storage_key copy once
-    S3 lands). Only failed Missions may be retried."""
-    if original.status != "failed":
-        raise ValueError("Only failed Missions can be retried")
+    S3 lands). Retryable when the original failed, or when it succeeded but was flagged for review
+    (e.g. a currency/tax gap the human has since fixed in Odoo) — re-running should pick up the fix;
+    the playbook's duplicate check guards against creating a second bill."""
+    needs_review = bool((original.result_summary or {}).get("needs_review"))
+    if original.status != "failed" and not (original.status == "succeeded" and needs_review):
+        raise ValueError("Only failed or needs-review Missions can be retried")
 
     original_doc = db.query(MissionDocument).filter(MissionDocument.mission_id == original.id).first()
     if original_doc is None:
@@ -267,6 +273,7 @@ def apply_mission_filters(
     filename=None,
     date_from=None,
     date_to=None,
+    needs_review=None,
 ):
     """Applies the common Mission list filters. `tenant_id` is optional here on purpose: the
     tenant router scopes tenant_id directly on its own base query (defense-in-depth), while the
@@ -288,4 +295,6 @@ def apply_mission_filters(
         query = query.filter(Mission.created_at >= date_from)
     if date_to:
         query = query.filter(Mission.created_at <= date_to)
+    if needs_review:
+        query = query.filter(Mission.result_summary["needs_review"].astext == "true")
     return query

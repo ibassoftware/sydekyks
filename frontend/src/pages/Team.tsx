@@ -1,15 +1,15 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
-import { api, type SydekykPermission, type TeamUser } from "../lib/api";
+import { api, type TeamUser } from "../lib/api";
 import { HQShell } from "../components/HQShell";
-import { Badge, Button, Card, Input, Label, Modal } from "../components/ui";
+import { Badge, Button, Card, Input, Label } from "../components/ui";
 
 const ROLE_LABEL: Record<string, string> = { commander: "Commander", hero: "Hero" };
 
 export default function Team() {
   const [users, setUsers] = useState<TeamUser[] | null>(null);
   const [showAdd, setShowAdd] = useState(false);
-  const [managing, setManaging] = useState<TeamUser | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -109,9 +109,11 @@ export default function Team() {
                     <td className="px-6 py-3 text-right">
                       <div className="flex justify-end gap-2">
                         {u.role === "hero" ? (
-                          <Button variant="ghost" className="px-3 py-1.5 text-xs" onClick={() => setManaging(u)}>
-                            Manage Access
-                          </Button>
+                          <Link to={`/hq/team/${u.id}`}>
+                            <Button variant="ghost" className="px-3 py-1.5 text-xs">
+                              Manage Access
+                            </Button>
+                          </Link>
                         ) : (
                           <span className="px-3 py-1.5 text-xs text-[#8a7f6d]">Full access</span>
                         )}
@@ -134,10 +136,6 @@ export default function Team() {
           )}
         </Card>
       </main>
-
-      <Modal open={!!managing} onClose={() => setManaging(null)}>
-        {managing && <PermissionsModal user={managing} onClose={() => setManaging(null)} />}
-      </Modal>
     </HQShell>
   );
 }
@@ -199,82 +197,6 @@ function AddUserForm({ onCancel, onCreated }: { onCancel: () => void; onCreated:
           </Button>
         </div>
       </form>
-    </Card>
-  );
-}
-
-function PermissionsModal({ user, onClose }: { user: TeamUser; onClose: () => void }) {
-  const [perms, setPerms] = useState<SydekykPermission[] | null>(null);
-  const [savingId, setSavingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    api.get<SydekykPermission[]>(`/tenant/team/users/${user.id}/permissions`).then((r) => setPerms(r.data));
-  }, [user.id]);
-
-  async function setPerm(p: SydekykPermission, next: { can_use: boolean; can_configure: boolean }) {
-    setSavingId(p.sydekyk_id);
-    try {
-      const res = await api.put<SydekykPermission>(`/tenant/team/users/${user.id}/permissions/${p.sydekyk_id}`, next);
-      setPerms((prev) => prev?.map((x) => (x.sydekyk_id === res.data.sydekyk_id ? res.data : x)) ?? null);
-    } finally {
-      setSavingId(null);
-    }
-  }
-
-  return (
-    <Card className="border-gold-600/40 p-7 shadow-[0_0_60px_-12px_rgba(212,168,40,0.5)]">
-      <h2 className="text-xl font-bold text-[#f5eee0]">Access — {user.email}</h2>
-      <p className="mt-1 text-sm text-[#8a7f6d]">
-        <span className="font-semibold text-[#b9ad98]">Use</span> lets them run the Sydekyk;{" "}
-        <span className="font-semibold text-[#b9ad98]">Configure</span> lets them change its settings. Configure implies
-        Use.
-      </p>
-
-      {!perms ? (
-        <p className="mt-5 text-sm text-[#8a7f6d]">Loading…</p>
-      ) : perms.length === 0 ? (
-        <p className="mt-5 text-sm text-[#8a7f6d]">
-          This HQ has no active Sydekyks yet. Activate one from the Roster, then grant access here.
-        </p>
-      ) : (
-        <div className="mt-5 grid gap-2">
-          <div className="grid grid-cols-[1fr_auto_auto] items-center gap-4 px-1 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gold-500">
-            <span>Sydekyk</span>
-            <span className="w-16 text-center">Use</span>
-            <span className="w-16 text-center">Configure</span>
-          </div>
-          {perms.map((p) => (
-            <div key={p.sydekyk_id} className="grid grid-cols-[1fr_auto_auto] items-center gap-4 rounded-lg bg-ink-800/40 px-3 py-2.5">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-[#ede6da]">{p.sydekyk_name}</span>
-                {p.is_exclusive && <Badge tone="gold">Exclusive</Badge>}
-              </div>
-              <label className="flex w-16 justify-center">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 accent-gold-500"
-                  disabled={savingId === p.sydekyk_id}
-                  checked={p.can_use}
-                  onChange={(e) => setPerm(p, { can_use: e.target.checked, can_configure: e.target.checked ? p.can_configure : false })}
-                />
-              </label>
-              <label className="flex w-16 justify-center">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 accent-gold-500"
-                  disabled={savingId === p.sydekyk_id}
-                  checked={p.can_configure}
-                  onChange={(e) => setPerm(p, { can_use: p.can_use || e.target.checked, can_configure: e.target.checked })}
-                />
-              </label>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="mt-6 flex justify-end">
-        <Button onClick={onClose}>Done</Button>
-      </div>
     </Card>
   );
 }

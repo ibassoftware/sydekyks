@@ -300,6 +300,7 @@ export interface Mission {
   playbook_key: string;
   signal_type: string;
   source: string | null;
+  initiated_by_email?: string | null;
   status: MissionStatus;
   failure_category: string | null;
   result_summary: Record<string, unknown> | null;
@@ -334,6 +335,7 @@ export interface MissionFilters {
   filename?: string;
   date_from?: string;
   date_to?: string;
+  needs_review?: boolean;
   limit?: number;
   offset?: number;
 }
@@ -457,4 +459,62 @@ export interface LedgerSettings {
   ledger_vision_tested_at?: string | null;
   estimated_hourly_wage: number;
   estimated_minutes_per_bill: number;
+}
+
+// --- Decode (résumé parser) ---
+export interface DecodeSettings {
+  auto_create_skills: boolean;
+  processed_tag_name: string;
+  pooling_stage_name: string | null;
+  cron_enabled: boolean;
+  cron_poll_limit: number;
+}
+export interface DecodeReadiness {
+  items: ReadinessItem[];
+  can_upload: boolean;
+  last_inbound_email: string | null;
+}
+export interface DecodePlaybook {
+  playbook_key: string;
+  editable: boolean;
+  steps: PlaybookStep[];
+}
+export interface DecodeInsights {
+  activated: boolean;
+  total_applicants: number;
+  with_job_count: number;
+  pooling_count: number;
+  needs_review_count: number;
+  top_skills: { skill: string; count: number }[];
+  daily_trend: { date: string; count: number }[];
+}
+
+// --- Scout (résumé scorer) ---
+export interface ScoutSettings {
+  processed_tag_name: string;
+  min_score_threshold: number;
+  scoring_rubric: string | null;
+  cron_enabled: boolean;
+  cron_poll_limit: number;
+}
+export interface ScoutReadiness {
+  items: ReadinessItem[];
+  can_upload: boolean;
+}
+export interface ScoutPlaybook {
+  playbook_key: string;
+  editable: boolean;
+  steps: PlaybookStep[];
+}
+export interface RunNowResult {
+  queued: number;
+}
+export interface ScoutInsights {
+  activated: boolean;
+  total_scored: number;
+  average_score: number;
+  needs_review_count: number;
+  distribution: { band: string; count: number }[];
+  top_candidates: { applicant_name: string | null; job_name: string | null; score: number }[];
+  daily_trend: { date: string; count: number }[];
 }

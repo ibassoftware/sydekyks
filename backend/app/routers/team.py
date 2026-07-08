@@ -70,6 +70,11 @@ def list_users(user: User = Depends(require_commander), db: Session = Depends(ge
     return [_to_user_out(u, user) for u in users]
 
 
+@router.get("/users/{user_id}", response_model=TeamUserOut)
+def get_user(user_id: uuid.UUID, user: User = Depends(require_commander), db: Session = Depends(get_db)):
+    return _to_user_out(_get_tenant_user(db, user_id, user.tenant_id), user)
+
+
 @router.post("/users", response_model=TeamUserOut, status_code=status.HTTP_201_CREATED)
 def create_user(payload: TeamUserCreate, user: User = Depends(require_commander), db: Session = Depends(get_db)):
     if payload.role not in TENANT_ROLES:

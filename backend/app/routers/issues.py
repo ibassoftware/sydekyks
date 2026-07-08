@@ -93,23 +93,28 @@ def _review_item(db: Session, m: Mission, filename, sydekyk_name, reviewer_email
 
 
 @router.get("/issues/count", response_model=IssuesCountOut)
-def issues_count(user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+def issues_count(
+    sydekyk_id: uuid.UUID | None = None,
+    user: User = Depends(require_tenant_member),
+    db: Session = Depends(get_db),
+):
     """Lightweight counts for the sidebar notification badge — open config issues plus Missions
-    still awaiting review (a reviewed Mission no longer counts)."""
-    open_config = (
-        db.query(func.count(TenantIssue.id))
-        .filter(TenantIssue.tenant_id == user.tenant_id, TenantIssue.status == "open")
-        .scalar()
-    ) or 0
-    needing_review = (
-        db.query(func.count(Mission.id))
-        .filter(
-            Mission.tenant_id == user.tenant_id,
-            Mission.result_summary["needs_review"].astext == "true",
-            Mission.reviewed_at.is_(None),
-        )
-        .scalar()
-    ) or 0
+    still awaiting review (a reviewed Mission no longer counts). Optionally scoped to one Sydekyk
+    (e.g. its Roster detail page)."""
+    config_q = db.query(func.count(TenantIssue.id)).filter(
+        TenantIssue.tenant_id == user.tenant_id, TenantIssue.status == "open"
+    )
+    mission_q = db.query(func.count(Mission.id)).filter(
+        Mission.tenant_id == user.tenant_id,
+        Mission.result_summary["needs_review"].astext == "true",
+        Mission.reviewed_at.is_(None),
+    )
+    if sydekyk_id is not None:
+        config_q = config_q.filter(TenantIssue.sydekyk_id == sydekyk_id)
+        mission_q = mission_q.filter(Mission.sydekyk_id == sydekyk_id)
+
+    open_config = config_q.scalar() or 0
+    needing_review = mission_q.scalar() or 0
     return IssuesCountOut(
         config_issues=int(open_config), missions_needing_review=int(needing_review),
         total=int(open_config) + int(needing_review),

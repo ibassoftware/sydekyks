@@ -1,69 +1,66 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, type MissionDetail, type MissionPage, type MissionStatus } from "../lib/api";
-import { useAuth } from "../lib/auth";
-import { Badge, Button, Card } from "../components/ui";
+import { api, type MissionPage, type Sydekyk } from "../lib/api";
+import { Button, Card } from "../components/ui";
 import { HQShell } from "../components/HQShell";
-import { MissionDetailPanel } from "../components/DocumentIntakeSection";
+import { MissionList } from "../components/MissionList";
 
 const PAGE_SIZE = 25;
 
-function StatusBadge({ status }: { status: MissionStatus }) {
-  if (status === "succeeded") return <Badge tone="gold">Done</Badge>;
-  if (status === "failed") return <Badge tone="danger">Failed</Badge>;
-  if (status === "running") return <Badge tone="neutral">Running</Badge>;
-  return <Badge tone="neutral">Queued</Badge>;
-}
-
-function ReviewBadge({ mission }: { mission: MissionPage["items"][number] }) {
-  const needsReview = Boolean(mission.result_summary?.needs_review);
-  if (mission.reviewed) return <Badge tone="gold">Reviewed</Badge>;
-  if (needsReview) return <Badge tone="danger">Needs review</Badge>;
-  return null;
-}
+type Quick = "all" | "needs_review" | "running" | "done" | "failed";
+const QUICK_TABS: { key: Quick; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "needs_review", label: "Needs review" },
+  { key: "running", label: "Running" },
+  { key: "done", label: "Done" },
+  { key: "failed", label: "Failed" },
+];
 
 export default function Missions() {
-  const { user } = useAuth();
-  const canManage = user?.role === "commander";
-
   const [page, setPage] = useState<MissionPage | null>(null);
-  const [status, setStatus] = useState("");
+  const [quick, setQuick] = useState<Quick>("all");
+  const [sydekykId, setSydekykId] = useState("");
   const [source, setSource] = useState("");
   const [filename, setFilename] = useState("");
   const [offset, setOffset] = useState(0);
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [detail, setDetail] = useState<MissionDetail | null>(null);
+  const [sydekyks, setSydekyks] = useState<Sydekyk[]>([]);
+
+  useEffect(() => {
+    api.get<Sydekyk[]>("/tenant/sydekyks").then((r) => setSydekyks(r.data)).catch(() => setSydekyks([]));
+  }, []);
 
   const load = useCallback(() => {
-    const params: Record<string, string | number> = { limit: PAGE_SIZE, offset };
-    if (status) params.status = status;
+    const params: Record<string, string | number | boolean> = { limit: PAGE_SIZE, offset };
+    if (quick === "needs_review") params.needs_review = true;
+    else if (quick === "running") params.status = "running";
+    else if (quick === "done") params.status = "succeeded";
+    else if (quick === "failed") params.status = "failed";
+    if (sydekykId) params.sydekyk_id = sydekykId;
     if (source) params.source = source;
     if (filename) params.filename = filename;
     api.get<MissionPage>("/tenant/missions", { params }).then((res) => setPage(res.data));
-  }, [status, source, filename, offset]);
+  }, [quick, sydekykId, source, filename, offset]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  async function toggle(id: string) {
-    if (expanded === id) {
-      setExpanded(null);
-      setDetail(null);
-      return;
-    }
-    setExpanded(id);
-    setDetail(null);
-    const res = await api.get<MissionDetail>(`/tenant/missions/${id}`);
-    setDetail(res.data);
+  function changeFilter(fn: () => void) {
+    setOffset(0);
+    fn();
   }
+
+  const hasFilters = quick !== "all" || !!sydekykId || !!source || !!filename;
 
   function exportCsv() {
     const params = new URLSearchParams();
-    if (status) params.set("status", status);
+    if (quick === "running") params.set("status", "running");
+    else if (quick === "done") params.set("status", "succeeded");
+    else if (quick === "failed") params.set("status", "failed");
+    else if (quick === "needs_review") params.set("needs_review", "true");
+    if (sydekykId) params.set("sydekyk_id", sydekykId);
     if (source) params.set("source", source);
     if (filename) params.set("filename", filename);
     const token = localStorage.getItem("sydekyks_token") ?? "";
-    // Fetch with auth then trigger a client-side download (the CSV route needs the bearer token).
     fetch(`/api/tenant/missions/export?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.blob())
       .then((blob) => {
@@ -93,17 +90,34 @@ export default function Missions() {
           <Button variant="ghost" onClick={exportCsv}>Export CSV</Button>
         </div>
 
-        <Card className="mt-6 p-4">
+        {/* Quick status tabs */}
+        <div className="mt-6 flex flex-wrap gap-2">
+          {QUICK_TABS.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => changeFilter(() => setQuick(t.key))}
+              className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                quick === t.key
+                  ? "border-gold-500/60 bg-gold-500/15 text-gold-300"
+                  : "border-ink-600 bg-ink-900/60 text-[#a89a82] hover:bg-ink-800/70 hover:text-[#ede6da]"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Secondary filters */}
+        <Card className="mt-4 p-4">
           <div className="flex flex-wrap items-center gap-3">
-            <select className={selectClass} value={status} onChange={(e) => { setOffset(0); setStatus(e.target.value); }}>
-              <option value="">All statuses</option>
-              <option value="queued">Queued</option>
-              <option value="running">Running</option>
-              <option value="succeeded">Succeeded</option>
-              <option value="failed">Failed</option>
+            <select className={selectClass} value={sydekykId} onChange={(e) => changeFilter(() => setSydekykId(e.target.value))}>
+              <option value="">All Sydekyks</option>
+              {sydekyks.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
             </select>
-            <select className={selectClass} value={source} onChange={(e) => { setOffset(0); setSource(e.target.value); }}>
-              <option value="">All sources</option>
+            <select className={selectClass} value={source} onChange={(e) => changeFilter(() => setSource(e.target.value))}>
+              <option value="">Any source</option>
               <option value="web_upload">Web upload</option>
               <option value="email">Email</option>
             </select>
@@ -111,8 +125,17 @@ export default function Missions() {
               className={selectClass + " min-w-[200px] flex-1"}
               placeholder="Search filename…"
               value={filename}
-              onChange={(e) => { setOffset(0); setFilename(e.target.value); }}
+              onChange={(e) => changeFilter(() => setFilename(e.target.value))}
             />
+            {hasFilters && (
+              <Button
+                variant="ghost"
+                className="px-3 py-1.5 text-xs"
+                onClick={() => changeFilter(() => { setQuick("all"); setSydekykId(""); setSource(""); setFilename(""); })}
+              >
+                Clear filters
+              </Button>
+            )}
           </div>
         </Card>
 
@@ -122,34 +145,7 @@ export default function Missions() {
           ) : page.items.length === 0 ? (
             <p className="p-6 text-sm text-[#8a7f6d]">No missions match these filters.</p>
           ) : (
-            <div className="divide-y divide-ink-700/60">
-              {page.items.map((m) => (
-                <div key={m.id}>
-                  <button onClick={() => toggle(m.id)} className="grid w-full grid-cols-[1fr_auto] items-center gap-3 px-5 py-3 text-left hover:bg-ink-800/50">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm text-[#ede6da]">{m.document_filename ?? "document"}</p>
-                      <p className="truncate text-xs text-[#8a7f6d]">
-                        {m.sydekyk_name ?? "—"} · {m.source ?? m.signal_type} · {new Date(m.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {m.source === "email" && <Badge tone="neutral">Email</Badge>}
-                      <ReviewBadge mission={m} />
-                      <StatusBadge status={m.status} />
-                    </div>
-                  </button>
-                  {expanded === m.id && (
-                    <div className="border-t border-ink-700/60 bg-ink-950/40 px-5 py-3">
-                      {!detail ? (
-                        <p className="text-sm text-[#8a7f6d]">Loading…</p>
-                      ) : (
-                        <MissionDetailPanel detail={detail} canManage={canManage} onChanged={load} />
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+            <MissionList missions={page.items} onReload={load} />
           )}
         </Card>
 

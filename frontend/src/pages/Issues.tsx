@@ -1,30 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useSearchParams } from "react-router-dom";
-import { api, type IssuesOut, type MissionReviewItem, type MissionReviewStatus, type TenantIssue } from "../lib/api";
+import { api, type IssuesOut, type MissionReviewItem, type Sydekyk, type TenantIssue } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { Badge, Button, Card } from "../components/ui";
 import { HQShell } from "../components/HQShell";
 import { CheckIcon, DocIcon, WarningIcon } from "../components/icons";
-
-function timeAgo(iso: string): string {
-  const sec = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (sec < 60) return "just now";
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const day = Math.floor(hr / 24);
-  if (day < 30) return `${day}d ago`;
-  return `${Math.floor(day / 30)}mo ago`;
-}
+import { ReviewActions, ReviewBadge, timeAgo } from "../components/review";
 
 export default function Issues() {
   const { user } = useAuth();
   const canManage = user?.role === "commander";
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const sydekykId = searchParams.get("sydekyk_id");
+  const focusMission = searchParams.get("mission");
 
+  const [sydekyks, setSydekyks] = useState<Sydekyk[]>([]);
+  const [query, setQuery] = useState("");
+  const [showReviewed, setShowReviewed] = useState(true);
   const [issues, setIssues] = useState<IssuesOut | null>(null);
   const [leavingIds, setLeavingIds] = useState<Set<string>>(new Set());
   const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
@@ -41,6 +34,27 @@ export default function Issues() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    api.get<Sydekyk[]>("/tenant/sydekyks").then((r) => setSydekyks(r.data)).catch(() => setSydekyks([]));
+  }, []);
+
+  // Deep link from a "Review →" link: auto-expand the targeted Mission and scroll it into view, so
+  // the user lands directly on the bill instead of hunting for it.
+  useEffect(() => {
+    if (!focusMission || !issues) return;
+    setExpanded((prev) => (prev.has(focusMission) ? prev : new Set(prev).add(focusMission)));
+    requestAnimationFrame(() => {
+      document.getElementById(`mission-${focusMission}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, [focusMission, issues]);
+
+  function setSydekykFilter(id: string) {
+    const next = new URLSearchParams(searchParams);
+    if (id) next.set("sydekyk_id", id);
+    else next.delete("sydekyk_id");
+    setSearchParams(next);
+  }
 
   useEffect(() => () => {
     if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
@@ -120,33 +134,20 @@ export default function Issues() {
     });
   }
 
-  async function setReviewed(m: MissionReviewItem, reviewed: boolean) {
-    markBusy(m.mission_id, true);
-    try {
-      const res = reviewed
-        ? await api.post<MissionReviewStatus>(`/tenant/missions/${m.mission_id}/review`)
-        : await api.delete<MissionReviewStatus>(`/tenant/missions/${m.mission_id}/review`);
-      setIssues((prev) =>
-        prev
-          ? {
-              ...prev,
-              missions_needing_review: prev.missions_needing_review.map((x) =>
-                x.mission_id === m.mission_id
-                  ? { ...x, reviewed: res.data.reviewed, reviewed_at: res.data.reviewed_at, reviewed_by_email: res.data.reviewed_by_email }
-                  : x
-              ),
-            }
-          : prev
-      );
-    } finally {
-      markBusy(m.mission_id, false);
-    }
-  }
-
   const openCount = issues?.config_issues.length ?? 0;
   // Only Missions still awaiting review count as "needs attention"; reviewed ones stay listed with a badge.
   const flaggedCount = issues?.missions_needing_review.filter((m) => !m.reviewed).length ?? 0;
   const totalOpen = openCount + flaggedCount;
+
+  // Client-side text search + show/hide reviewed, applied to the displayed lists (stat tiles stay full).
+  const q = query.trim().toLowerCase();
+  const matchIssue = (i: TenantIssue) => !q || [i.title, i.detail, i.sydekyk_name].some((v) => v?.toLowerCase().includes(q));
+  const matchMission = (m: MissionReviewItem) =>
+    !q || [m.document_filename, m.reason, m.vendor_name, m.sydekyk_name, m.invoice_number].some((v) => v?.toLowerCase().includes(q));
+  const visibleConfig = issues ? issues.config_issues.filter(matchIssue) : [];
+  const visibleMissions = issues
+    ? issues.missions_needing_review.filter((m) => (showReviewed || !m.reviewed) && matchMission(m))
+    : [];
 
   return (
     <HQShell>
@@ -154,15 +155,32 @@ export default function Issues() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-gold-500">Attention Needed</p>
           <h1 className="mt-1 text-3xl font-bold text-[#f5eee0]">Issues</h1>
-          {sydekykId && (
-            <p className="mt-1 text-xs text-[#8a7f6d]">
-              Showing this Sydekyk only ·{" "}
-              <Link to="/hq/issues" className="text-gold-400 hover:text-gold-300">
-                Clear filter
-              </Link>
-            </p>
-          )}
         </div>
+
+        <Card className="mt-6 p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              className="rounded-md border border-ink-600 bg-ink-900 px-3 py-2 text-sm text-[#ede6da] outline-none focus:border-gold-500"
+              value={sydekykId ?? ""}
+              onChange={(e) => setSydekykFilter(e.target.value)}
+            >
+              <option value="">All Sydekyks</option>
+              {sydekyks.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+            <input
+              className="min-w-[200px] flex-1 rounded-md border border-ink-600 bg-ink-900 px-3 py-2 text-sm text-[#ede6da] outline-none focus:border-gold-500"
+              placeholder="Search issues & bills…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            <label className="flex shrink-0 items-center gap-2 text-xs text-[#b9ad98]">
+              <input type="checkbox" className="h-4 w-4 accent-gold-500" checked={showReviewed} onChange={(e) => setShowReviewed(e.target.checked)} />
+              Show reviewed
+            </label>
+          </div>
+        </Card>
 
         {!issues ? (
           <p className="mt-8 text-sm text-[#b9ad98]">Loading…</p>
@@ -220,11 +238,11 @@ export default function Issues() {
             </div>
 
             {/* Config issues */}
-            {issues.config_issues.length > 0 && (
+            {visibleConfig.length > 0 && (
               <section>
                 <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Configuration Issues</p>
                 <div className="mt-3 grid gap-3">
-                  {issues.config_issues.map((issue, i) => (
+                  {visibleConfig.map((issue, i) => (
                     <div
                       key={issue.id}
                       style={{ animation: `fadeIn 0.3s ease-out ${i * 40}ms both` }}
@@ -286,7 +304,7 @@ export default function Issues() {
             )}
 
             {/* Missions needing review */}
-            {issues.missions_needing_review.length > 0 && (
+            {visibleMissions.length > 0 && (
               <section>
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Missions Needing Review</p>
@@ -295,10 +313,10 @@ export default function Issues() {
                   </Link>
                 </div>
                 <div className="mt-3 divide-y divide-ink-700/60 overflow-hidden rounded-lg border border-ink-700">
-                  {issues.missions_needing_review.map((m) => {
+                  {visibleMissions.map((m) => {
                     const open = expanded.has(m.mission_id);
                     return (
-                      <div key={m.mission_id} className={m.reviewed ? "bg-ink-900/30" : ""}>
+                      <div id={`mission-${m.mission_id}`} key={m.mission_id} className={`scroll-mt-24 ${m.reviewed ? "bg-ink-900/30" : ""}`}>
                         <button
                           onClick={() => toggleExpand(m.mission_id)}
                           className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-ink-800/40"
@@ -313,7 +331,8 @@ export default function Issues() {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               <p className="truncate text-sm text-[#ede6da]">{m.document_filename ?? "document"}</p>
-                              {m.reviewed ? <Badge tone="gold">Reviewed</Badge> : <Badge tone="danger">Needs review</Badge>}
+                              <ReviewBadge reviewed={m.reviewed} needsReview />
+
                             </div>
                             <p className="mt-0.5 truncate text-xs text-[#8a7f6d]">
                               {m.sydekyk_name} · {m.reason ?? "Flagged for review"}
@@ -340,41 +359,19 @@ export default function Issues() {
                               </div>
                             )}
 
-                            <div className="mt-4 flex flex-wrap items-center gap-3">
-                              {m.odoo_bill_url && (
-                                <a
-                                  href={m.odoo_bill_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 rounded-md border border-gold-600/40 bg-gold-500/10 px-3 py-1.5 text-xs font-semibold text-gold-300 hover:bg-gold-500/20"
-                                >
-                                  Open draft in Odoo →
-                                </a>
-                              )}
-                              {m.reviewed ? (
-                                <div className="flex items-center gap-3">
-                                  <span className="text-xs text-[#8a7f6d]">
-                                    Reviewed by {m.reviewed_by_email ?? "a teammate"}
-                                    {m.reviewed_at ? ` · ${timeAgo(m.reviewed_at)}` : ""}
-                                  </span>
-                                  <Button
-                                    variant="ghost"
-                                    className="px-3 py-1.5 text-xs"
-                                    disabled={busyIds.has(m.mission_id)}
-                                    onClick={() => setReviewed(m, false)}
-                                  >
-                                    {busyIds.has(m.mission_id) ? "…" : "Undo review"}
-                                  </Button>
-                                </div>
-                              ) : (
-                                <Button
-                                  className="px-3 py-1.5 text-xs"
-                                  disabled={busyIds.has(m.mission_id)}
-                                  onClick={() => setReviewed(m, true)}
-                                >
-                                  {busyIds.has(m.mission_id) ? "…" : "Mark reviewed"}
-                                </Button>
-                              )}
+                            <div className="mt-4">
+                              <ReviewActions
+                                target={{
+                                  missionId: m.mission_id,
+                                  needsReview: true,
+                                  reviewed: m.reviewed,
+                                  reviewedByEmail: m.reviewed_by_email,
+                                  reviewedAt: m.reviewed_at,
+                                  odooBillUrl: m.odoo_bill_url,
+                                  canRetry: true,
+                                }}
+                                onChanged={load}
+                              />
                             </div>
                           </div>
                         )}

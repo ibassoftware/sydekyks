@@ -190,6 +190,12 @@ async def postmark_inbound(request: Request, authorization: str | None = Header(
                 sha256_hash=hashlib.sha256(att.content_bytes).hexdigest(),
                 source="email",
                 signal_type="email",
+                trigger_context={
+                    "source": "email",
+                    "subject": email.subject,
+                    "from_address": email.from_address,
+                    "text_body": (email.text_body or "")[:4000],
+                },
             )
             await enqueue_mission(mission.id)
             count += 1

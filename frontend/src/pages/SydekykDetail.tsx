@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import axios from "axios";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   api,
+  type IssuesCount,
   type LedgerReadiness,
   type LLMProvider,
   type ProviderCredential,
@@ -32,6 +33,7 @@ export default function SydekykDetail() {
   const [notFound, setNotFound] = useState(false);
   const [pending, setPending] = useState(false);
   const [readiness, setReadiness] = useState<LedgerReadiness | null>(null);
+  const [reviewCount, setReviewCount] = useState(0);
   const registryEntry = registryForSlug(sydekyk?.slug);
   // Settings is configured once; Upload Bills + Recent Missions are used constantly — split them
   // into tabs, defaulting to Operations. Only Sydekyks that accept uploads get a tab bar at all.
@@ -43,6 +45,10 @@ export default function SydekykDetail() {
       .get<Sydekyk>(`/tenant/sydekyks/${sydekykId}`)
       .then((res) => setSydekyk(res.data))
       .catch(() => setNotFound(true));
+    api
+      .get<IssuesCount>("/tenant/issues/count", { params: { sydekyk_id: sydekykId } })
+      .then((res) => setReviewCount(res.data.missions_needing_review))
+      .catch(() => setReviewCount(0));
   }, [sydekykId]);
 
   async function toggleInstall() {
@@ -121,6 +127,23 @@ export default function SydekykDetail() {
                 </div>
               </div>
             </Card>
+
+            {active && reviewCount > 0 && (
+              <Link
+                to={`/hq/issues?sydekyk_id=${sydekyk.id}`}
+                className="flex items-center justify-between gap-3 rounded-xl border border-amber-600/40 bg-amber-500/10 px-5 py-3 transition-colors hover:bg-amber-500/15"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-400">
+                    ⚠
+                  </span>
+                  <p className="text-sm font-semibold text-[#f5eee0]">
+                    {reviewCount} {reviewCount === 1 ? "bill needs" : "bills need"} review
+                  </p>
+                </div>
+                <span className="text-xs font-semibold text-amber-400">Review now →</span>
+              </Link>
+            )}
 
             {active && sydekyk.accepts_document_uploads ? (
               <>

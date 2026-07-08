@@ -14,6 +14,7 @@ import Missions from "./pages/Missions";
 import Issues from "./pages/Issues";
 import Settings from "./pages/Settings";
 import Team from "./pages/Team";
+import TeamMemberAccess from "./pages/TeamMemberAccess";
 
 export default function App() {
   return (
@@ -92,6 +93,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={["commander"]}>
                 <Team />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hq/team/:userId"
+            element={
+              <ProtectedRoute roles={["commander"]}>
+                <TeamMemberAccess />
               </ProtectedRoute>
             }
           />

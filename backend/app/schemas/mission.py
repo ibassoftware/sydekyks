@@ -27,6 +27,7 @@ class MissionOut(BaseModel):
     playbook_key: str
     signal_type: str
     source: str | None = None  # web_upload | email (from the document)
+    initiated_by_email: str | None = None  # who uploaded it; null for email-ingested missions
     status: str
     failure_category: str | None = None
     result_summary: dict | None

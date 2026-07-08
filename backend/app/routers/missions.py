@@ -30,7 +30,8 @@ def _filename(db: Session, mission_id: uuid.UUID) -> str | None:
 
 
 def _mission_out(
-    m: Mission, *, filename: str | None, source: str | None, sydekyk_name: str | None, last_step_key: str | None = None
+    m: Mission, *, filename: str | None, source: str | None, sydekyk_name: str | None,
+    last_step_key: str | None = None, initiated_by_email: str | None = None,
 ) -> MissionOut:
     """Tenant-facing serialization — error_message is sanitized (raw text stays in the DB and is
     what Command Center's admin endpoints return; see app/services/error_display.py)."""
@@ -41,6 +42,7 @@ def _mission_out(
         playbook_key=m.playbook_key,
         signal_type=m.signal_type,
         source=source,
+        initiated_by_email=initiated_by_email,
         status=m.status,
         failure_category=m.failure_category,
         result_summary=m.result_summary,
@@ -82,6 +84,7 @@ def list_all_missions(
     filename: str | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
+    needs_review: bool | None = None,
     limit: int = 25,
     offset: int = 0,
     user: User = Depends(require_tenant_member),
@@ -90,14 +93,15 @@ def list_all_missions(
     """Tenant-wide Mission operations feed with filters + pagination (VS-3)."""
     limit = max(1, min(limit, 100))
     base = (
-        db.query(Mission, MissionDocument.filename, MissionDocument.source, Sydekyk.name)
+        db.query(Mission, MissionDocument.filename, MissionDocument.source, Sydekyk.name, User.email)
         .outerjoin(MissionDocument, MissionDocument.mission_id == Mission.id)
         .outerjoin(Sydekyk, Sydekyk.id == Mission.sydekyk_id)
+        .outerjoin(User, User.id == Mission.user_id)
         .filter(Mission.tenant_id == user.tenant_id)
     )
     base = apply_mission_filters(
         base, sydekyk_id=sydekyk_id, status=status_, signal_type=signal_type,
-        source=source, filename=filename, date_from=date_from, date_to=date_to,
+        source=source, filename=filename, date_from=date_from, date_to=date_to, needs_review=needs_review,
     )
 
     count_q = (
@@ -107,12 +111,15 @@ def list_all_missions(
     )
     count_q = apply_mission_filters(
         count_q, sydekyk_id=sydekyk_id, status=status_, signal_type=signal_type,
-        source=source, filename=filename, date_from=date_from, date_to=date_to,
+        source=source, filename=filename, date_from=date_from, date_to=date_to, needs_review=needs_review,
     )
     total = count_q.scalar() or 0
 
     rows = base.order_by(Mission.created_at.desc()).limit(limit).offset(offset).all()
-    items = [_mission_out(m, filename=fn, source=src, sydekyk_name=name) for m, fn, src, name in rows]
+    items = [
+        _mission_out(m, filename=fn, source=src, sydekyk_name=name, initiated_by_email=email)
+        for m, fn, src, name, email in rows
+    ]
     return MissionPage(items=items, total=total, limit=limit, offset=offset)
 
 

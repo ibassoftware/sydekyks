@@ -31,6 +31,9 @@ class Mission(Base):
     # Populated only on failure; drives the queue's retry policy (VS-7) instead of error-string matching.
     failure_category: Mapped[str | None] = mapped_column(String(20), nullable=True)  # setup|validation|transient|external|unknown
     result_summary: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # Generic per-trigger context set at creation (e.g. email subject/body/from for email ingest,
+    # or a cron poller's target Odoo record id + mode). Read by the playbook; Sydekyk-agnostic.
+    trigger_context: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Retry lineage (VS-4): a retry is a NEW Mission linked to its predecessor + the chain head.
     parent_mission_id: Mapped[uuid.UUID | None] = mapped_column(
