@@ -14,12 +14,16 @@ never fight. The chain length is capped by `attempt_number`.
 
 import asyncio
 import uuid
+from datetime import datetime, timezone
 
+from arq import cron
 from arq.connections import RedisSettings
 
 from app.core.config import settings
 from app.db.session import SessionLocal
 from app.models.mission import Mission
+from app.models.sydekyk import Sydekyk, SydekykInstall
+from app.services import recruitment_poll, usage_snapshot
 from app.services.missions import retry_mission, run_mission
 from app.services.queue import enqueue_mission
 
@@ -54,8 +58,66 @@ async def run_mission_task(ctx: dict, mission_id: str) -> str:
         db.close()
 
 
+async def _poll_recruitment(db, *, slug: str, settings_model) -> int:
+    """Shared cron body for Decode/Scout: for each tenant with the Sydekyk installed + cron enabled,
+    enqueue Missions for unprocessed applicants (≤30). Bumps each tenant's poll watermark."""
+    sydekyk = db.query(Sydekyk).filter(Sydekyk.slug == slug).first()
+    if sydekyk is None:
+        return 0
+    total = 0
+    for st in db.query(settings_model).filter(settings_model.cron_enabled.is_(True)).all():
+        installed = (
+            db.query(SydekykInstall)
+            .filter(SydekykInstall.tenant_id == st.tenant_id, SydekykInstall.sydekyk_id == sydekyk.id)
+            .first()
+        )
+        if installed is None:
+            continue
+        since = st.cron_last_polled_at.strftime("%Y-%m-%d %H:%M:%S") if st.cron_last_polled_at else None
+        total += await recruitment_poll.enqueue_untagged_applicants(
+            db, tenant_id=st.tenant_id, sydekyk_id=sydekyk.id, tag_name=st.processed_tag_name,
+            limit=st.cron_poll_limit, since=since,
+        )
+        st.cron_last_polled_at = datetime.now(timezone.utc)
+        db.commit()
+    return total
+
+
+async def poll_decode(ctx: dict) -> int:
+    from app.sydekyks.decode.models import DecodeTenantSettings
+
+    db = SessionLocal()
+    try:
+        return await _poll_recruitment(db, slug="decode", settings_model=DecodeTenantSettings)
+    finally:
+        db.close()
+
+
+async def poll_scout(ctx: dict) -> int:
+    from app.sydekyks.scout.models import ScoutTenantSettings
+
+    db = SessionLocal()
+    try:
+        return await _poll_recruitment(db, slug="scout", settings_model=ScoutTenantSettings)
+    finally:
+        db.close()
+
+
+async def snapshot_daily_usage(ctx: dict) -> int:
+    db = SessionLocal()
+    try:
+        return usage_snapshot.snapshot_yesterday(db)
+    finally:
+        db.close()
+
+
 class WorkerSettings:
     functions = [run_mission_task]
+    cron_jobs = [
+        cron(poll_decode, minute={0, 15, 30, 45}),
+        cron(poll_scout, minute={0, 15, 30, 45}),
+        cron(snapshot_daily_usage, hour={0}, minute={5}),
+    ]
     redis_settings = RedisSettings.from_dsn(settings.redis_url)
     # We own retry via new linked Missions; arq must not also retry the same job.
     max_tries = 1

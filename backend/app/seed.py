@@ -27,37 +27,71 @@ def seed_admin(db):
     print(f"Created super_admin user: {settings.admin_email}")
 
 
-def seed_roster_sydekyks(db):
-    existing = db.query(Sydekyk).filter(Sydekyk.slug == "ledger").first()
-    if existing:
-        print("Roster Sydekyk already exists: ledger")
-        return
-
-    ledger = Sydekyk(
-        tenant_id=None,
-        name="Ledger",
-        slug="ledger",
-        tagline="Your finance sidekick, always balancing the books.",
+# Base catalog rows for every shared roster Sydekyk. Each package's own seed() then adds its
+# capability flags + gadget requirements (see app/sydekyks/<slug>/seed.py).
+_ROSTER_SYDEKYKS = [
+    dict(
+        name="Ledger", slug="ledger",
+        tagline="Your accounts-payable sidekick — turns vendor bills into Odoo entries.",
         description=(
-            "Ledger keeps a hero eye on invoices, expenses, and cash flow. "
-            "Ask for a spend summary, reconcile transactions, or hand off recurring "
-            "bookkeeping to a Playbook and let Ledger run it on a schedule."
+            "Ledger turns the vendor bills you upload or email in into Odoo vendor bills — "
+            "automatically. It reads each bill with AI, pulls out the vendor, dates, line items, "
+            "tax and totals, and matches them to your real Odoo setup (currency, tax, and expense "
+            "account). It creates the bill in Odoo with the original document attached, posts it "
+            "when it's confident, and flags anything that needs a human — a suspected duplicate, a "
+            "missing tax rate, or an unfamiliar vendor."
         ),
         avatar_url="/sydekyks/ledger.png",
         system_prompt=(
             "You are Ledger, a meticulous financial assistant. Help the user track "
             "expenses, summarize spending, and keep their books accurate and current."
         ),
-        model="gpt-4o-mini",
-        temperature=0.3,
-        is_exclusive=False,
-        is_published=True,
-        chat_enabled=True,
-        workflow_enabled=True,
-    )
-    db.add(ledger)
-    db.commit()
-    print("Created Roster Sydekyk: Ledger")
+        model="gpt-4o-mini", temperature=0.3, chat_enabled=True, workflow_enabled=True,
+    ),
+    dict(
+        name="Decode", slug="decode",
+        tagline="Your recruitment sidekick — turns résumés into Odoo applicants.",
+        description=(
+            "Decode reads every résumé you upload, email in, or already have in Odoo, extracts the "
+            "candidate's details with AI, and fills out their Odoo applicant record — contact info, "
+            "the position they applied for (or the talent pool), skills, and a summary note. It "
+            "reads the résumé's text when it can and the page images when it can't, and flags "
+            "anything a recruiter should double-check."
+        ),
+        avatar_url="/sydekyks/decode.png",
+        system_prompt=(
+            "You are Decode, a meticulous recruitment assistant. Parse résumés accurately and map "
+            "candidates onto the right Odoo records and skills."
+        ),
+        model="gpt-4o-mini", temperature=0.2, chat_enabled=False, workflow_enabled=True,
+    ),
+    dict(
+        name="Scout", slug="scout",
+        tagline="Your recruitment sidekick — scores candidates against the role.",
+        description=(
+            "Scout reviews the applicants in your Odoo, reads each résumé, and scores how well the "
+            "candidate fits the job they applied for — with an honest breakdown of strengths, "
+            "weaknesses, and highlights. It sets the applicant's evaluation stars, posts a scoring "
+            "note, and tags who it has reviewed. Run it on a schedule or on demand."
+        ),
+        avatar_url="/sydekyks/scout.png",
+        system_prompt=(
+            "You are Scout, an expert technical recruiter. Score candidates fairly and specifically "
+            "against the role, and explain your reasoning."
+        ),
+        model="gpt-4o-mini", temperature=0.2, chat_enabled=False, workflow_enabled=True,
+    ),
+]
+
+
+def seed_roster_sydekyks(db):
+    for spec in _ROSTER_SYDEKYKS:
+        if db.query(Sydekyk).filter(Sydekyk.slug == spec["slug"]).first():
+            print(f"Roster Sydekyk already exists: {spec['slug']}")
+            continue
+        db.add(Sydekyk(tenant_id=None, is_exclusive=False, is_published=True, **spec))
+        db.commit()
+        print(f"Created Roster Sydekyk: {spec['name']}")
 
 
 def seed_gadgets(db):

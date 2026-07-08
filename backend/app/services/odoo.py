@@ -1,3 +1,4 @@
+import base64
 import xmlrpc.client
 from urllib.parse import urlsplit
 
@@ -149,3 +150,66 @@ def find_currency_id(client: OdooClient, iso_code: str) -> int | None:
         return None
     active = [r for r in rows if r.get("active")]
     return (active or rows)[0]["id"]
+
+
+# --- Generic attachments / chatter / introspection (model-agnostic) -----------------------------
+
+
+def fields_get(client: OdooClient, model: str, attributes: list[str] | None = None) -> dict:
+    """Full field metadata for a model — lets a Sydekyk (or an AI) discover the real fields of a
+    model at runtime instead of hardcoding them, so it survives Odoo version differences."""
+    attrs = attributes or ["string", "type", "relation", "required", "readonly", "selection"]
+    return client.execute_kw(model, "fields_get", [], {"attributes": attrs})
+
+
+def attach_document(
+    client: OdooClient, *, res_model: str, res_id: int, filename: str, content_bytes: bytes, mimetype: str
+) -> tuple[bool, str]:
+    """Attach a file to any record as an ir.attachment (base64 `datas`). Best-effort; returns
+    (ok, message). Shared by every Sydekyk that needs to attach the original document."""
+    try:
+        client.create(
+            "ir.attachment",
+            {
+                "name": filename,
+                "datas": base64.b64encode(content_bytes).decode("ascii"),
+                "res_model": res_model,
+                "res_id": res_id,
+                "mimetype": mimetype,
+            },
+        )
+    except OdooError as exc:
+        return False, str(exc)
+    return True, "attached"
+
+
+def read_attachments(
+    client: OdooClient, *, res_model: str, res_id: int, mimetypes: list[str] | None = None, with_data: bool = False
+) -> list[dict]:
+    """List a record's attachments ({id, name, mimetype} + base64 `datas` when `with_data`),
+    optionally filtered by mimetype. Used to pull a résumé PDF off an existing hr.applicant."""
+    fields = ["id", "name", "mimetype"] + (["datas"] if with_data else [])
+    rows = client.search_read("ir.attachment", [["res_model", "=", res_model], ["res_id", "=", res_id]], fields)
+    if mimetypes:
+        rows = [r for r in rows if r.get("mimetype") in mimetypes]
+    return rows
+
+
+def attachment_bytes(row: dict) -> bytes | None:
+    """Decode an attachment row's base64 `datas` (from `read_attachments(..., with_data=True)`)."""
+    data = row.get("datas")
+    if not data:
+        return None
+    try:
+        return base64.b64decode(data)
+    except (ValueError, TypeError):
+        return None
+
+
+def post_message(client: OdooClient, *, model: str, res_id: int, body: str) -> tuple[bool, str]:
+    """Post a chatter Note (message_post) on any record. Best-effort; returns (ok, message)."""
+    try:
+        client.execute_kw(model, "message_post", [[res_id]], {"body": body})
+    except OdooError as exc:
+        return False, str(exc)
+    return True, "posted"

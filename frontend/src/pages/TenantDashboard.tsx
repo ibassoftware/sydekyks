@@ -5,6 +5,8 @@ import { RecentMissionsStrip } from "../lib/activity";
 import { Button, Card } from "../components/ui";
 import { HQShell } from "../components/HQShell";
 import { LedgerTrendChart } from "../sydekyks/ledger/LedgerTrendChart";
+import { DecodeInsightsSection } from "../sydekyks/decode/DecodeInsightsSection";
+import { ScoutInsightsSection } from "../sydekyks/scout/ScoutInsightsSection";
 
 function compactNumber(n: number): string {
   return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
@@ -104,6 +106,9 @@ export default function TenantDashboard() {
             </div>
 
             {insights && (insights.activated ? <LedgerInsightsSection insights={insights} /> : <LedgerNotActivatedCard />)}
+
+            <DecodeInsightsSection />
+            <ScoutInsightsSection />
 
             <Card className="mt-6 p-6">
               <RecentMissionsStrip />

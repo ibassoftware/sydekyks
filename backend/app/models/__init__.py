@@ -13,7 +13,7 @@ from app.models.mission import Mission, MissionDocument, MissionStep
 from app.models.sydekyk import Sydekyk, SydekykInstall
 from app.models.tenant import Tenant
 from app.models.tenant_issue import TenantIssue
-from app.models.usage_record import UsageRecord
+from app.models.usage_record import UsageDaily, UsageRecord
 from app.models.user import User
 from app.models.user_permission import UserSydekykPermission
 
@@ -36,6 +36,7 @@ __all__ = [
     "MissionStep",
     "MissionDocument",
     "UsageRecord",
+    "UsageDaily",
     "TenantIssue",
     "PlatformMeteringConfig",
     "ModelRateProfile",

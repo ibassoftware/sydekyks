@@ -1,22 +1,23 @@
 """Unit tests for bill-extraction JSON parsing/coercion (no network, no DB)."""
 
+from app.services.vision_ai import parse_json
 from app.sydekyks.ledger import extraction
 
 
 def test_parse_json_plain():
-    assert extraction._parse_json('{"a": 1}') == {"a": 1}
+    assert parse_json('{"a": 1}') == {"a": 1}
 
 
 def test_parse_json_strips_markdown_fences():
-    assert extraction._parse_json('```json\n{"a": 1}\n```') == {"a": 1}
+    assert parse_json('```json\n{"a": 1}\n```') == {"a": 1}
 
 
 def test_parse_json_extracts_outermost_block():
-    assert extraction._parse_json('here you go: {"a": 1} thanks') == {"a": 1}
+    assert parse_json('here you go: {"a": 1} thanks') == {"a": 1}
 
 
 def test_parse_json_returns_none_on_garbage():
-    assert extraction._parse_json("not json at all") is None
+    assert parse_json("not json at all") is None
 
 
 def test_coerce_fills_defaults_for_missing_fields():
@@ -106,7 +107,7 @@ def _fake_bill_for_match():
 
 def test_match_bill_to_odoo_accepts_ids_actually_offered(monkeypatch):
     monkeypatch.setattr(
-        extraction, "_llm_completion",
+        extraction, "llm_completion",
         lambda *a, **k: (True, "ok", {"currency_id": 1, "tax_id": 5, "account_id": 10, "reasoning": "matches"},
                          {"usage": None, "request_id": "r1", "model": "m", "cost_usd": 0.0}),
     )
@@ -127,7 +128,7 @@ def test_match_bill_to_odoo_never_trusts_a_hallucinated_id(monkeypatch):
     """If the model returns an id that was never in the list we offered it, treat it as no match
     — never silently apply a currency/tax/account we didn't actually present as an option."""
     monkeypatch.setattr(
-        extraction, "_llm_completion",
+        extraction, "llm_completion",
         lambda *a, **k: (True, "ok", {"currency_id": 999, "tax_id": 999, "account_id": 999, "reasoning": "hallucinated"},
                          {"usage": None, "request_id": "r1", "model": "m", "cost_usd": 0.0}),
     )
@@ -145,7 +146,7 @@ def test_match_bill_to_odoo_never_trusts_a_hallucinated_id(monkeypatch):
 
 def test_match_bill_to_odoo_passes_through_null_fields(monkeypatch):
     monkeypatch.setattr(
-        extraction, "_llm_completion",
+        extraction, "llm_completion",
         lambda *a, **k: (True, "ok", {"currency_id": None, "tax_id": None, "account_id": None, "reasoning": "unsure"},
                          {"usage": None, "request_id": "r1", "model": "m", "cost_usd": 0.0}),
     )
