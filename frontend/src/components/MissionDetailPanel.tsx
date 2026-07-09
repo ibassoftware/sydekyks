@@ -30,6 +30,17 @@ export function MissionDetailPanel({ detail, onChanged }: { detail: MissionDetai
         </a>
       )}
 
+      {detail.odoo_record_url && (
+        <a
+          href={detail.odoo_record_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex w-fit items-center gap-1 text-xs font-semibold text-gold-400 hover:text-gold-300"
+        >
+          {detail.odoo_record_label ?? "Open in Odoo"} →
+        </a>
+      )}
+
       {detail.error_message && <p className="text-sm text-red-400">{detail.error_message}</p>}
 
       {showReview && (

@@ -309,6 +309,8 @@ export interface Mission {
   last_step_key: string | null;
   reviewed?: boolean;
   odoo_bill_url?: string | null;  // only populated on the mission-detail endpoint
+  odoo_record_url?: string | null;  // generic Odoo deep link (e.g. the applicant) — detail endpoint only
+  odoo_record_label?: string | null;
   parent_mission_id: string | null;
   root_mission_id: string | null;
   attempt_number: number;

@@ -216,6 +216,9 @@ def get_mission(mission_id: uuid.UUID, user: User = Depends(require_tenant_membe
         base.odoo_bill_url = gadget_links.build_odoo_bill_url(
             db, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id, move_id=move_id
         )
+    base.odoo_record_url, base.odoo_record_label = gadget_links.build_mission_record_link(
+        db, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id, summary=mission.result_summary
+    )
     steps = [MissionStepOut.model_validate(s, from_attributes=True) for s in mission.steps]
     # Sanitize step-level errors too — this is exactly where a raw provider payload would otherwise
     # surface in the tenant-facing step trail.

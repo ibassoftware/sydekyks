@@ -36,6 +36,10 @@ class MissionOut(BaseModel):
     last_step_key: str | None = None  # latest recorded step — for the live activity toast
     reviewed: bool = False  # human sign-off on a needs_review Mission
     odoo_bill_url: str | None = None  # only populated on the mission-detail endpoint, not list rows
+    # Generic Odoo deep link to whatever record this Mission touched (bill, applicant, …) + its
+    # button label. Also only populated on the mission-detail endpoint.
+    odoo_record_url: str | None = None
+    odoo_record_label: str | None = None
     parent_mission_id: uuid.UUID | None = None
     root_mission_id: uuid.UUID | None = None
     attempt_number: int = 1

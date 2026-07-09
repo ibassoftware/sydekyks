@@ -122,6 +122,25 @@ def test_resolve_odoo_bill_url_builds_link_when_bill_exists(db, seeded):
     assert url == "http://odoo/web#id=42&model=account.move&view_type=form"
 
 
+def test_build_mission_record_link_for_applicant(db, seeded):
+    """Decode/Scout summaries carry an applicant_id → a deep link to the hr.applicant form, with a
+    label. A bill-only summary yields no generic record link (bills keep their own odoo_bill_url)."""
+    from app.services import gadget_links
+
+    url, label = gadget_links.build_mission_record_link(
+        db, tenant_id=seeded["tenant"].id, sydekyk_id=seeded["ledger"].id,
+        summary={"applicant_id": 7, "applicant_name": "Jane"},
+    )
+    assert url == "http://odoo/web#id=7&model=hr.applicant&view_type=form"
+    assert label == "Open applicant in Odoo"
+
+    none_url, none_label = gadget_links.build_mission_record_link(
+        db, tenant_id=seeded["tenant"].id, sydekyk_id=seeded["ledger"].id,
+        summary={"odoo_move_id": 42},
+    )
+    assert none_url is None and none_label is None
+
+
 def test_report_issue_updates_mission_id_on_recurrence(db, seeded):
     """The link should always point at the LATEST bill, not the first one that hit the gap."""
     mission1 = _make_mission(db, seeded, result_summary={"odoo_move_id": 1})

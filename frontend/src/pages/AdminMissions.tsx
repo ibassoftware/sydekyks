@@ -189,6 +189,17 @@ function AdminMissionDetail({ detail }: { detail: MissionDetail }) {
         </a>
       )}
 
+      {detail.odoo_record_url && (
+        <a
+          href={detail.odoo_record_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex w-fit items-center gap-1 text-xs font-semibold text-gold-400 hover:text-gold-300"
+        >
+          {detail.odoo_record_label ?? "Open in Odoo"} →
+        </a>
+      )}
+
       {detail.error_message && (
         <div>
           <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-red-400/80">Raw error</p>
