@@ -3,8 +3,6 @@ from pydantic import BaseModel, Field
 
 class ScoutSettingsOut(BaseModel):
     processed_tag_name: str
-    min_score_threshold: int
-    scoring_rubric: str | None = None
     estimated_hourly_wage: float
     estimated_minutes_per_candidate: float
     cron_enabled: bool
@@ -13,8 +11,6 @@ class ScoutSettingsOut(BaseModel):
 
 class ScoutSettingsUpdate(BaseModel):
     processed_tag_name: str = Field(min_length=1, max_length=120)
-    min_score_threshold: int = Field(ge=0, le=100)
-    scoring_rubric: str | None = None
     estimated_hourly_wage: float = Field(default=25.0, ge=0)
     estimated_minutes_per_candidate: float = Field(default=15.0, ge=0)
     cron_enabled: bool
@@ -68,7 +64,6 @@ class ScoutInsightsOut(BaseModel):
     activated: bool
     total_scored: int
     average_score: float
-    needs_review_count: int
     distribution: list[ScoreBand]
     top_candidates: list[TopCandidate]
     daily_trend: list[ScoutDailyPoint]

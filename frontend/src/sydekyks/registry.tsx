@@ -10,6 +10,7 @@ import { DecodeUploadContext } from "./decode/DecodeUploadContext";
 import { ScoutSettingsSection } from "./scout/ScoutSettingsSection";
 import { ScoutPlaybookPanel } from "./scout/ScoutPlaybookPanel";
 import { ScoutMissionSummary } from "./scout/ScoutMissionSummary";
+import { ScoutOperationsSection } from "./scout/ScoutOperationsSection";
 
 /** VS-9: a deliberately plain per-Sydekyk UI registry — mirrors the backend's per-Sydekyk package
  * structure. No dynamic imports, no plugin framework; it just lets a Sydekyk provide optional UI so
@@ -18,6 +19,13 @@ export interface SydekykSetupProps {
   sydekyk: Sydekyk;
   canManage: boolean;
   onReadiness?: (r: LedgerReadiness) => void;
+}
+
+/** An operations area for a Sydekyk that has no upload dropzone but still runs work on demand
+ * (Scout's batch "Run now" + Recent Missions). Rendered prominently, above configuration. */
+export interface OperationsProps {
+  sydekyk: Sydekyk;
+  canManage: boolean;
 }
 
 /** A control shown above a Sydekyk's upload dropzone that contributes per-upload context (stored on
@@ -54,6 +62,10 @@ export interface SydekykRegistryEntry {
   domain?: "hr";
   /** The business-meaningful row headline (falls back to the filename when absent). */
   missionRowLabel?: (m: RowLabelInput) => MissionRowLabel;
+  /** A prominent operations area for non-upload Sydekyks (Scout's "Run now" + Recent Missions). */
+  operationsPanel?: ComponentType<OperationsProps>;
+  /** What a needs-review item is called for this Sydekyk (Ledger: bill, Decode: applicant). */
+  reviewNoun?: { one: string; many: string };
 }
 
 const SEP = "  ·  ";
@@ -101,6 +113,7 @@ const BY_SLUG: Record<string, SydekykRegistryEntry> = {
     playbookPanel: LedgerPlaybookPanel,
     missionSummary: LedgerMissionSummary,
     missionRowLabel: ledgerRowLabel,
+    reviewNoun: { one: "bill", many: "bills" },
   },
   decode: {
     setupSection: DecodeSettingsSection,
@@ -109,11 +122,13 @@ const BY_SLUG: Record<string, SydekykRegistryEntry> = {
     uploadContext: DecodeUploadContext,
     domain: "hr",
     missionRowLabel: decodeRowLabel,
+    reviewNoun: { one: "applicant", many: "applicants" },
   },
   scout: {
     setupSection: ScoutSettingsSection,
     playbookPanel: ScoutPlaybookPanel,
     missionSummary: ScoutMissionSummary,
+    operationsPanel: ScoutOperationsSection,
     domain: "hr",
     missionRowLabel: scoutRowLabel,
   },

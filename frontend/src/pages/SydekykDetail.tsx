@@ -138,7 +138,11 @@ export default function SydekykDetail() {
                     ⚠
                   </span>
                   <p className="text-sm font-semibold text-[#f5eee0]">
-                    {reviewCount} {reviewCount === 1 ? "bill needs" : "bills need"} review
+                    {reviewCount}{" "}
+                    {reviewCount === 1
+                      ? `${registryEntry?.reviewNoun?.one ?? "item"} needs`
+                      : `${registryEntry?.reviewNoun?.many ?? "items"} need`}{" "}
+                    review
                   </p>
                 </div>
                 <span className="text-xs font-semibold text-amber-400">Review now →</span>
@@ -189,6 +193,11 @@ export default function SydekykDetail() {
               </>
             ) : active ? (
               <>
+                {registryEntry?.operationsPanel && (
+                  <Card className="p-6">
+                    <registryEntry.operationsPanel sydekyk={sydekyk} canManage={canManage} />
+                  </Card>
+                )}
                 <Card className="p-6">
                   <AIEngineSection sydekyk={sydekyk} canManage={canManage} />
                 </Card>

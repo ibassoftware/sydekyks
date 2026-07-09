@@ -207,9 +207,20 @@ def attachment_bytes(row: dict) -> bytes | None:
 
 
 def post_message(client: OdooClient, *, model: str, res_id: int, body: str) -> tuple[bool, str]:
-    """Post a chatter Note (message_post) on any record. Best-effort; returns (ok, message)."""
+    """Post a chatter Note (message_post) on any record. Best-effort; returns (ok, message).
+
+    Odoo escapes an HTML body passed to message_post over XML-RPC — it runs plaintext2html on the
+    non-Markup string, so `<p>` renders as literal text. We post the note, then rewrite the message's
+    html `body` field (an html field preserves tags on write). Best-effort: if the rewrite fails the
+    (escaped) note is already posted, so no information is lost."""
     try:
-        client.execute_kw(model, "message_post", [[res_id]], {"body": body})
+        mid = client.execute_kw(model, "message_post", [[res_id]], {"body": body})
     except OdooError as exc:
         return False, str(exc)
+    try:
+        msg_id = mid[0] if isinstance(mid, (list, tuple)) else mid
+        if msg_id:
+            client.execute_kw("mail.message", "write", [[msg_id], {"body": body}])
+    except OdooError:
+        pass
     return True, "posted"

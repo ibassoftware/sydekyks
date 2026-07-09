@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { api, type LedgerReadiness, type RunNowResult, type ScoutReadiness, type ScoutSettings } from "../../lib/api";
-import { Button, Input, Label } from "../../components/ui";
+import { api, type LedgerReadiness, type ScoutReadiness, type ScoutSettings } from "../../lib/api";
+import { Input, Label } from "../../components/ui";
 import { GadgetRequirementList } from "../../components/GadgetRequirementList";
 import { ReadinessList } from "../ReadinessList";
 import type { SydekykSetupProps } from "../registry";
@@ -9,8 +9,6 @@ export function ScoutSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
   const [readiness, setReadiness] = useState<ScoutReadiness | null>(null);
   const [settings, setSettings] = useState<ScoutSettings | null>(null);
   const [saving, setSaving] = useState(false);
-  const [running, setRunning] = useState(false);
-  const [runMsg, setRunMsg] = useState<string | null>(null);
 
   useEffect(() => {
     api.get<ScoutReadiness>("/tenant/scout/readiness").then((r) => {
@@ -30,19 +28,6 @@ export function ScoutSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
     }
   }
 
-  async function runNow() {
-    setRunning(true);
-    setRunMsg(null);
-    try {
-      const r = await api.post<RunNowResult>("/tenant/scout/run-now");
-      setRunMsg(r.data.queued === 0 ? "No un-scored applicants found." : `Queued ${r.data.queued} applicant(s) for scoring.`);
-    } catch {
-      setRunMsg("Couldn't start a run. Check the Odoo connection.");
-    } finally {
-      setRunning(false);
-    }
-  }
-
   return (
     <div className="grid gap-6">
       <div>
@@ -57,20 +42,13 @@ export function ScoutSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
         </div>
       </div>
 
-      <div className="grid gap-2 border-t border-ink-700 pt-6">
-        <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Score Now</p>
-        <p className="text-sm text-[#8a7f6d]">Score every applicant that hasn't been scored yet (up to your per-run cap).</p>
-        {canManage && (
-          <Button className="w-fit px-4 py-2 text-xs" disabled={running || !readiness?.can_upload} onClick={runNow}>
-            {running ? "Starting…" : "Run Scout now"}
-          </Button>
-        )}
-        {runMsg && <p className="text-xs text-gold-400">{runMsg}</p>}
-      </div>
-
       {settings && (
         <div className="grid gap-3 border-t border-ink-700 pt-6">
           <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Scoring Settings</p>
+          <p className="-mt-1 text-xs text-[#8a7f6d]">
+            Scout scores each candidate against their job position in Odoo — its description, requirements, expected degree,
+            and expected skills. Tune the criteria by editing the job position in Odoo.
+          </p>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Processed tag</Label>
@@ -81,30 +59,6 @@ export function ScoutSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
                 onBlur={(e) => save({ ...settings, processed_tag_name: e.target.value })}
               />
             </div>
-            <div>
-              <Label>Needs-review below score</Label>
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                disabled={!canManage || saving}
-                value={settings.min_score_threshold}
-                onChange={(e) => setSettings({ ...settings, min_score_threshold: Number(e.target.value) })}
-                onBlur={(e) => save({ ...settings, min_score_threshold: Number(e.target.value) })}
-              />
-            </div>
-          </div>
-          <div>
-            <Label>Scoring rubric (optional)</Label>
-            <textarea
-              className="w-full rounded-md border border-ink-600 bg-ink-900 px-3 py-2 text-sm text-[#ede6da] outline-none focus:border-gold-500"
-              rows={3}
-              disabled={!canManage || saving}
-              placeholder="Extra criteria for the scorer, e.g. 'prioritize React + TypeScript; must be onsite'"
-              value={settings.scoring_rubric ?? ""}
-              onChange={(e) => setSettings({ ...settings, scoring_rubric: e.target.value })}
-              onBlur={(e) => save({ ...settings, scoring_rubric: e.target.value || null })}
-            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <label className="flex items-center gap-2 text-sm text-[#ede6da]">

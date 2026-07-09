@@ -31,7 +31,6 @@ def compute_insights(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -
     avg = db.query(func.coalesce(func.avg(ScoutApplicant.score), 0.0)).filter(
         ScoutApplicant.tenant_id == tenant_id, ScoutApplicant.sydekyk_id == sydekyk_id
     ).scalar() or 0.0
-    needs_review = base.filter(ScoutApplicant.needs_review.is_(True)).count()
 
     distribution = [
         {"band": label, "count": base.filter(ScoutApplicant.score >= lo, ScoutApplicant.score < hi).count()}
@@ -68,7 +67,6 @@ def compute_insights(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -
     return {
         "total_scored": total,
         "average_score": round(float(avg), 1),
-        "needs_review_count": needs_review,
         "distribution": distribution,
         "top_candidates": top_candidates,
         "daily_trend": daily_trend,

@@ -6,7 +6,6 @@ the applicant's job with an open-ended analysis, writes the priority stars + a N
 record processed. Independent of Decode.
 """
 
-import re
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
@@ -57,10 +56,6 @@ def _get_settings(db, tenant_id) -> ScoutTenantSettings:
         db.commit()
         db.refresh(s)
     return s
-
-
-def _strip_html(html: str) -> str:
-    return re.sub(r"<[^>]+>", " ", html or "").strip()
 
 
 def _build_note(result, job_name) -> str:
@@ -125,20 +120,22 @@ def run(db: Session, mission: Mission) -> None:
     idx += 1
 
     try:
-        # --- Step 2: load applicant + job ------------------------------------------------------
+        # --- Step 2: load applicant + the job's FULL requirement profile ------------------------
         applicant = odoo_hr.read_applicant(client, int(applicant_id), ["partner_name", "job_id"])
         applicant_name = (applicant or {}).get("partner_name") or "Candidate"
         job_field = (applicant or {}).get("job_id")
         job_id = job_field[0] if isinstance(job_field, list) and job_field else None
         job_name = job_field[1] if isinstance(job_field, list) and len(job_field) > 1 else None
-        job_description = ""
+        job_profile = None
         if job_id:
-            job = odoo_hr.read_job(client, job_id)
-            if job:
-                job_name = job.get("name") or job_name
-                job_description = _strip_html(job.get("description") or "")
+            # Everything HR specified on the position — description, requirements, expected degree,
+            # expected skills — becomes the scoring rubric (grounded in Odoo, not a manual field).
+            job_profile = odoo_hr.read_job_profile(client, job_id)
+            job_name = job_profile.get("name") or job_name
         record_step(db, mission, idx, "resolve_job", "gadget_call", "succeeded",
-                    output={"applicant_id": applicant_id, "job_name": job_name})
+                    output={"applicant_id": applicant_id, "job_name": job_name,
+                            "skills_expected": len((job_profile or {}).get("expected_skills") or []),
+                            "degree_expected": (job_profile or {}).get("expected_degree")})
         idx += 1
 
         # --- Step 3: score ---------------------------------------------------------------------
@@ -148,8 +145,7 @@ def run(db: Session, mission: Mission) -> None:
             _finish(db, mission, "failed", {"applicant_name": applicant_name}, in_err, failure_category="validation")
             return
         ok, msg, result, meta = extraction.score_applicant(
-            virtual_key, model_alias, llm_mode, llm_value,
-            job_title=job_name, job_description=job_description, rubric=settings.scoring_rubric)
+            virtual_key, model_alias, llm_mode, llm_value, job=job_profile, job_title=job_name)
         mission_ai.emit_usage(db, mission, llm, meta)
         if not ok or result is None:
             record_step(db, mission, idx, "score", "llm_call", "failed", error=msg)
@@ -173,18 +169,17 @@ def run(db: Session, mission: Mission) -> None:
                     output={"tag": settings.processed_tag_name})
         idx += 1
 
-        needs_review = score < settings.min_score_threshold
-        review_reason = f"Score {score} is below the review threshold ({settings.min_score_threshold})." if needs_review else None
+        # Scout never flags for human review — scoring is advisory; the stars + Note speak for
+        # themselves and a recruiter decides. It just records the score and moves on.
         db.add(ScoutApplicant(
             tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id, mission_id=mission.id,
             odoo_applicant_id=int(applicant_id), applicant_name=applicant_name, job_id=job_id, job_name=job_name,
             score=score, summary=result.summary, highlights=result.highlights, strengths=result.strengths,
-            weaknesses=result.weaknesses, needs_review=needs_review, review_reason=review_reason,
+            weaknesses=result.weaknesses, needs_review=False, review_reason=None,
             source="odoo",
         ))
         _finish(db, mission, "succeeded", {
-            "applicant_id": applicant_id, "applicant_name": applicant_name, "job_name": job_name,
-            "score": score, "needs_review": needs_review, "review_reason": review_reason,
+            "applicant_id": applicant_id, "applicant_name": applicant_name, "job_name": job_name, "score": score,
         })
     except odoo.OdooError as exc:
         record_step(db, mission, idx, "odoo_error", "gadget_call", "failed", error=str(exc))

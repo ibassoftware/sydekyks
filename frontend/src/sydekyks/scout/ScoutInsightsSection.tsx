@@ -35,7 +35,7 @@ export function ScoutInsightsSection() {
 
       <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-2xl font-bold text-[#f5eee0]">{data.total_scored.toLocaleString()}</p>
               <p className="text-[11px] text-[#8a7f6d]">Scored</p>
@@ -43,10 +43,6 @@ export function ScoutInsightsSection() {
             <div>
               <p className="text-2xl font-bold text-[#f5eee0]">{data.average_score}</p>
               <p className="text-[11px] text-[#8a7f6d]">Avg score</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-[#f5eee0]">{data.needs_review_count}</p>
-              <p className="text-[11px] text-[#8a7f6d]">Needs review</p>
             </div>
           </div>
           <div className="mt-4 grid gap-1.5">

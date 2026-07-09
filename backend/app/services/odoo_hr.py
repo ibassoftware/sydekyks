@@ -25,6 +25,42 @@ def read_job(client: OdooClient, job_id: int) -> dict | None:
     return rows[0] if rows else None
 
 
+def read_job_profile(client: OdooClient, job_id: int) -> dict:
+    """The full scoring-relevant profile of a job position, so an AI can weigh a candidate against
+    everything HR specified — not just the free-text description. Version-safe: every field is
+    discovered via fields_get (Odoo 18: description, requirements, expected_degree → hr.recruitment
+    .degree, skill_ids → hr.skill). Returns {name, description, requirements, expected_degree,
+    expected_skills:[...]}, omitting whatever this instance doesn't have."""
+    schema = odoo.fields_get(client, "hr.job")
+    wanted = [f for f in ("name", "description", "requirements") if f in schema]
+    degree_field = find_field_by_relation(schema, "hr.recruitment.degree")
+    skills_field = next(
+        (n for n, m in schema.items() if m.get("type") == "many2many" and m.get("relation") == "hr.skill"), None
+    )
+    if degree_field:
+        wanted.append(degree_field)
+    if skills_field:
+        wanted.append(skills_field)
+    rows = client.execute_kw("hr.job", "read", [[job_id]], {"fields": wanted})
+    if not rows:
+        return {}
+    r = rows[0]
+    profile: dict = {
+        "name": r.get("name"),
+        "description": r.get("description") or "",
+        "requirements": r.get("requirements") or "",
+    }
+    if degree_field:
+        dv = r.get(degree_field)
+        profile["expected_degree"] = dv[1] if isinstance(dv, list) and len(dv) > 1 else None
+    if skills_field:
+        ids = r.get(skills_field) or []
+        if ids:
+            skills = client.search_read("hr.skill", [["id", "in", ids]], ["name"])
+            profile["expected_skills"] = [s["name"] for s in skills]
+    return profile
+
+
 def list_options(client: OdooClient, model: str, limit: int = 200) -> list[dict]:
     """Generic {id, name} option list for a related model — used to ground the AI when it maps a
     many2one field (e.g. the Degree field → hr.recruitment.degree)."""

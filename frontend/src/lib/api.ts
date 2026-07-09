@@ -516,8 +516,6 @@ export interface DecodeInsights {
 // --- Scout (résumé scorer) ---
 export interface ScoutSettings {
   processed_tag_name: string;
-  min_score_threshold: number;
-  scoring_rubric: string | null;
   estimated_hourly_wage: number;
   estimated_minutes_per_candidate: number;
   cron_enabled: boolean;
@@ -539,7 +537,6 @@ export interface ScoutInsights {
   activated: boolean;
   total_scored: number;
   average_score: number;
-  needs_review_count: number;
   distribution: { band: string; count: number }[];
   top_candidates: { applicant_name: string | null; job_name: string | null; score: number }[];
   daily_trend: { date: string; count: number }[];
