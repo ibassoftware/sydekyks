@@ -6,7 +6,8 @@ import { useAuth } from "../lib/auth";
 import { Badge, Button, Card } from "../components/ui";
 import { HQShell } from "../components/HQShell";
 import { CheckIcon, DocIcon, WarningIcon } from "../components/icons";
-import { ReviewActions, ReviewBadge, timeAgo } from "../components/review";
+import { ReviewActions, ReviewBadge, timeAgo, formatDuration } from "../components/review";
+import { registryForPlaybook } from "../sydekyks/registry";
 
 export default function Issues() {
   const { user } = useAuth();
@@ -315,11 +316,21 @@ export default function Issues() {
                 <div className="mt-3 divide-y divide-ink-700/60 overflow-hidden rounded-lg border border-ink-700">
                   {visibleMissions.map((m) => {
                     const open = expanded.has(m.mission_id);
+                    const reg = registryForPlaybook(m.playbook_key ?? undefined);
+                    const label = reg?.missionRowLabel?.(m) ?? { title: m.document_filename ?? "document" };
+                    const hr = reg?.domain === "hr";
+                    const duration = m.completed_at ? formatDuration(m.created_at, m.completed_at) : null;
                     return (
-                      <div id={`mission-${m.mission_id}`} key={m.mission_id} className={`scroll-mt-24 ${m.reviewed ? "bg-ink-900/30" : ""}`}>
+                      <div
+                        id={`mission-${m.mission_id}`}
+                        key={m.mission_id}
+                        className={`scroll-mt-24 ${m.reviewed ? "bg-ink-900/30" : hr ? "bg-blue-500/[0.035]" : ""}`}
+                      >
                         <button
                           onClick={() => toggleExpand(m.mission_id)}
-                          className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-ink-800/40"
+                          className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
+                            hr ? "hover:bg-blue-500/[0.07]" : "hover:bg-ink-800/40"
+                          }`}
                         >
                           <div
                             className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
@@ -330,12 +341,31 @@ export default function Issues() {
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <p className="truncate text-sm text-[#ede6da]">{m.document_filename ?? "document"}</p>
+                              {m.sydekyk_name && (
+                                <span
+                                  className={`shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-semibold ${
+                                    hr
+                                      ? "border-blue-400/40 bg-blue-500/10 text-blue-200"
+                                      : "border-gold-600/40 bg-gold-500/10 text-gold-300"
+                                  }`}
+                                >
+                                  {m.sydekyk_name}
+                                </span>
+                              )}
+                              <p className={`truncate text-sm font-medium ${label.muted ? "text-[#8a7f6d]" : "text-[#ede6da]"}`}>
+                                {label.title}
+                              </p>
                               <ReviewBadge reviewed={m.reviewed} needsReview />
-
                             </div>
                             <p className="mt-0.5 truncate text-xs text-[#8a7f6d]">
-                              {m.sydekyk_name} · {m.reason ?? "Flagged for review"}
+                              {m.document_filename ? `${m.document_filename} · ` : ""}
+                              {m.reason ?? "Flagged for review"}
+                              {duration && (
+                                <>
+                                  {" · Done "}
+                                  <span className="font-semibold text-gold-300">in {duration}</span>
+                                </>
+                              )}
                             </p>
                           </div>
                           <span className="shrink-0 text-xs text-[#8a7f6d]">{timeAgo(m.created_at)}</span>
@@ -368,6 +398,9 @@ export default function Issues() {
                                   reviewedByEmail: m.reviewed_by_email,
                                   reviewedAt: m.reviewed_at,
                                   odooBillUrl: m.odoo_bill_url,
+                                  odooRecordUrl: m.odoo_record_url,
+                                  odooRecordLabel: m.odoo_record_label,
+                                  recordKind: registryForPlaybook(m.playbook_key ?? undefined)?.domain === "hr" ? "applicant" : "bill",
                                   canRetry: true,
                                 }}
                                 onChanged={load}

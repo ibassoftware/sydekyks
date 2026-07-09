@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type Mission, type MissionDetail, type MissionStatus } from "../lib/api";
 import { Badge } from "./ui";
-import { ReviewBadge } from "./review";
+import { ReviewBadge, formatDuration } from "./review";
 import { MissionDetailPanel } from "./MissionDetailPanel";
 import { registryForPlaybook } from "../sydekyks/registry";
 
@@ -20,17 +20,6 @@ function StatusBadge({ status }: { status: MissionStatus }) {
 
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-}
-
-/** Human-friendly run time, e.g. "4 seconds", "1 min 4 sec", "2 min". */
-function fmtDuration(startIso: string, endIso: string): string | null {
-  const ms = new Date(endIso).getTime() - new Date(startIso).getTime();
-  if (!Number.isFinite(ms) || ms < 0) return null;
-  const sec = Math.round(ms / 1000);
-  if (sec < 60) return `${sec} second${sec === 1 ? "" : "s"}`;
-  const mins = Math.floor(sec / 60);
-  const rem = sec % 60;
-  return rem ? `${mins} min ${rem} sec` : `${mins} min`;
 }
 
 function sourceLabel(m: Mission): string {
@@ -124,7 +113,7 @@ export function MissionList({
                       <>
                         {" · Done "}
                         {(() => {
-                          const d = fmtDuration(m.created_at, m.completed_at);
+                          const d = formatDuration(m.created_at, m.completed_at);
                           return d ? <span className="font-semibold text-gold-300">in {d}</span> : fmtDate(m.completed_at);
                         })()}
                       </>

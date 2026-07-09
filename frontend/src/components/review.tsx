@@ -15,6 +15,18 @@ export function timeAgo(iso: string): string {
   return `${Math.floor(day / 30)}mo ago`;
 }
 
+/** Human-friendly run time between two timestamps, e.g. "4 seconds", "1 min 4 sec", "2 min". Shared
+ * by the Missions list and the Issues review rows so both highlight how long a Mission took. */
+export function formatDuration(startIso: string, endIso: string): string | null {
+  const ms = new Date(endIso).getTime() - new Date(startIso).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return null;
+  const sec = Math.round(ms / 1000);
+  if (sec < 60) return `${sec} second${sec === 1 ? "" : "s"}`;
+  const mins = Math.floor(sec / 60);
+  const rem = sec % 60;
+  return rem ? `${mins} min ${rem} sec` : `${mins} min`;
+}
+
 /** Single source of truth for the review state pill, used on Missions, Issues, and mission detail. */
 export function ReviewBadge({ reviewed, needsReview }: { reviewed?: boolean; needsReview?: boolean }) {
   if (reviewed) return <Badge tone="gold">Reviewed</Badge>;
@@ -29,6 +41,11 @@ export interface ReviewTarget {
   reviewedByEmail?: string | null;
   reviewedAt?: string | null;
   odooBillUrl?: string | null;
+  // Generic Odoo record (e.g. the Decode/Scout applicant). When recordKind is "applicant" the
+  // bill-specific "draft"/"not created" copy is replaced by this plain record link.
+  odooRecordUrl?: string | null;
+  odooRecordLabel?: string | null;
+  recordKind?: "bill" | "applicant";
   canRetry?: boolean; // failed, or a fixed needs-review case worth re-running
 }
 
@@ -65,7 +82,18 @@ export function ReviewActions({ target, onChanged }: { target: ReviewTarget; onC
   return (
     <div className="flex flex-wrap items-center gap-3">
       {target.needsReview &&
-        (target.odooBillUrl ? (
+        (target.recordKind === "applicant" ? (
+          target.odooRecordUrl && (
+            <a
+              href={target.odooRecordUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-md border border-gold-600/40 bg-gold-500/10 px-3 py-1.5 text-xs font-semibold text-gold-300 hover:bg-gold-500/20"
+            >
+              {target.odooRecordLabel ?? "Open in Odoo"} →
+            </a>
+          )
+        ) : target.odooBillUrl ? (
           <a
             href={target.odooBillUrl}
             target="_blank"

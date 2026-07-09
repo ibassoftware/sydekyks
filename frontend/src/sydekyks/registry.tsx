@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import type { LedgerReadiness, Mission, Sydekyk } from "../lib/api";
+import type { LedgerReadiness, Sydekyk } from "../lib/api";
 import { LedgerSettingsSection } from "./ledger/LedgerSettingsSection";
 import { LedgerPlaybookPanel } from "./ledger/LedgerPlaybookPanel";
 import { LedgerMissionSummary } from "./ledger/LedgerMissionSummary";
@@ -35,6 +35,15 @@ export interface MissionRowLabel {
   muted?: boolean;
 }
 
+/** The minimal Mission shape the row-label builders read — satisfied by both a full `Mission` (list
+ * rows) and a `MissionReviewItem` (the Issues review rows), so both surfaces share one headline. */
+export interface RowLabelInput {
+  result_summary?: Record<string, unknown> | null;
+  document_filename?: string | null;
+  status?: string;
+  error_message?: string | null;
+}
+
 export interface SydekykRegistryEntry {
   setupSection?: ComponentType<SydekykSetupProps>;
   playbookPanel?: ComponentType;
@@ -44,19 +53,19 @@ export interface SydekykRegistryEntry {
    * uses the default. */
   domain?: "hr";
   /** The business-meaningful row headline (falls back to the filename when absent). */
-  missionRowLabel?: (m: Mission) => MissionRowLabel;
+  missionRowLabel?: (m: RowLabelInput) => MissionRowLabel;
 }
 
 const SEP = "  ·  ";
 
 /** Fallback headline when a Mission produced no business object yet (queued/running) or was rejected
  * (failed) — the friendly error already reads like "This doesn't look like a résumé…". */
-function fallbackRowLabel(m: Mission): MissionRowLabel {
+function fallbackRowLabel(m: RowLabelInput): MissionRowLabel {
   if (m.status === "failed" && m.error_message) return { title: m.error_message, muted: true };
   return { title: m.document_filename ?? "Processing…", muted: true };
 }
 
-function ledgerRowLabel(m: Mission): MissionRowLabel {
+function ledgerRowLabel(m: RowLabelInput): MissionRowLabel {
   const s = m.result_summary ?? {};
   const vendor = s.vendor_name as string | undefined;
   if (!vendor) return fallbackRowLabel(m);
@@ -66,7 +75,7 @@ function ledgerRowLabel(m: Mission): MissionRowLabel {
   return { title: parts.join(SEP) };
 }
 
-function decodeRowLabel(m: Mission): MissionRowLabel {
+function decodeRowLabel(m: RowLabelInput): MissionRowLabel {
   const s = m.result_summary ?? {};
   const name = s.applicant_name as string | undefined;
   if (!name) return fallbackRowLabel(m);
@@ -76,7 +85,7 @@ function decodeRowLabel(m: Mission): MissionRowLabel {
   return { title: parts.join(SEP) };
 }
 
-function scoutRowLabel(m: Mission): MissionRowLabel {
+function scoutRowLabel(m: RowLabelInput): MissionRowLabel {
   const s = m.result_summary ?? {};
   const name = s.applicant_name as string | undefined;
   if (!name) return fallbackRowLabel(m);

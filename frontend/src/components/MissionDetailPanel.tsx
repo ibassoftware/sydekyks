@@ -8,7 +8,9 @@ import { registryForPlaybook } from "../sydekyks/registry";
  * inspected, so all surfaces render identical detail.
  */
 export function MissionDetailPanel({ detail, onChanged }: { detail: MissionDetail; onChanged?: () => void }) {
-  const Summary = registryForPlaybook(detail.playbook_key)?.missionSummary;
+  const reg = registryForPlaybook(detail.playbook_key);
+  const Summary = reg?.missionSummary;
+  const isHr = reg?.domain === "hr";
   const needsReview = Boolean(detail.result_summary?.needs_review);
   // Review context (needs-review or failed) routes through the shared control so Missions, the
   // Mission detail, and the Issues page all offer the exact same review + retry actions.
@@ -30,7 +32,7 @@ export function MissionDetailPanel({ detail, onChanged }: { detail: MissionDetai
         </a>
       )}
 
-      {detail.odoo_record_url && (
+      {detail.odoo_record_url && !needsReview && (
         <a
           href={detail.odoo_record_url}
           target="_blank"
@@ -50,6 +52,9 @@ export function MissionDetailPanel({ detail, onChanged }: { detail: MissionDetai
             needsReview,
             reviewed: detail.reviewed ?? false,
             odooBillUrl: detail.odoo_bill_url,
+            odooRecordUrl: detail.odoo_record_url,
+            odooRecordLabel: detail.odoo_record_label,
+            recordKind: isHr ? "applicant" : "bill",
             canRetry: showReview,
           }}
           onChanged={onChanged}

@@ -83,10 +83,15 @@ def _review_item(db: Session, m: Mission, filename, sydekyk_name, reviewer_email
         gadget_links.build_odoo_bill_url(db, tenant_id=m.tenant_id, sydekyk_id=m.sydekyk_id, move_id=move_id)
         if move_id else None
     )
+    record_url, record_label = gadget_links.build_mission_record_link(
+        db, tenant_id=m.tenant_id, sydekyk_id=m.sydekyk_id, summary=rs
+    )
     return MissionReviewItem(
         mission_id=m.id, sydekyk_name=sydekyk_name, document_filename=filename,
-        reason=rs.get("review_reason"), created_at=m.created_at,
-        odoo_bill_url=odoo_url, vendor_name=rs.get("vendor_name"), invoice_number=rs.get("invoice_number"),
+        reason=rs.get("review_reason"), created_at=m.created_at, completed_at=m.completed_at,
+        playbook_key=m.playbook_key, result_summary=rs,
+        odoo_bill_url=odoo_url, odoo_record_url=record_url, odoo_record_label=record_label,
+        vendor_name=rs.get("vendor_name"), invoice_number=rs.get("invoice_number"),
         total=rs.get("total"), currency=rs.get("currency"), posted=rs.get("posted"), duplicate=rs.get("duplicate"),
         reviewed=m.reviewed_at is not None, reviewed_at=m.reviewed_at, reviewed_by_email=reviewer_email,
     )

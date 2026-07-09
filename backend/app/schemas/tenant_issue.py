@@ -25,8 +25,14 @@ class MissionReviewItem(BaseModel):
     document_filename: str | None
     reason: str | None
     created_at: datetime
+    completed_at: datetime | None = None
+    # Lets the review rows share the Missions-list row design (per-Sydekyk headline + bluish HR hue).
+    playbook_key: str | None = None
+    result_summary: dict | None = None
     # Richer context for the expandable row (all from the Mission's result_summary).
     odoo_bill_url: str | None = None
+    odoo_record_url: str | None = None  # generic Odoo deep link (e.g. the applicant) + its label
+    odoo_record_label: str | None = None
     vendor_name: str | None = None
     invoice_number: str | None = None
     total: float | None = None

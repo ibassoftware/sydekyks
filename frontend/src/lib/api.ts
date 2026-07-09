@@ -407,7 +407,12 @@ export interface MissionReviewItem {
   document_filename: string | null;
   reason: string | null;
   created_at: string;
+  completed_at: string | null;
+  playbook_key: string | null;
+  result_summary: Record<string, unknown> | null;
   odoo_bill_url: string | null;
+  odoo_record_url: string | null;
+  odoo_record_label: string | null;
   vendor_name: string | null;
   invoice_number: string | null;
   total: number | null;
