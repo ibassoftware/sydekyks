@@ -116,7 +116,9 @@ def run(db: Session, mission: Mission) -> None:
         _finish(db, mission, "failed", {}, deny, failure_category="quota")
         return
 
-    llm_mode, llm_value, in_err = vision_ai.document_to_llm_input(document_bytes, document.content_type, max_pages=5)
+    llm_mode, llm_value, in_err = vision_ai.document_to_llm_input(
+        document_bytes, document.content_type, max_pages=settings.max_resume_pages
+    )
     if in_err:
         record_step(db, mission, idx, "classify_document", "internal", "failed", error=in_err)
         _finish(db, mission, "failed", {}, in_err, failure_category="validation")

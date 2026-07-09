@@ -10,9 +10,14 @@ from dataclasses import dataclass, field
 from app.services import vision_ai
 
 _CLASSIFY_PROMPT = """You are Decode, a recruitment assistant. Decide whether the attached document \
-is a candidate's résumé / CV. Respond with ONLY a JSON object (no prose, no markdown fences):
-{"is_resume": boolean, "document_type_guess": short string, "reason": short string}
-Answer true for anything that is plausibly a résumé/CV even if unusually formatted."""
+is a candidate's résumé / CV — a document describing ONE person's work experience, education, and \
+skills. Respond with ONLY a JSON object (no prose, no markdown fences):
+{"is_resume": boolean, "document_type_guess": short string describing what the document actually is, "reason": short string}
+
+Answer true for a résumé/CV even if unusually formatted or in another language. Answer FALSE for \
+anything that is clearly NOT a résumé — e.g. an invoice or receipt, a contract, a job description or \
+job posting, an ID card, a certificate/diploma on its own, a standalone cover letter with no CV, a \
+random photo, a screenshot, or a blank/unreadable page."""
 
 _EXTRACT_PROMPT = """You are Decode, a meticulous recruitment assistant. Read the candidate's \
 résumé and extract their details. Respond with ONLY a JSON object (no prose, no markdown fences) \

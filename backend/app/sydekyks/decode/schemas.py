@@ -5,6 +5,7 @@ class DecodeSettingsOut(BaseModel):
     auto_create_skills: bool
     processed_tag_name: str
     pooling_stage_name: str | None = None
+    max_resume_pages: int
     cron_enabled: bool
     cron_poll_limit: int
 
@@ -13,6 +14,7 @@ class DecodeSettingsUpdate(BaseModel):
     auto_create_skills: bool
     processed_tag_name: str = Field(min_length=1, max_length=120)
     pooling_stage_name: str | None = None
+    max_resume_pages: int = Field(default=6, ge=1, le=15)
     cron_enabled: bool
     cron_poll_limit: int = Field(default=30, ge=1, le=30)
 

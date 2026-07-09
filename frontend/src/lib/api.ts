@@ -466,6 +466,7 @@ export interface DecodeSettings {
   auto_create_skills: boolean;
   processed_tag_name: string;
   pooling_stage_name: string | null;
+  max_resume_pages: number;
   cron_enabled: boolean;
   cron_poll_limit: number;
 }

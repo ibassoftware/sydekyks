@@ -25,6 +25,8 @@ class DecodeTenantSettings(Base):
     processed_tag_name: Mapped[str] = mapped_column(String(120), nullable=False, default=DEFAULT_PROCESSED_TAG)
     # Optional recruitment stage for "for pooling" applicants (no matching hr.job).
     pooling_stage_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # Max résumé pages sent to the vision model when a résumé has no text layer (scanned/photo).
+    max_resume_pages: Mapped[int] = mapped_column(Integer, nullable=False, default=6)
     cron_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     cron_last_polled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     cron_poll_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=30)

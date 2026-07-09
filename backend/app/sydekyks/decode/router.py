@@ -59,7 +59,8 @@ def _settings(db: Session, tenant_id) -> DecodeTenantSettings:
 def _settings_out(s: DecodeTenantSettings) -> DecodeSettingsOut:
     return DecodeSettingsOut(
         auto_create_skills=s.auto_create_skills, processed_tag_name=s.processed_tag_name,
-        pooling_stage_name=s.pooling_stage_name, cron_enabled=s.cron_enabled, cron_poll_limit=s.cron_poll_limit,
+        pooling_stage_name=s.pooling_stage_name, max_resume_pages=s.max_resume_pages,
+        cron_enabled=s.cron_enabled, cron_poll_limit=s.cron_poll_limit,
     )
 
 
@@ -75,6 +76,7 @@ def update_settings(payload: DecodeSettingsUpdate, user: User = Depends(require_
     s.auto_create_skills = payload.auto_create_skills
     s.processed_tag_name = payload.processed_tag_name
     s.pooling_stage_name = payload.pooling_stage_name
+    s.max_resume_pages = payload.max_resume_pages
     s.cron_enabled = payload.cron_enabled
     s.cron_poll_limit = payload.cron_poll_limit
     db.commit()

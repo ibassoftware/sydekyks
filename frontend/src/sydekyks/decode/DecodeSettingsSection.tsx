@@ -79,6 +79,18 @@ export function DecodeSettingsSection({ sydekyk, canManage, onReadiness }: Sydek
                 onBlur={(e) => save({ ...settings, pooling_stage_name: e.target.value || null })}
               />
             </div>
+            <div>
+              <Label>Max résumé pages to scan</Label>
+              <Input
+                type="number"
+                min={1}
+                max={15}
+                disabled={!canManage || saving}
+                value={settings.max_resume_pages}
+                onChange={(e) => setSettings({ ...settings, max_resume_pages: Number(e.target.value) })}
+                onBlur={(e) => save({ ...settings, max_resume_pages: Number(e.target.value) })}
+              />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <label className="flex items-center gap-2 text-sm text-[#ede6da]">
