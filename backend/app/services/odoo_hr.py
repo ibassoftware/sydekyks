@@ -25,6 +25,22 @@ def read_job(client: OdooClient, job_id: int) -> dict | None:
     return rows[0] if rows else None
 
 
+def list_options(client: OdooClient, model: str, limit: int = 200) -> list[dict]:
+    """Generic {id, name} option list for a related model — used to ground the AI when it maps a
+    many2one field (e.g. the Degree field → hr.recruitment.degree)."""
+    return client.search_read(model, [], ["id", "name"], limit=limit)
+
+
+def find_field_by_relation(fields_schema: dict, relation: str) -> str | None:
+    """Discover a many2one field on a model by what it points to (version-safe: the field's technical
+    name can differ across Odoo versions, but its relation is stable). e.g. the Degree field on
+    hr.applicant relates to hr.recruitment.degree."""
+    for name, meta in fields_schema.items():
+        if meta.get("type") == "many2one" and meta.get("relation") == relation:
+            return name
+    return None
+
+
 # --- Applicants -------------------------------------------------------------------------------
 
 

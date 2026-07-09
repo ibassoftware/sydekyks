@@ -35,21 +35,22 @@ def test_match_job_accepts_offered_id(monkeypatch):
     assert res["job_id"] == 1
 
 
-def test_map_skills_validates_ids(monkeypatch):
-    # Python: valid type + existing skill; Bad: invalid type (dropped); NewSkill: valid type, unknown
-    # skill id (→ skill_id None so the playbook can create it when auto-create is on).
+def test_map_skills_categorizes_by_type_name(monkeypatch):
+    # The AI only picks a skill-type by NAME (reliable). Known category → that type's id; an unknown
+    # category falls back to the first type; duplicates are de-duped. The playbook resolves skill ids.
     monkeypatch.setattr(vision_ai, "llm_completion", lambda *a, **k: (True, "ok", [
-        {"name": "Python", "skill_type_id": 1, "skill_id": 10},
-        {"name": "Bad", "skill_type_id": 99, "skill_id": 10},
-        {"name": "NewSkill", "skill_type_id": 1, "skill_id": 999},
+        {"name": "Python", "category": "Technical"},
+        {"name": "Spanish", "category": "Languages"},
+        {"name": "Teamwork", "category": "Nonexistent"},
+        {"name": "python", "category": "Technical"},
     ], {}))
     ok, _msg, out, _meta = decode_ext.map_skills(
-        "v", "m", ["Python", "Bad", "NewSkill"],
-        skill_types=[{"id": 1, "name": "Tech"}],
-        existing_skills=[{"id": 10, "name": "Python", "skill_type_id": [1, "Tech"]}],
+        "v", "m", ["Python", "Spanish", "Teamwork", "python"],
+        skill_types=[{"id": 1, "name": "Technical"}, {"id": 2, "name": "Languages"}],
     )
     assert ok
-    names = {r["name"]: r for r in out}
-    assert "Bad" not in names  # invalid skill_type_id dropped entirely
-    assert names["Python"]["skill_id"] == 10
-    assert names["NewSkill"]["skill_id"] is None  # hallucinated skill id nulled → create path
+    by_name = {r["name"]: r["skill_type_id"] for r in out}
+    assert by_name["Python"] == 1
+    assert by_name["Spanish"] == 2
+    assert by_name["Teamwork"] == 1  # unknown category → first type (fallback)
+    assert len(out) == 3  # "python" de-duped against "Python"

@@ -16,6 +16,9 @@ export function DecodeSettingsSection({ sydekyk, canManage, onReadiness }: Sydek
     api.get<DecodeReadiness>("/tenant/decode/readiness").then((r) => {
       setReadiness(r.data);
       onReadiness?.({ ...r.data } as LedgerReadiness);
+      // Reuse readiness to discover an already-assigned inbox address.
+      const item = r.data.items.find((i) => i.key === "email_inbox");
+      if (item?.state === "ok" && item.detail) setInbox(item.detail);
     });
     api.get<DecodeSettings>("/tenant/decode/settings").then((r) => setSettings(r.data));
   }, [sydekyk.id, onReadiness]);
@@ -168,7 +171,7 @@ export function DecodeSettingsSection({ sydekyk, canManage, onReadiness }: Sydek
         ) : (
           <p className="text-sm text-[#8a7f6d]">Create an inbound address so emailed résumés become applicants automatically.</p>
         )}
-        {canManage && (
+        {canManage && !inbox && (
           <Button variant="ghost" className="w-fit px-3 py-1.5 text-xs" disabled={creatingInbox} onClick={createInbox}>
             {creatingInbox ? "Creating…" : "Create Email Inbox"}
           </Button>

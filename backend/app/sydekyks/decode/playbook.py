@@ -217,16 +217,19 @@ def run(db: Session, mission: Mission) -> None:
                     output={"applicant_id": applicant_id, "created": created})
         idx += 1
 
-        # --- Step 6: AI-map fields onto the real schema -----------------------------------------
+        # --- Step 6: AI-map fields onto the real schema (scalars + selection + Degree) -----------
         schema = odoo_hr.applicant_fields(client)
-        ok, msg, fields, meta = extraction.map_to_applicant_fields(virtual_key, model_alias, resume, schema)
+        relational: dict = {}
+        degree_field = odoo_hr.find_field_by_relation(schema, "hr.recruitment.degree")
+        if degree_field:
+            relational[degree_field] = odoo_hr.list_options(client, "hr.recruitment.degree")
+        ok, msg, fields, meta = extraction.map_to_applicant_fields(
+            virtual_key, model_alias, resume, schema, relational_options=relational)
         mission_ai.emit_usage(db, mission, llm, meta)
         written = []
         if ok and fields:
-            fields.pop("job_id", None)  # job is set explicitly, never by the free-form mapper
-            if fields:
-                odoo_hr.update_applicant(client, applicant_id, fields)
-                written = list(fields.keys())
+            odoo_hr.update_applicant(client, applicant_id, fields)
+            written = list(fields.keys())
         record_step(db, mission, idx, "map_fields", "gadget_call", "succeeded", output={"fields": written})
         idx += 1
 
@@ -238,22 +241,35 @@ def run(db: Session, mission: Mission) -> None:
         idx += 1
 
         # --- Step 8: skills ---------------------------------------------------------------------
+        # The AI only categorizes each skill into an existing skill TYPE (by name — reliable). We
+        # resolve the hr.skill id + level deterministically here: reuse an existing skill under that
+        # type, else create it when auto-create is on; otherwise flag it for the recruiter.
         skill_specs: list[dict] = []
         flagged: list[str] = []
         if resume.skills:
             types = odoo_hr.list_skill_types(client)
             existing = odoo_hr.list_skills(client)
-            ok, msg, mapped, meta = extraction.map_skills(virtual_key, model_alias, resume.skills, types, existing)
+
+            def _type_id(s):
+                t = s.get("skill_type_id")
+                return t[0] if isinstance(t, list) else t
+
+            existing_by_key = {(str(s["name"]).strip().lower(), _type_id(s)): s["id"] for s in existing}
+            ok, msg, mapped, meta = extraction.map_skills(virtual_key, model_alias, resume.skills, types)
             mission_ai.emit_usage(db, mission, llm, meta)
+            level_cache: dict = {}
             for m in (mapped or []):
-                stype, sid, sname = m["skill_type_id"], m["skill_id"], m["name"]
+                stype, sname = m["skill_type_id"], m["name"]
+                sid = existing_by_key.get((sname.strip().lower(), stype))
                 if sid is None:
-                    if settings.auto_create_skills and sname:
+                    if settings.auto_create_skills:
                         sid = odoo_hr.ensure_skill(client, sname, stype)
                     else:
                         flagged.append(sname)
                         continue
-                level = odoo_hr.default_skill_level(client, stype)
+                if stype not in level_cache:
+                    level_cache[stype] = odoo_hr.default_skill_level(client, stype)
+                level = level_cache[stype]
                 if level is None:
                     flagged.append(sname)
                     continue

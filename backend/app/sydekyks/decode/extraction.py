@@ -138,107 +138,141 @@ def match_job(virtual_key, model_alias, *, hint, summary, skills, available_jobs
 
 
 _MAP_FIELDS_TEMPLATE = """You are Decode, filling an Odoo hr.applicant record from a parsed résumé. \
-Map the candidate's data onto the ACTUAL writable fields of this Odoo instance (listed below with \
-their technical name, type, and label). Return ONLY the fields you can confidently fill.
+Map the candidate's data onto the ACTUAL fields of THIS Odoo instance. Each field lists its technical \
+name, type, label, and — for selection/relation fields — the allowed options.
 
 Candidate data:
 {resume_json}
 
-Writable hr.applicant fields (technical_name: type — label):
+Writable hr.applicant fields:
 {fields_json}
 
-Respond with ONLY a JSON object mapping technical_field_name -> value, using ONLY field names from \
-the list above. Use the correct primitive type (string for char/text/html, number for float, \
-"YYYY-MM-DD" for date). Omit any field you cannot fill. Never invent field names or values."""
+Respond with ONLY a JSON object mapping technical_field_name -> value, using ONLY field names above:
+- text / char / html: a string
+- float / integer: a number
+- date: "YYYY-MM-DD"
+- selection: one of the field's "options" codes (exactly)
+- relation: the integer "id" of the best-matching entry from the field's "options" (e.g. map the \
+candidate's education to the closest Degree)
+Fill every field you reasonably can from the résumé (name, email, phone, summary/notes, degree, \
+etc.). Omit only fields you genuinely cannot determine. Never invent field names, option codes, or ids."""
 
-# Field types we let the AI write directly (relational fields — job, skills, tags — are handled
-# explicitly by the playbook, never by the free-form mapper).
-_WRITABLE_TYPES = {"char", "text", "html", "float", "integer", "date", "monetary"}
+# Scalar field types the AI writes directly. Selection + specific many2one fields (passed via
+# relational_options, e.g. Degree) are also offered, with their allowed values, and validated.
+_SCALAR_TYPES = {"char", "text", "html", "float", "integer", "date", "monetary"}
+
+# Fields Decode must NEVER set from a résumé — recruiter/pipeline/system fields, and priority
+# (that's Scout's evaluation score). Everything else writable is fair game.
+_EXCLUDE_FIELDS = {
+    "priority", "kanban_state", "stage_id", "active", "color", "id", "display_name",
+    "create_uid", "write_uid", "create_date", "write_date", "user_id", "company_id",
+    "department_id", "source_id", "medium_id", "job_id", "manager_id", "interviewer_ids",
+    "date_closed", "date_open", "refuse_reason_id",
+}
 
 
-def map_to_applicant_fields(virtual_key, model_alias, resume: ResumeExtraction, fields_schema: dict, timeout=45.0):
-    """Ask the AI to map résumé data onto the instance's real writable scalar hr.applicant fields.
-    `fields_schema` is `fields_get(hr.applicant)`. Returns a validated dict of settable field→value."""
-    catalog = [
-        {"name": n, "type": m.get("type"), "label": m.get("string")}
-        for n, m in fields_schema.items()
-        if m.get("type") in _WRITABLE_TYPES and not m.get("readonly")
-    ]
-    catalog_names = {c["name"]: c["type"] for c in catalog}
+def map_to_applicant_fields(
+    virtual_key, model_alias, resume: ResumeExtraction, fields_schema: dict, relational_options: dict | None = None, timeout=45.0
+):
+    """Map résumé data onto the instance's real hr.applicant fields — scalars, selection fields (from
+    fields_get), and any many2one fields whose options are supplied in `relational_options`
+    ({field_name: [{id,name}]}, e.g. the Degree field). Every value is validated against the offered
+    options; nothing is invented. Version-safe: everything comes from `fields_get(hr.applicant)`."""
+    relational_options = relational_options or {}
+    catalog: list[dict] = []
+    handlers: dict = {}  # name -> (kind, scalar_type, allowed_set)
+    for name, meta_f in fields_schema.items():
+        if meta_f.get("readonly") or name in _EXCLUDE_FIELDS:
+            continue
+        ftype = meta_f.get("type")
+        if ftype in _SCALAR_TYPES:
+            catalog.append({"name": name, "type": ftype, "label": meta_f.get("string")})
+            handlers[name] = ("scalar", ftype, None)
+        elif ftype == "selection" and meta_f.get("selection"):
+            options = [str(s[0]) for s in meta_f["selection"]]
+            catalog.append({"name": name, "type": "selection", "label": meta_f.get("string"), "options": options})
+            handlers[name] = ("selection", None, set(options))
+        elif ftype == "many2one" and relational_options.get(name):
+            opts = [{"id": o["id"], "name": o["name"]} for o in relational_options[name]]
+            catalog.append({"name": name, "type": "relation", "label": meta_f.get("string"), "options": opts})
+            handlers[name] = ("relation", None, {o["id"] for o in opts})
+
     resume_json = json.dumps({
         "full_name": resume.full_name, "email": resume.email, "phone": resume.phone,
         "location": resume.location, "linkedin": resume.linkedin, "current_title": resume.current_title,
         "summary": resume.summary, "years_experience": resume.years_experience,
         "education": resume.education, "work_history": resume.work_history,
     })
-    prompt = _MAP_FIELDS_TEMPLATE.format(
-        resume_json=resume_json, fields_json=json.dumps(catalog),
-    )
+    prompt = _MAP_FIELDS_TEMPLATE.format(resume_json=resume_json, fields_json=json.dumps(catalog))
     ok, msg, raw, meta = vision_ai.llm_completion(virtual_key, model_alias, prompt, [], timeout)
     if not ok or raw is None:
         return ok, msg, None, meta
 
     out: dict = {}
     for name, val in (raw or {}).items():
-        typ = catalog_names.get(name)
-        if typ is None or val is None or val == "":
+        info = handlers.get(name)
+        if info is None or val is None or val == "":
             continue
+        kind, scalar_type, allowed = info
         try:
-            if typ in ("float", "monetary"):
-                out[name] = float(val)
-            elif typ == "integer":
-                out[name] = int(val)
-            else:
-                out[name] = str(val)
+            if kind == "scalar":
+                if scalar_type in ("float", "monetary"):
+                    out[name] = float(val)
+                elif scalar_type == "integer":
+                    out[name] = int(val)
+                else:
+                    out[name] = str(val)
+            elif kind == "selection":
+                if str(val) in allowed:
+                    out[name] = str(val)
+            elif kind == "relation":
+                iv = int(val)
+                if iv in allowed:
+                    out[name] = iv
         except (TypeError, ValueError):
             continue
     return True, "ok", out, meta
 
 
-_MAP_SKILLS_TEMPLATE = """You are Decode, mapping a candidate's skills onto this Odoo instance's \
-skill taxonomy. For each résumé skill, match it to an EXISTING hr.skill when possible (by meaning, \
-not just exact text); otherwise propose creating it under the most appropriate existing skill type.
+_MAP_SKILLS_TEMPLATE = """You are Decode, categorizing a candidate's skills into this Odoo instance's \
+skill categories. For each résumé skill, choose the single best-fitting category by NAME from the \
+list below (judge by meaning). If none fits well, use "{fallback}".
 
 Résumé skills: {skills_json}
 
-Existing skill types (id: name):
-{types_json}
+Available skill categories: {categories_json}
 
-Existing skills (id: name, skill_type_id):
-{skills_catalog_json}
-
-Respond with ONLY a JSON array; one object per skill you can place:
-[{{"name": string, "skill_type_id": integer id from the types list, "skill_id": integer existing hr.skill id or null if it must be created}}]
-Only use ids EXACTLY present in the lists above. Skip a skill entirely if you cannot pick a skill_type_id."""
+Respond with ONLY a JSON array, one object per skill:
+[{{"name": the skill string, "category": exactly one category name from the list}}]
+Use only category names from the list. Include every skill."""
 
 
-def map_skills(virtual_key, model_alias, resume_skills, skill_types, existing_skills, timeout=45.0):
-    """Map résumé skills to (skill_type_id, skill_id|None). Returns a validated list; ids not in the
-    offered sets are dropped/nulled."""
+def map_skills(virtual_key, model_alias, resume_skills, skill_types, timeout=45.0):
+    """Categorize each résumé skill into an existing skill TYPE (by name — reliable for an LLM, unlike
+    id-matching). Returns a validated list of {name, skill_type_id}; the playbook then resolves/creates
+    the hr.skill + attaches it with the type's level. Unknown categories fall back to the first type."""
+    if not skill_types:
+        return True, "ok", [], {}
+    by_name = {str(t["name"]).strip().lower(): t["id"] for t in skill_types}
+    fallback_id = skill_types[0]["id"]
     prompt = _MAP_SKILLS_TEMPLATE.format(
         skills_json=json.dumps(resume_skills[:60]),
-        types_json=json.dumps([{"id": t["id"], "name": t["name"]} for t in skill_types]),
-        skills_catalog_json=json.dumps([
-            {"id": s["id"], "name": s["name"],
-             "skill_type_id": s["skill_type_id"][0] if isinstance(s.get("skill_type_id"), list) else s.get("skill_type_id")}
-            for s in existing_skills
-        ]),
+        categories_json=json.dumps([t["name"] for t in skill_types]),
+        fallback=skill_types[0]["name"],
     )
     ok, msg, raw, meta = vision_ai.llm_completion(virtual_key, model_alias, prompt, [], timeout)
     if not ok:
         return ok, msg, None, meta
-    valid_types = {t["id"] for t in skill_types}
-    valid_skills = {s["id"] for s in existing_skills}
     rows = raw if isinstance(raw, list) else (raw.get("skills") if isinstance(raw, dict) else None)
     out = []
+    seen = set()
     for item in rows or []:
         if not isinstance(item, dict):
             continue
-        stype = item.get("skill_type_id")
-        if stype not in valid_types:
+        name = str(item.get("name") or "").strip()
+        if not name or name.lower() in seen:
             continue
-        sid = item.get("skill_id")
-        if sid is not None and sid not in valid_skills:
-            sid = None
-        out.append({"name": str(item.get("name") or "").strip(), "skill_type_id": stype, "skill_id": sid})
+        seen.add(name.lower())
+        type_id = by_name.get(str(item.get("category") or "").strip().lower(), fallback_id)
+        out.append({"name": name, "skill_type_id": type_id})
     return True, "ok", out, meta
