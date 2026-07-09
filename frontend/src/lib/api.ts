@@ -480,6 +480,15 @@ export interface DecodePlaybook {
   editable: boolean;
   steps: PlaybookStep[];
 }
+export interface DecodeJob {
+  id: number;
+  name: string;
+}
+export interface DecodeJobsOut {
+  connected: boolean;
+  jobs: DecodeJob[];
+  message: string | null;
+}
 export interface DecodeInsights {
   activated: boolean;
   total_applicants: number;

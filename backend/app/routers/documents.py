@@ -1,7 +1,8 @@
 import hashlib
+import json
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -41,9 +42,20 @@ def _mission_out(mission, filename: str | None) -> MissionOut:
 async def upload_documents(
     sydekyk_id: uuid.UUID,
     files: list[UploadFile],
+    context: str | None = Form(None),
     user: User = Depends(require_tenant_member),
     db: Session = Depends(get_db),
 ):
+    # Optional per-upload context (JSON), stored on each Mission's trigger_context. Sydekyk-specific
+    # (e.g. Decode passes the picked hr.job id, or {"job_source": "auto"}); ignored by others.
+    trigger_context: dict | None = None
+    if context:
+        try:
+            parsed = json.loads(context)
+            if isinstance(parsed, dict):
+                trigger_context = parsed
+        except (json.JSONDecodeError, ValueError):
+            trigger_context = None
     sydekyk = (
         db.query(Sydekyk)
         .filter(
@@ -92,6 +104,7 @@ async def upload_documents(
             sha256_hash=hashlib.sha256(data).hexdigest(),
             source="web_upload",
             signal_type="manual_upload",
+            trigger_context=trigger_context,
         )
         await enqueue_mission(mission.id)
         created.append(_mission_out(mission, name))

@@ -30,9 +30,9 @@ PLAYBOOK_STEPS = [
     {"key": "connect_odoo", "title": "Connect to Odoo",
      "description": "Open an authenticated session to the assigned Odoo instance.",
      "likely_failures": "No Odoo assigned, wrong credentials, or Odoo unreachable."},
-    {"key": "resolve_position", "title": "Match the position",
-     "description": "Match the candidate to an open hr.job (from the email/résumé), or send to the pool.",
-     "likely_failures": "No matching job — the applicant is pooled (flagged for review)."},
+    {"key": "resolve_position", "title": "Determine the position",
+     "description": "Use the job you picked on upload; otherwise infer it from the email/résumé, or add the applicant to the pool.",
+     "likely_failures": "No job selected and none could be inferred — the applicant is pooled (flagged for review)."},
     {"key": "upsert_applicant", "title": "Create / find the applicant",
      "description": "Create a new hr.applicant (email/manual) or use the existing one (cron).",
      "likely_failures": "Odoo rejects required fields."},
@@ -168,12 +168,23 @@ def run(db: Session, mission: Mission) -> None:
 
     try:
         # --- Step 4: resolve position -----------------------------------------------------------
-        hint = f"{ctx.get('subject', '')}\n{ctx.get('text_body', '')}".strip()
+        # Priority: the job the user explicitly picked on upload > AI-inferred from the email/résumé
+        # > pool. An explicit pick skips the (billable) AI match entirely.
         jobs = odoo_hr.list_jobs(client)
+        valid_job_ids = {j["id"] for j in jobs}
         job_id = None
         job_name = None
         is_pooling = True
-        if jobs:
+        position_source = "pool"
+
+        explicit_job_id = ctx.get("job_id")
+        if explicit_job_id is not None and int(explicit_job_id) in valid_job_ids:
+            job_id = int(explicit_job_id)
+            job_name = next((j["name"] for j in jobs if j["id"] == job_id), None)
+            is_pooling = False
+            position_source = "selected"
+        elif jobs:
+            hint = f"{ctx.get('subject', '')}\n{ctx.get('text_body', '')}".strip()
             ok, msg, jm, meta = extraction.match_job(
                 virtual_key, model_alias, hint=hint, summary=resume.summary, skills=resume.skills, available_jobs=jobs)
             mission_ai.emit_usage(db, mission, llm, meta)
@@ -181,8 +192,9 @@ def run(db: Session, mission: Mission) -> None:
                 job_id = jm["job_id"]
                 job_name = next((j["name"] for j in jobs if j["id"] == job_id), None)
                 is_pooling = False
+                position_source = "ai_matched"
         record_step(db, mission, idx, "resolve_position", "gadget_call", "succeeded",
-                    output={"job_id": job_id, "job_name": job_name, "pooling": is_pooling})
+                    output={"job_id": job_id, "job_name": job_name, "pooling": is_pooling, "source": position_source})
         idx += 1
 
         # --- Step 5: create / find applicant ----------------------------------------------------

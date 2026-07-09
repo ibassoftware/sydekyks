@@ -5,14 +5,14 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.config import settings as app_settings
-from app.core.crypto import encrypt_secret
+from app.core.crypto import decrypt_secret, encrypt_secret
 from app.core.deps import require_tenant_member
 from app.db.session import get_db
 from app.models.gadget import Gadget, TenantGadgetLink
 from app.models.gadget_requirement import SydekykGadgetRequirement, TenantSydekykGadgetAssignment
 from app.models.sydekyk import Sydekyk
 from app.models.user import User
-from app.services import permissions
+from app.services import gadget_links, odoo, odoo_hr, permissions
 
 from app.sydekyks.decode import insights as insights_svc
 from app.sydekyks.decode import readiness as readiness_svc
@@ -20,6 +20,8 @@ from app.sydekyks.decode.models import DecodeTenantSettings
 from app.sydekyks.decode.playbook import PLAYBOOK_KEY, PLAYBOOK_STEPS
 from app.sydekyks.decode.schemas import (
     DecodeInsightsOut,
+    DecodeJob,
+    DecodeJobsOut,
     DecodePlaybook,
     DecodeReadiness,
     DecodeSettingsOut,
@@ -100,6 +102,24 @@ def get_readiness(user: User = Depends(require_tenant_member), db: Session = Dep
 @router.get("/playbook", response_model=DecodePlaybook)
 def get_playbook(user: User = Depends(require_tenant_member)):
     return DecodePlaybook(playbook_key=PLAYBOOK_KEY, editable=False, steps=PLAYBOOK_STEPS)
+
+
+@router.get("/jobs", response_model=DecodeJobsOut)
+def list_odoo_jobs(user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+    """Open positions from the tenant's assigned Odoo (hr.job), for the upload job-picker.
+    Refreshable from the UI; degrades to an empty list + message when Odoo isn't reachable."""
+    sydekyk = _decode_sydekyk(db, user)
+    link = gadget_links.find_assigned_link(db, tenant_id=user.tenant_id, sydekyk_id=sydekyk.id, role_key="erp")
+    if link is None:
+        return DecodeJobsOut(connected=False, jobs=[], message="No Odoo instance assigned to Decode.")
+    ok, msg, client = odoo.connect(link.url, link.database, link.username, decrypt_secret(link.encrypted_secret))
+    if not ok or client is None:
+        return DecodeJobsOut(connected=False, jobs=[], message=msg)
+    try:
+        jobs = odoo_hr.list_jobs(client)
+    except odoo.OdooError as exc:
+        return DecodeJobsOut(connected=False, jobs=[], message=str(exc))
+    return DecodeJobsOut(connected=True, jobs=[DecodeJob(id=j["id"], name=j["name"]) for j in jobs])
 
 
 @router.post("/email-inbox", response_model=EmailInboxOut, status_code=status.HTTP_201_CREATED)

@@ -67,6 +67,17 @@ class DecodeInsightsOut(BaseModel):
     daily_trend: list[DecodeDailyPoint]
 
 
+class DecodeJob(BaseModel):
+    id: int
+    name: str
+
+
+class DecodeJobsOut(BaseModel):
+    connected: bool
+    jobs: list[DecodeJob]
+    message: str | None = None
+
+
 class EmailInboxCreate(BaseModel):
     name: str = Field(min_length=1, max_length=120)
 

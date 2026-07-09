@@ -158,7 +158,7 @@ export default function SydekykDetail() {
                           : "text-[#8a7f6d] hover:text-[#b9ad98]"
                       }`}
                     >
-                      {tab === "operations" ? "Upload Bills" : "Settings"}
+                      {tab === "operations" ? "Upload" : "Settings"}
                     </button>
                   ))}
                 </div>
@@ -167,7 +167,7 @@ export default function SydekykDetail() {
                     Settings keeps running and gates the upload panel even while Operations is open. */}
                 <div className={activeTab === "operations" ? "grid gap-6" : "hidden"}>
                   <Card className="p-6">
-                    <DocumentIntakeSection sydekyk={sydekyk} canManage={canManage} readiness={readiness} />
+                    <DocumentIntakeSection sydekyk={sydekyk} canManage={canManage} readiness={readiness} uploadContext={registryEntry?.uploadContext} />
                   </Card>
                 </div>
 
