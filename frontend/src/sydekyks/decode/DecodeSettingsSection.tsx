@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type DecodeReadiness, type DecodeSettings, type EmailInboxOut, type LedgerReadiness } from "../../lib/api";
 import { Button, Input, Label } from "../../components/ui";
+import { GadgetRequirementList } from "../../components/GadgetRequirementList";
 import { ReadinessList } from "../ReadinessList";
 import type { SydekykSetupProps } from "../registry";
 
@@ -45,6 +46,13 @@ export function DecodeSettingsSection({ sydekyk, canManage, onReadiness }: Sydek
       <div>
         <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Readiness</p>
         <div className="mt-3">{readiness ? <ReadinessList items={readiness.items} /> : <p className="text-sm text-[#8a7f6d]">Loading…</p>}</div>
+      </div>
+
+      <div id="gadgets" className="border-t border-ink-700 pt-6">
+        <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Integrations</p>
+        <div className="mt-3">
+          <GadgetRequirementList sydekykId={sydekyk.id} canManage={canManage} />
+        </div>
       </div>
 
       {settings && (
