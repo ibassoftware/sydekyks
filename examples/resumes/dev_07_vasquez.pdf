@@ -1,0 +1,201 @@
+%PDF-1.4
+%ту╧╙
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Times-Italic /Encoding /WinAnsiEncoding >>
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
+endobj
+8 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold /Encoding /WinAnsiEncoding >>
+endobj
+9 0 obj
+<< /Length 7451 >>
+stream
+0.100 0.360 0.340 rg 0.00 700.00 612.00 92.00 re f
+BT /F4 22.00 Tf 1.000 1.000 1.000 rg 54.00 742.00 Td (Leila Vasquez) Tj ET
+BT /F2 11.50 Tf 0.920 0.920 0.920 rg 54.00 724.00 Td (Senior Backend Developer) Tj ET
+BT /F0 8.50 Tf 0.920 0.920 0.920 rg 54.00 708.00 Td (Dublin, IE  |  leila.vasquez@fastmail.com  |  +1 \(499\) 796-5952) Tj ET
+BT /F0 8.50 Tf 0.920 0.920 0.920 rg 306.06 708.00 Td (github.com/leilavasquez  |  linkedin.com/in/leila-vasquez) Tj ET
+BT /F4 11.50 Tf 0.100 0.360 0.340 rg 54.00 670.50 Td (PROFESSIONAL SUMMARY) Tj ET
+1.10 w 0.100 0.360 0.340 RG 54.00 667.50 m 558.00 667.50 l S
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 650.00 Td (Senior Backend Developer with 7+ years building production software across the backend stack.) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 637.50 Td (Comfortable owning features end to end, mentoring peers, and partnering with product to ship) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 625.00 Td (measurable outcomes. Strong on testing, code review, and pragmatic system design.) Tj ET
+BT /F4 11.50 Tf 0.100 0.360 0.340 rg 54.00 608.50 Td (TECHNICAL SKILLS) Tj ET
+1.10 w 0.100 0.360 0.340 RG 54.00 605.50 m 558.00 605.50 l S
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 588.00 Td (Languages: Go, Python, Ruby, C#, TypeScript, Java) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 575.50 Td (Frameworks: Spring Boot, Rails, Django, .NET, Express, FastAPI) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 563.00 Td (Databases: MySQL, MongoDB, Redis) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 550.50 Td (Cloud & DevOps: GitHub Actions, Docker, AWS) Tj ET
+BT /F4 11.50 Tf 0.100 0.360 0.340 rg 54.00 534.00 Td (PROFESSIONAL EXPERIENCE) Tj ET
+1.10 w 0.100 0.360 0.340 RG 54.00 531.00 m 558.00 531.00 l S
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 513.50 Td (Senior Backend Developer) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 488.84 513.50 Td (2022 - Present) Tj ET
+BT /F2 9.00 Tf 0.400 0.400 0.400 rg 54.00 501.50 Td (Arcadia Labs  -  London, UK) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 489.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 489.00 Td (Implemented the notification delivery service.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 476.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 476.50 Td (Architected a background job system on Redis queues, improving CI time by 65%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 464.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 464.00 Td (Refactored the reporting data warehouse ETL, supporting 64k daily active users.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 451.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 451.50 Td (Scaled the billing REST API, eliminating 2 on-call pages/week.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 439.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 439.00 Td (Led an event-driven ingestion pipeline, improving CI time by 28%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 426.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 426.50 Td (Optimized the authentication + RBAC layer, increasing throughput 57%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 410.00 Td (Software Engineer) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 503.66 410.00 Td (2021 - 2022) Tj ET
+BT /F2 9.00 Tf 0.400 0.400 0.400 rg 54.00 398.00 Td (Tessera Tech  -  Bengaluru, IN) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 385.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 385.50 Td (Reduced the billing REST API, raising test coverage to 86%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 373.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 373.00 Td (Owned the reporting data warehouse ETL.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 360.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 360.50 Td (Shipped the notification delivery service, raising test coverage to 76%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 348.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 348.00 Td (Led the authentication + RBAC layer, raising test coverage to 94%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 335.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 335.50 Td (Scaled a GraphQL gateway over 23 services.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 323.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 323.00 Td (Designed an event-driven ingestion pipeline.) Tj ET
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 306.50 Td (Software Engineer) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 503.66 306.50 Td (2020 - 2021) Tj ET
+BT /F2 9.00 Tf 0.400 0.400 0.400 rg 54.00 294.50 Td (Delphi Networks  -  Chicago, IL) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 282.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 282.00 Td (Implemented the reporting data warehouse ETL, reducing cloud spend 50%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 269.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 269.50 Td (Owned a payments microservice handling 43k requests/min, eliminating 53 on-call pages/week.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 257.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 257.00 Td (Optimized the notification delivery service, shrinking bundle size 16%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 244.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 244.50 Td (Owned a background job system on Redis queues.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 232.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 232.00 Td (Implemented the billing REST API, raising test coverage to 77%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 219.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 219.50 Td (Architected a GraphQL gateway over 28 services, eliminating 44 on-call pages/week.) Tj ET
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 203.00 Td (Junior Backend Developer) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 503.66 203.00 Td (2018 - 2020) Tj ET
+BT /F2 9.00 Tf 0.400 0.400 0.400 rg 54.00 191.00 Td (Cobalt Systems  -  Cape Town, ZA) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 178.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 178.50 Td (Delivered a payments microservice handling 14k requests/min, supporting 67k daily active users.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 166.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 166.00 Td (Built the billing REST API, increasing throughput 51%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 153.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 153.50 Td (Scaled an event-driven ingestion pipeline, reducing cloud spend 58%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 141.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 141.00 Td (Built the reporting data warehouse ETL, cutting p95 latency 36%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 128.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 128.50 Td (Delivered a GraphQL gateway over 8 services.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 116.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 116.00 Td (Owned a background job system on Redis queues.) Tj ET
+BT /F4 11.50 Tf 0.100 0.360 0.340 rg 54.00 95.50 Td (LANGUAGES) Tj ET
+1.10 w 0.100 0.360 0.340 RG 54.00 92.50 m 558.00 92.50 l S
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 75.00 Td (English \(native\), French \(conversational\)) Tj ET
+
+endstream
+endobj
+10 0 obj
+<< /Length 3881 >>
+stream
+BT /F4 11.50 Tf 0.100 0.360 0.340 rg 54.00 740.50 Td (SELECTED PROJECTS) Tj ET
+1.10 w 0.100 0.360 0.340 RG 54.00 737.50 m 558.00 737.50 l S
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 720.00 Td (Atlas CLI) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 503.66 720.00 Td (Open source) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 707.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 707.50 Td (Optimized the reporting data warehouse ETL, eliminating 23 on-call pages/week.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 695.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 695.00 Td (Implemented the notification delivery service, shrinking bundle size 30%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 680.50 Td (Vertex) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 503.66 680.50 Td (Open source) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 668.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 668.00 Td (Scaled an event-driven ingestion pipeline, improving CI time by 50%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 655.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 655.50 Td (Shipped the authentication + RBAC layer, cutting p95 latency 18%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 643.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 643.00 Td (Shipped an event-driven ingestion pipeline, raising test coverage to 84%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 628.50 Td (Vertex CLI) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 503.66 628.50 Td (Client work) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 616.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 616.00 Td (Migrated a payments microservice handling 15k requests/min.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 603.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 603.50 Td (Refactored the notification delivery service.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 591.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 591.00 Td (Designed an event-driven ingestion pipeline, eliminating 65 on-call pages/week.) Tj ET
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 576.50 Td (Harbor API) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 503.66 576.50 Td (Open source) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 564.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 564.00 Td (Optimized the authentication + RBAC layer, shrinking bundle size 33%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 551.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 551.50 Td (Led an event-driven ingestion pipeline, eliminating 49 on-call pages/week.) Tj ET
+BT /F4 11.50 Tf 0.100 0.360 0.340 rg 54.00 533.00 Td (CERTIFICATIONS) Tj ET
+1.10 w 0.100 0.360 0.340 RG 54.00 530.00 m 558.00 530.00 l S
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 512.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 512.50 Td (Google Associate Cloud Engineer) Tj ET
+BT /F1 9.50 Tf 0.100 0.360 0.340 rg 56.00 500.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 500.00 Td (Microsoft Certified: Azure Developer Associate) Tj ET
+BT /F4 11.50 Tf 0.100 0.360 0.340 rg 54.00 483.50 Td (EDUCATION) Tj ET
+1.10 w 0.100 0.360 0.340 RG 54.00 480.50 m 558.00 480.50 l S
+0.100 0.360 0.340 rg 54.00 455.50 504.00 17.00 re f
+BT /F1 9.00 Tf 1.000 1.000 1.000 rg 58.00 461.50 Td (Degree) Tj ET
+BT /F1 9.00 Tf 1.000 1.000 1.000 rg 269.68 461.50 Td (Institution) Tj ET
+BT /F1 9.00 Tf 1.000 1.000 1.000 rg 481.36 461.50 Td (Year) Tj ET
+0.60 w 0.800 0.800 0.800 RG 54.00 455.50 m 558.00 455.50 l S
+0.950 0.950 0.950 rg 54.00 438.50 504.00 17.00 re f
+BT /F0 9.00 Tf 0.160 0.160 0.160 rg 58.00 444.50 Td (B.Sc. Computer Science) Tj ET
+BT /F0 9.00 Tf 0.160 0.160 0.160 rg 269.68 444.50 Td (Polytechnic University) Tj ET
+BT /F0 9.00 Tf 0.160 0.160 0.160 rg 481.36 444.50 Td (2018) Tj ET
+0.60 w 0.800 0.800 0.800 RG 54.00 438.50 m 558.00 438.50 l S
+
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 13 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F0 1 0 R /F1 2 0 R /F2 3 0 R /F3 4 0 R /F4 5 0 R /F5 6 0 R /F6 7 0 R /F7 8 0 R >> >> /Contents 9 0 R >>
+endobj
+12 0 obj
+<< /Type /Page /Parent 13 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F0 1 0 R /F1 2 0 R /F2 3 0 R /F3 4 0 R /F4 5 0 R /F5 6 0 R /F6 7 0 R /F7 8 0 R >> >> /Contents 10 0 R >>
+endobj
+13 0 obj
+<< /Type /Pages /Kids [ 11 0 R 12 0 R ] /Count 2 >>
+endobj
+14 0 obj
+<< /Type /Catalog /Pages 13 0 R >>
+endobj
+xref
+0 15
+0000000000 65535 f 
+0000000015 00000 n 
+0000000112 00000 n 
+0000000214 00000 n 
+0000000319 00000 n 
+0000000418 00000 n 
+0000000516 00000 n 
+0000000616 00000 n 
+0000000711 00000 n 
+0000000811 00000 n 
+0000008314 00000 n 
+0000012248 00000 n 
+0000012446 00000 n 
+0000012645 00000 n 
+0000012713 00000 n 
+trailer
+<< /Size 15 /Root 14 0 R >>
+startxref
+12764
+%%EOF

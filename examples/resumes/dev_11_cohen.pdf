@@ -1,0 +1,223 @@
+%PDF-1.4
+%ту╧╙
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Times-Italic /Encoding /WinAnsiEncoding >>
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
+endobj
+8 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold /Encoding /WinAnsiEncoding >>
+endobj
+9 0 obj
+<< /Length 7956 >>
+stream
+BT /F1 22.00 Tf 0.300 0.220 0.100 rg 239.45 748.00 Td (Diego Cohen) Tj ET
+BT /F2 11.50 Tf 0.300 0.300 0.300 rg 228.26 730.00 Td (Senior Full Stack Engineer) Tj ET
+BT /F0 8.50 Tf 0.400 0.400 0.400 rg 47.43 716.00 Td (Seattle, WA  |  diego.cohen@gmail.com  |  +1 \(248\) 377-6300  |  github.com/diegocohen  |  linkedin.com/in/diego-cohen) Tj ET
+1.10 w 0.300 0.220 0.100 RG 54.00 708.00 m 558.00 708.00 l S
+BT /F1 11.50 Tf 0.300 0.220 0.100 rg 54.00 686.50 Td (PROFESSIONAL SUMMARY) Tj ET
+1.10 w 0.300 0.220 0.100 RG 54.00 683.50 m 558.00 683.50 l S
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 666.00 Td (Senior Full Stack Engineer with 8+ years building production software across the frontend stack.) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 653.50 Td (Comfortable owning features end to end, mentoring peers, and partnering with product to ship) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 641.00 Td (measurable outcomes. Strong on testing, code review, and pragmatic system design.) Tj ET
+BT /F1 11.50 Tf 0.300 0.220 0.100 rg 54.00 624.50 Td (TECHNICAL SKILLS) Tj ET
+1.10 w 0.300 0.220 0.100 RG 54.00 621.50 m 558.00 621.50 l S
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 604.00 Td (Languages: CSS, TypeScript, Dart, HTML, JavaScript) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 591.50 Td (Frameworks: Tailwind, React, Redux, Svelte) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 579.00 Td (Tooling: Vite, Cypress, Webpack, Jest, Storybook) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 566.50 Td (Cloud & DevOps: Netlify, Docker, Vercel, AWS S3/CloudFront) Tj ET
+BT /F1 11.50 Tf 0.300 0.220 0.100 rg 54.00 550.00 Td (PROFESSIONAL EXPERIENCE) Tj ET
+1.10 w 0.300 0.220 0.100 RG 54.00 547.00 m 558.00 547.00 l S
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 529.50 Td (Senior Full Stack Engineer) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 488.84 529.50 Td (2024 - Present) Tj ET
+BT /F2 9.00 Tf 0.400 0.400 0.400 rg 54.00 517.50 Td (Lumen Analytics  -  Sydney, AU) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 505.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 505.00 Td (Delivered the design-system migration to Svelte, improving CI time by 60%.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 492.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 492.50 Td (Owned the mobile-responsive customer portal, eliminating 63 on-call pages/week.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 480.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 480.00 Td (Migrated a real-time dashboard with WebSockets.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 467.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 467.50 Td (Optimized a drag-and-drop form builder.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 455.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 455.00 Td (Automated a component library used across 11 apps.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 442.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 442.50 Td (Implemented the checkout flow \(55% conversion lift\), cutting p95 latency 32%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 426.00 Td (Senior Full Stack Engineer) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 503.66 426.00 Td (2022 - 2024) Tj ET
+BT /F2 9.00 Tf 0.400 0.400 0.400 rg 54.00 414.00 Td (Ironclad Digital  -  Bengaluru, IN) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 401.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 401.50 Td (Owned the mobile-responsive customer portal, raising test coverage to 89%.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 389.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 389.00 Td (Shipped a component library used across 3 apps, improving CI time by 65%.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 376.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 376.50 Td (Implemented an accessible \(WCAG AA\) admin console, eliminating 16 on-call pages/week.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 364.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 364.00 Td (Led the checkout flow \(38% conversion lift\).) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 351.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 351.50 Td (Reduced a real-time dashboard with WebSockets, increasing throughput 59%.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 339.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 339.00 Td (Automated the SSR marketing site on Next.js.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 326.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 326.50 Td (Optimized a drag-and-drop form builder.) Tj ET
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 310.00 Td (Mobile Developer) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 503.66 310.00 Td (2021 - 2022) Tj ET
+BT /F2 9.00 Tf 0.400 0.400 0.400 rg 54.00 298.00 Td (Beacon Systems  -  Bengaluru, IN) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 285.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 285.50 Td (Implemented an accessible \(WCAG AA\) admin console, reducing cloud spend 15%.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 273.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 273.00 Td (Automated a real-time dashboard with WebSockets, supporting 6k daily active users.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 260.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 260.50 Td (Migrated the SSR marketing site on Next.js.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 248.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 248.00 Td (Implemented the design-system migration to Svelte, reducing cloud spend 24%.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 235.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 235.50 Td (Optimized the checkout flow \(55% conversion lift\), eliminating 12 on-call pages/week.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 223.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 223.00 Td (Scaled a drag-and-drop form builder, shrinking bundle size 55%.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 210.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 210.50 Td (Migrated the mobile-responsive customer portal.) Tj ET
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 194.00 Td (Senior Full Stack Engineer) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 503.66 194.00 Td (2020 - 2021) Tj ET
+BT /F2 9.00 Tf 0.400 0.400 0.400 rg 54.00 182.00 Td (Brightwave  -  Singapore) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 169.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 169.50 Td (Led a drag-and-drop form builder, eliminating 65 on-call pages/week.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 157.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 157.00 Td (Architected the checkout flow \(24% conversion lift\).) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 144.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 144.50 Td (Designed the SSR marketing site on Next.js.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 132.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 132.00 Td (Optimized the mobile-responsive customer portal.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 119.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 119.50 Td (Designed an accessible \(WCAG AA\) admin console.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 107.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 107.00 Td (Delivered a component library used across 7 apps, increasing throughput 63%.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 94.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 94.50 Td (Refactored the design-system migration to Vue.) Tj ET
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 78.00 Td (Junior Software Engineer) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 503.66 78.00 Td (2017 - 2020) Tj ET
+BT /F2 9.00 Tf 0.400 0.400 0.400 rg 54.00 66.00 Td (Delphi Networks  -  Manchester, UK) Tj ET
+
+endstream
+endobj
+10 0 obj
+<< /Length 5324 >>
+stream
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 744.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 744.50 Td (Delivered the mobile-responsive customer portal.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 732.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 732.00 Td (Architected the checkout flow \(28% conversion lift\).) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 719.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 719.50 Td (Shipped the design-system migration to React.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 707.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 707.00 Td (Architected an accessible \(WCAG AA\) admin console.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 694.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 694.50 Td (Reduced a real-time dashboard with WebSockets, supporting 42k daily active users.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 682.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 682.00 Td (Designed a component library used across 7 apps, raising test coverage to 91%.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 669.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 669.50 Td (Automated a drag-and-drop form builder, shrinking bundle size 44%.) Tj ET
+BT /F1 11.50 Tf 0.300 0.220 0.100 rg 54.00 649.00 Td (SELECTED PROJECTS) Tj ET
+1.10 w 0.300 0.220 0.100 RG 54.00 646.00 m 558.00 646.00 l S
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 628.50 Td (BeaconKit) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 503.66 628.50 Td (Open source) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 616.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 616.00 Td (Delivered the design-system migration to Svelte, reducing cloud spend 61%.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 603.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 603.50 Td (Migrated the design-system migration to Vue, reducing cloud spend 40%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 589.00 Td (Pulse) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 498.72 589.00 Td (Side project) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 576.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 576.50 Td (Delivered a drag-and-drop form builder.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 564.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 564.00 Td (Optimized a component library used across 9 apps.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 551.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 551.50 Td (Owned the SSR marketing site on Next.js.) Tj ET
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 537.00 Td (Nimbus App) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 503.66 537.00 Td (Client work) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 524.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 524.50 Td (Reduced an accessible \(WCAG AA\) admin console, shrinking bundle size 32%.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 512.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 512.00 Td (Architected an accessible \(WCAG AA\) admin console, shrinking bundle size 51%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 497.50 Td (Vertex CLI) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 503.66 497.50 Td (Client work) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 485.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 485.00 Td (Owned an accessible \(WCAG AA\) admin console.) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 472.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 472.50 Td (Automated the design-system migration to React.) Tj ET
+BT /F1 11.50 Tf 0.300 0.220 0.100 rg 54.00 454.00 Td (EDUCATION) Tj ET
+1.10 w 0.300 0.220 0.100 RG 54.00 451.00 m 558.00 451.00 l S
+0.300 0.220 0.100 rg 54.00 426.00 504.00 17.00 re f
+BT /F1 9.00 Tf 1.000 1.000 1.000 rg 58.00 432.00 Td (Degree) Tj ET
+BT /F1 9.00 Tf 1.000 1.000 1.000 rg 269.68 432.00 Td (Institution) Tj ET
+BT /F1 9.00 Tf 1.000 1.000 1.000 rg 481.36 432.00 Td (Year) Tj ET
+0.60 w 0.800 0.800 0.800 RG 54.00 426.00 m 558.00 426.00 l S
+0.950 0.950 0.950 rg 54.00 409.00 504.00 17.00 re f
+BT /F0 9.00 Tf 0.160 0.160 0.160 rg 58.00 415.00 Td (M.Sc. Computer Science) Tj ET
+BT /F0 9.00 Tf 0.160 0.160 0.160 rg 269.68 415.00 Td (Summit College of Engineering) Tj ET
+BT /F0 9.00 Tf 0.160 0.160 0.160 rg 481.36 415.00 Td (2016) Tj ET
+0.60 w 0.800 0.800 0.800 RG 54.00 409.00 m 558.00 409.00 l S
+BT /F1 11.50 Tf 0.300 0.220 0.100 rg 54.00 389.50 Td (CERTIFICATIONS) Tj ET
+1.10 w 0.300 0.220 0.100 RG 54.00 386.50 m 558.00 386.50 l S
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 369.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 369.00 Td (Microsoft Certified: Azure Developer Associate) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 356.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 356.50 Td (Certified Kubernetes Application Developer \(CKAD\)) Tj ET
+BT /F1 9.50 Tf 0.300 0.220 0.100 rg 56.00 344.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 344.00 Td (AWS Certified Developer - Associate) Tj ET
+BT /F1 11.50 Tf 0.300 0.220 0.100 rg 54.00 327.50 Td (LANGUAGES) Tj ET
+1.10 w 0.300 0.220 0.100 RG 54.00 324.50 m 558.00 324.50 l S
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 307.00 Td (Arabic \(native\), Portuguese \(fluent\), French \(conversational\)) Tj ET
+
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 13 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F0 1 0 R /F1 2 0 R /F2 3 0 R /F3 4 0 R /F4 5 0 R /F5 6 0 R /F6 7 0 R /F7 8 0 R >> >> /Contents 9 0 R >>
+endobj
+12 0 obj
+<< /Type /Page /Parent 13 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F0 1 0 R /F1 2 0 R /F2 3 0 R /F3 4 0 R /F4 5 0 R /F5 6 0 R /F6 7 0 R /F7 8 0 R >> >> /Contents 10 0 R >>
+endobj
+13 0 obj
+<< /Type /Pages /Kids [ 11 0 R 12 0 R ] /Count 2 >>
+endobj
+14 0 obj
+<< /Type /Catalog /Pages 13 0 R >>
+endobj
+xref
+0 15
+0000000000 65535 f 
+0000000015 00000 n 
+0000000112 00000 n 
+0000000214 00000 n 
+0000000319 00000 n 
+0000000418 00000 n 
+0000000516 00000 n 
+0000000616 00000 n 
+0000000711 00000 n 
+0000000811 00000 n 
+0000008819 00000 n 
+0000014196 00000 n 
+0000014394 00000 n 
+0000014593 00000 n 
+0000014661 00000 n 
+trailer
+<< /Size 15 /Root 14 0 R >>
+startxref
+14712
+%%EOF

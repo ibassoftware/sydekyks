@@ -1,0 +1,209 @@
+%PDF-1.4
+%ту╧╙
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Times-Italic /Encoding /WinAnsiEncoding >>
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
+endobj
+8 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold /Encoding /WinAnsiEncoding >>
+endobj
+9 0 obj
+<< /Length 7970 >>
+stream
+BT /F4 22.00 Tf 0.080 0.300 0.220 rg 54.00 748.00 Td (Marcus Fischer) Tj ET
+BT /F2 11.50 Tf 0.300 0.300 0.300 rg 54.00 730.00 Td (Senior Mobile Developer) Tj ET
+BT /F0 8.50 Tf 0.400 0.400 0.400 rg 54.00 716.00 Td (Warsaw, PL  |  marcus.fischer@outlook.com  |  +1 \(619\) 886-4363) Tj ET
+BT /F0 8.50 Tf 0.400 0.400 0.400 rg 54.00 704.00 Td (github.com/marcusfischer  |  linkedin.com/in/marcus-fischer) Tj ET
+1.10 w 0.080 0.300 0.220 RG 54.00 696.00 m 558.00 696.00 l S
+BT /F4 11.50 Tf 0.080 0.300 0.220 rg 54.00 674.50 Td (PROFESSIONAL SUMMARY) Tj ET
+1.10 w 0.080 0.300 0.220 RG 54.00 671.50 m 558.00 671.50 l S
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 654.00 Td (Senior Mobile Developer with 7+ years building production software across the mobile stack.) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 641.50 Td (Comfortable owning features end to end, mentoring peers, and partnering with product to ship) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 629.00 Td (measurable outcomes. Strong on testing, code review, and pragmatic system design.) Tj ET
+BT /F4 11.50 Tf 0.080 0.300 0.220 rg 54.00 612.50 Td (PROFESSIONAL EXPERIENCE) Tj ET
+1.10 w 0.080 0.300 0.220 RG 54.00 609.50 m 558.00 609.50 l S
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 592.00 Td (Senior Mobile Developer) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 488.84 592.00 Td (2022 - Present) Tj ET
+BT /F2 9.00 Tf 0.400 0.400 0.400 rg 54.00 580.00 Td (Lumen Analytics  -  Seattle, WA) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 567.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 567.50 Td (Scaled a biometric login flow, improving CI time by 34%.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 555.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 555.00 Td (Implemented the push-notification pipeline.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 542.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 542.50 Td (Optimized the CI/CD release pipeline via Fastlane.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 530.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 530.00 Td (Led an image-caching layer cutting load time 54%.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 517.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 517.50 Td (Implemented the offline-first sync engine, cutting p95 latency 47%.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 505.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 505.00 Td (Refactored in-app purchases and subscriptions.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 492.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 492.50 Td (Refactored a cross-platform app with 30k installs.) Tj ET
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 476.00 Td (Senior Frontend Developer) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 503.66 476.00 Td (2021 - 2022) Tj ET
+BT /F2 9.00 Tf 0.400 0.400 0.400 rg 54.00 464.00 Td (Beacon Systems  -  Chicago, IL) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 451.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 451.50 Td (Owned the push-notification pipeline.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 439.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 439.00 Td (Implemented an image-caching layer cutting load time 22%.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 426.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 426.50 Td (Delivered a biometric login flow, reducing cloud spend 32%.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 414.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 414.00 Td (Led a cross-platform app with 25k installs.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 401.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 401.50 Td (Led the CI/CD release pipeline via Fastlane.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 389.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 389.00 Td (Designed in-app purchases and subscriptions, shrinking bundle size 31%.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 376.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 376.50 Td (Migrated the analytics + crash reporting stack, improving CI time by 59%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 360.00 Td (Senior Full Stack Engineer) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 503.66 360.00 Td (2019 - 2021) Tj ET
+BT /F2 9.00 Tf 0.400 0.400 0.400 rg 54.00 348.00 Td (Everfield  -  Lisbon, PT) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 335.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 335.50 Td (Delivered in-app purchases and subscriptions, shrinking bundle size 49%.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 323.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 323.00 Td (Refactored a cross-platform app with 38k installs, eliminating 58 on-call pages/week.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 310.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 310.50 Td (Migrated the analytics + crash reporting stack.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 298.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 298.00 Td (Shipped the CI/CD release pipeline via Fastlane.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 285.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 285.50 Td (Refactored a biometric login flow, improving CI time by 52%.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 273.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 273.00 Td (Refactored the push-notification pipeline.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 260.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 260.50 Td (Implemented the offline-first sync engine, shrinking bundle size 48%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 244.00 Td (Junior Mobile Developer) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 503.66 244.00 Td (2018 - 2019) Tj ET
+BT /F2 9.00 Tf 0.400 0.400 0.400 rg 54.00 232.00 Td (Tessera Tech  -  Amsterdam, NL) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 219.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 219.50 Td (Automated a cross-platform app with 38k installs.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 207.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 207.00 Td (Built a biometric login flow, shrinking bundle size 22%.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 194.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 194.50 Td (Refactored an image-caching layer cutting load time 26%, raising test coverage to 78%.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 182.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 182.00 Td (Refactored the offline-first sync engine.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 169.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 169.50 Td (Designed the analytics + crash reporting stack.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 157.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 157.00 Td (Optimized in-app purchases and subscriptions, raising test coverage to 89%.) Tj ET
+BT /F4 11.50 Tf 0.080 0.300 0.220 rg 54.00 136.50 Td (EDUCATION) Tj ET
+1.10 w 0.080 0.300 0.220 RG 54.00 133.50 m 558.00 133.50 l S
+0.080 0.300 0.220 rg 54.00 108.50 504.00 17.00 re f
+BT /F1 9.00 Tf 1.000 1.000 1.000 rg 58.00 114.50 Td (Degree) Tj ET
+BT /F1 9.00 Tf 1.000 1.000 1.000 rg 269.68 114.50 Td (Institution) Tj ET
+BT /F1 9.00 Tf 1.000 1.000 1.000 rg 481.36 114.50 Td (Year) Tj ET
+0.60 w 0.800 0.800 0.800 RG 54.00 108.50 m 558.00 108.50 l S
+0.950 0.950 0.950 rg 54.00 91.50 504.00 17.00 re f
+BT /F0 9.00 Tf 0.160 0.160 0.160 rg 58.00 97.50 Td (M.Sc. Computer Science) Tj ET
+BT /F0 9.00 Tf 0.160 0.160 0.160 rg 269.68 97.50 Td (Institute of Technology) Tj ET
+BT /F0 9.00 Tf 0.160 0.160 0.160 rg 481.36 97.50 Td (2018) Tj ET
+0.60 w 0.800 0.800 0.800 RG 54.00 91.50 m 558.00 91.50 l S
+BT /F4 11.50 Tf 0.080 0.300 0.220 rg 54.00 72.00 Td (TECHNICAL SKILLS) Tj ET
+1.10 w 0.080 0.300 0.220 RG 54.00 69.00 m 558.00 69.00 l S
+
+endstream
+endobj
+10 0 obj
+<< /Length 3927 >>
+stream
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 744.50 Td (SwiftUI, Dart, GitHub Actions, Realm, SQLite, Flutter, Jetpack Compose, Fastlane, App Center, Swift,) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 732.00 Td (Kotlin, React Native, Java, TypeScript) Tj ET
+BT /F4 11.50 Tf 0.080 0.300 0.220 rg 54.00 715.50 Td (LANGUAGES) Tj ET
+1.10 w 0.080 0.300 0.220 RG 54.00 712.50 m 558.00 712.50 l S
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 54.00 695.00 Td (Spanish \(fluent\), Japanese \(professional\), Portuguese \(fluent\)) Tj ET
+BT /F4 11.50 Tf 0.080 0.300 0.220 rg 54.00 678.50 Td (CERTIFICATIONS) Tj ET
+1.10 w 0.080 0.300 0.220 RG 54.00 675.50 m 558.00 675.50 l S
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 658.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 658.00 Td (Microsoft Certified: Azure Developer Associate) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 645.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 645.50 Td (HashiCorp Terraform Associate) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 633.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 633.00 Td (AWS Certified Developer - Associate) Tj ET
+BT /F4 11.50 Tf 0.080 0.300 0.220 rg 54.00 616.50 Td (SELECTED PROJECTS) Tj ET
+1.10 w 0.080 0.300 0.220 RG 54.00 613.50 m 558.00 613.50 l S
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 596.00 Td (Forge App) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 503.66 596.00 Td (Client work) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 583.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 583.50 Td (Designed in-app purchases and subscriptions, supporting 66k daily active users.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 571.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 571.00 Td (Optimized a cross-platform app with 7k installs.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 558.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 558.50 Td (Reduced the CI/CD release pipeline via Fastlane, supporting 30k daily active users.) Tj ET
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 544.00 Td (Cascade App) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 503.66 544.00 Td (Client work) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 531.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 531.50 Td (Migrated a cross-platform app with 27k installs, raising test coverage to 70%.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 519.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 519.00 Td (Scaled the push-notification pipeline, eliminating 86 on-call pages/week.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 506.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 506.50 Td (Owned an image-caching layer cutting load time 27%, reducing cloud spend 15%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 492.00 Td (Vertex App) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 498.72 492.00 Td (Side project) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 479.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 479.50 Td (Designed the CI/CD release pipeline via Fastlane.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 467.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 467.00 Td (Designed a biometric login flow, improving CI time by 46%.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 454.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 454.50 Td (Implemented the analytics + crash reporting stack, shrinking bundle size 41%.) Tj ET
+BT /F1 9.50 Tf 0.100 0.100 0.100 rg 54.00 440.00 Td (Cascade App) Tj ET
+BT /F2 9.50 Tf 0.350 0.350 0.350 rg 498.72 440.00 Td (Side project) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 427.50 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 427.50 Td (Architected a cross-platform app with 27k installs.) Tj ET
+BT /F1 9.50 Tf 0.080 0.300 0.220 rg 56.00 415.00 Td (Х) Tj ET
+BT /F0 9.50 Tf 0.160 0.160 0.160 rg 68.00 415.00 Td (Automated in-app purchases and subscriptions.) Tj ET
+
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 13 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F0 1 0 R /F1 2 0 R /F2 3 0 R /F3 4 0 R /F4 5 0 R /F5 6 0 R /F6 7 0 R /F7 8 0 R >> >> /Contents 9 0 R >>
+endobj
+12 0 obj
+<< /Type /Page /Parent 13 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F0 1 0 R /F1 2 0 R /F2 3 0 R /F3 4 0 R /F4 5 0 R /F5 6 0 R /F6 7 0 R /F7 8 0 R >> >> /Contents 10 0 R >>
+endobj
+13 0 obj
+<< /Type /Pages /Kids [ 11 0 R 12 0 R ] /Count 2 >>
+endobj
+14 0 obj
+<< /Type /Catalog /Pages 13 0 R >>
+endobj
+xref
+0 15
+0000000000 65535 f 
+0000000015 00000 n 
+0000000112 00000 n 
+0000000214 00000 n 
+0000000319 00000 n 
+0000000418 00000 n 
+0000000516 00000 n 
+0000000616 00000 n 
+0000000711 00000 n 
+0000000811 00000 n 
+0000008833 00000 n 
+0000012813 00000 n 
+0000013011 00000 n 
+0000013210 00000 n 
+0000013278 00000 n 
+trailer
+<< /Size 15 /Root 14 0 R >>
+startxref
+13329
+%%EOF

@@ -1,0 +1,224 @@
+%PDF-1.4
+%ту╧╙
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Times-Italic /Encoding /WinAnsiEncoding >>
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
+endobj
+8 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold /Encoding /WinAnsiEncoding >>
+endobj
+9 0 obj
+<< /Length 8428 >>
+stream
+BT /F4 22.00 Tf 0.440 0.140 0.160 rg 54.00 748.00 Td (Jordan Ferrari) Tj ET
+BT /F5 11.50 Tf 0.300 0.300 0.300 rg 54.00 730.00 Td (Senior Backend Developer) Tj ET
+BT /F3 8.50 Tf 0.400 0.400 0.400 rg 54.00 716.00 Td (Denver, CO  |  jordan.ferrari@outlook.com  |  +1 \(899\) 795-1966) Tj ET
+BT /F3 8.50 Tf 0.400 0.400 0.400 rg 54.00 704.00 Td (github.com/jordanferrari  |  linkedin.com/in/jordan-ferrari) Tj ET
+1.10 w 0.440 0.140 0.160 RG 54.00 696.00 m 558.00 696.00 l S
+BT /F4 11.50 Tf 0.440 0.140 0.160 rg 54.00 674.50 Td (PROFESSIONAL SUMMARY) Tj ET
+1.10 w 0.440 0.140 0.160 RG 54.00 671.50 m 558.00 671.50 l S
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 54.00 654.00 Td (Senior Backend Developer with 7+ years building production software across the backend stack. Comfortable) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 54.00 641.50 Td (owning features end to end, mentoring peers, and partnering with product to ship measurable outcomes. Strong) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 54.00 629.00 Td (on testing, code review, and pragmatic system design.) Tj ET
+BT /F4 11.50 Tf 0.440 0.140 0.160 rg 54.00 612.50 Td (PROFESSIONAL EXPERIENCE) Tj ET
+1.10 w 0.440 0.140 0.160 RG 54.00 609.50 m 558.00 609.50 l S
+BT /F4 9.50 Tf 0.100 0.100 0.100 rg 54.00 592.00 Td (Senior Backend Developer) Tj ET
+BT /F5 9.50 Tf 0.350 0.350 0.350 rg 494.16 592.00 Td (2022 - Present) Tj ET
+BT /F5 9.00 Tf 0.400 0.400 0.400 rg 54.00 580.00 Td (Cobalt Systems  -  Denver, CO) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 567.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 567.50 Td (Scaled a GraphQL gateway over 38 services, reducing cloud spend 40%.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 555.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 555.00 Td (Shipped the notification delivery service, cutting p95 latency 59%.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 542.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 542.50 Td (Designed a payments microservice handling 70k requests/min, shrinking bundle size 60%.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 530.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 530.00 Td (Reduced the billing REST API, shrinking bundle size 60%.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 517.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 517.50 Td (Shipped the reporting data warehouse ETL, reducing cloud spend 25%.) Tj ET
+BT /F4 9.50 Tf 0.100 0.100 0.100 rg 54.00 501.00 Td (Mobile Developer) Tj ET
+BT /F5 9.50 Tf 0.350 0.350 0.350 rg 507.84 501.00 Td (2021 - 2022) Tj ET
+BT /F5 9.00 Tf 0.400 0.400 0.400 rg 54.00 489.00 Td (Nimbus Studios  -  Singapore) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 476.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 476.50 Td (Delivered the billing REST API, improving CI time by 58%.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 464.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 464.00 Td (Scaled a payments microservice handling 38k requests/min.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 451.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 451.50 Td (Optimized the authentication + RBAC layer.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 439.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 439.00 Td (Designed the reporting data warehouse ETL, eliminating 57 on-call pages/week.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 426.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 426.50 Td (Built the notification delivery service, supporting 64k daily active users.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 414.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 414.00 Td (Refactored a GraphQL gateway over 3 services, reducing cloud spend 18%.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 401.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 401.50 Td (Delivered a background job system on Redis queues.) Tj ET
+BT /F4 9.50 Tf 0.100 0.100 0.100 rg 54.00 385.00 Td (Frontend Developer) Tj ET
+BT /F5 9.50 Tf 0.350 0.350 0.350 rg 507.84 385.00 Td (2020 - 2021) Tj ET
+BT /F5 9.00 Tf 0.400 0.400 0.400 rg 54.00 373.00 Td (Vantage Cloud  -  Manila, PH) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 360.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 360.50 Td (Optimized the notification delivery service, raising test coverage to 95%.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 348.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 348.00 Td (Automated the reporting data warehouse ETL, supporting 68k daily active users.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 335.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 335.50 Td (Refactored a payments microservice handling 4k requests/min.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 323.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 323.00 Td (Designed a background job system on Redis queues, supporting 63k daily active users.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 310.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 310.50 Td (Scaled the billing REST API, improving CI time by 62%.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 298.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 298.00 Td (Migrated a GraphQL gateway over 25 services, reducing cloud spend 39%.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 285.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 285.50 Td (Led the authentication + RBAC layer.) Tj ET
+BT /F4 9.50 Tf 0.100 0.100 0.100 rg 54.00 269.00 Td (Frontend Developer) Tj ET
+BT /F5 9.50 Tf 0.350 0.350 0.350 rg 507.84 269.00 Td (2019 - 2020) Tj ET
+BT /F5 9.00 Tf 0.400 0.400 0.400 rg 54.00 257.00 Td (Foundry42  -  Berlin, DE) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 244.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 244.50 Td (Implemented the notification delivery service.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 232.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 232.00 Td (Architected an event-driven ingestion pipeline, supporting 85k daily active users.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 219.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 219.50 Td (Designed a background job system on Redis queues.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 207.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 207.00 Td (Designed a GraphQL gateway over 11 services, shrinking bundle size 37%.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 194.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 194.50 Td (Shipped the reporting data warehouse ETL.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 182.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 182.00 Td (Delivered the authentication + RBAC layer, eliminating 11 on-call pages/week.) Tj ET
+BT /F4 9.50 Tf 0.100 0.100 0.100 rg 54.00 165.50 Td (Junior Full Stack Engineer) Tj ET
+BT /F5 9.50 Tf 0.350 0.350 0.350 rg 507.84 165.50 Td (2018 - 2019) Tj ET
+BT /F5 9.00 Tf 0.400 0.400 0.400 rg 54.00 153.50 Td (Meridian Software  -  Manila, PH) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 141.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 141.00 Td (Migrated the billing REST API, eliminating 79 on-call pages/week.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 128.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 128.50 Td (Migrated a background job system on Redis queues, shrinking bundle size 30%.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 116.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 116.00 Td (Delivered a payments microservice handling 56k requests/min, increasing throughput 60%.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 103.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 103.50 Td (Delivered the notification delivery service, increasing throughput 49%.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 91.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 91.00 Td (Reduced an event-driven ingestion pipeline, improving CI time by 19%.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 78.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 78.50 Td (Built a GraphQL gateway over 32 services.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 66.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 66.00 Td (Designed the authentication + RBAC layer, cutting p95 latency 24%.) Tj ET
+
+endstream
+endobj
+10 0 obj
+<< /Length 4972 >>
+stream
+BT /F4 11.50 Tf 0.440 0.140 0.160 rg 54.00 740.50 Td (LANGUAGES) Tj ET
+1.10 w 0.440 0.140 0.160 RG 54.00 737.50 m 558.00 737.50 l S
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 54.00 720.00 Td (English \(native\), Arabic \(native\), Japanese \(professional\)) Tj ET
+BT /F4 11.50 Tf 0.440 0.140 0.160 rg 54.00 703.50 Td (SELECTED PROJECTS) Tj ET
+1.10 w 0.440 0.140 0.160 RG 54.00 700.50 m 558.00 700.50 l S
+BT /F4 9.50 Tf 0.100 0.100 0.100 rg 54.00 683.00 Td (Orbit CLI) Tj ET
+BT /F5 9.50 Tf 0.350 0.350 0.350 rg 507.84 683.00 Td (Client work) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 670.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 670.50 Td (Owned the notification delivery service, supporting 76k daily active users.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 658.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 658.00 Td (Designed the billing REST API, eliminating 77 on-call pages/week.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 645.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 645.50 Td (Designed the billing REST API, supporting 43k daily active users.) Tj ET
+BT /F4 9.50 Tf 0.100 0.100 0.100 rg 54.00 631.00 Td (Harbor CLI) Tj ET
+BT /F5 9.50 Tf 0.350 0.350 0.350 rg 507.84 631.00 Td (Client work) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 618.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 618.50 Td (Scaled a GraphQL gateway over 40 services, supporting 50k daily active users.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 606.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 606.00 Td (Implemented a GraphQL gateway over 19 services, cutting p95 latency 23%.) Tj ET
+BT /F4 9.50 Tf 0.100 0.100 0.100 rg 54.00 591.50 Td (Vertex API) Tj ET
+BT /F5 9.50 Tf 0.350 0.350 0.350 rg 503.28 591.50 Td (Side project) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 579.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 579.00 Td (Led a GraphQL gateway over 24 services, eliminating 60 on-call pages/week.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 566.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 566.50 Td (Reduced a GraphQL gateway over 19 services.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 554.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 554.00 Td (Implemented a payments microservice handling 49k requests/min.) Tj ET
+BT /F4 9.50 Tf 0.100 0.100 0.100 rg 54.00 539.50 Td (Beacon) Tj ET
+BT /F5 9.50 Tf 0.350 0.350 0.350 rg 507.84 539.50 Td (Client work) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 527.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 527.00 Td (Automated the billing REST API.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 514.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 514.50 Td (Delivered the billing REST API.) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 502.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 502.00 Td (Delivered the notification delivery service, increasing throughput 57%.) Tj ET
+BT /F4 11.50 Tf 0.440 0.140 0.160 rg 54.00 483.50 Td (EDUCATION) Tj ET
+1.10 w 0.440 0.140 0.160 RG 54.00 480.50 m 558.00 480.50 l S
+0.440 0.140 0.160 rg 54.00 455.50 504.00 17.00 re f
+BT /F4 9.00 Tf 1.000 1.000 1.000 rg 58.00 461.50 Td (Degree) Tj ET
+BT /F4 9.00 Tf 1.000 1.000 1.000 rg 269.68 461.50 Td (Institution) Tj ET
+BT /F4 9.00 Tf 1.000 1.000 1.000 rg 481.36 461.50 Td (Year) Tj ET
+0.60 w 0.800 0.800 0.800 RG 54.00 455.50 m 558.00 455.50 l S
+0.950 0.950 0.950 rg 54.00 438.50 504.00 17.00 re f
+BT /F3 9.00 Tf 0.160 0.160 0.160 rg 58.00 444.50 Td (B.Eng. Software Engineering) Tj ET
+BT /F3 9.00 Tf 0.160 0.160 0.160 rg 269.68 444.50 Td (Northgate Institute of Technology) Tj ET
+BT /F3 9.00 Tf 0.160 0.160 0.160 rg 481.36 444.50 Td (2016) Tj ET
+0.60 w 0.800 0.800 0.800 RG 54.00 438.50 m 558.00 438.50 l S
+BT /F4 11.50 Tf 0.440 0.140 0.160 rg 54.00 419.00 Td (CERTIFICATIONS) Tj ET
+1.10 w 0.440 0.140 0.160 RG 54.00 416.00 m 558.00 416.00 l S
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 398.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 398.50 Td (Certified Kubernetes Application Developer \(CKAD\)) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 386.00 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 386.00 Td (MongoDB Certified Developer) Tj ET
+BT /F4 9.50 Tf 0.440 0.140 0.160 rg 56.00 373.50 Td (Х) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 68.00 373.50 Td (HashiCorp Terraform Associate) Tj ET
+BT /F4 11.50 Tf 0.440 0.140 0.160 rg 54.00 357.00 Td (TECHNICAL SKILLS) Tj ET
+1.10 w 0.440 0.140 0.160 RG 54.00 354.00 m 558.00 354.00 l S
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 54.00 336.50 Td (Languages: Ruby, TypeScript, Go, C#, Python) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 54.00 324.00 Td (Frameworks: Spring Boot, Django, FastAPI, Express) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 54.00 311.50 Td (Databases: MySQL, PostgreSQL, DynamoDB, Redis) Tj ET
+BT /F3 9.50 Tf 0.160 0.160 0.160 rg 54.00 299.00 Td (Cloud & DevOps: AWS, Docker, Terraform) Tj ET
+
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 13 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F0 1 0 R /F1 2 0 R /F2 3 0 R /F3 4 0 R /F4 5 0 R /F5 6 0 R /F6 7 0 R /F7 8 0 R >> >> /Contents 9 0 R >>
+endobj
+12 0 obj
+<< /Type /Page /Parent 13 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F0 1 0 R /F1 2 0 R /F2 3 0 R /F3 4 0 R /F4 5 0 R /F5 6 0 R /F6 7 0 R /F7 8 0 R >> >> /Contents 10 0 R >>
+endobj
+13 0 obj
+<< /Type /Pages /Kids [ 11 0 R 12 0 R ] /Count 2 >>
+endobj
+14 0 obj
+<< /Type /Catalog /Pages 13 0 R >>
+endobj
+xref
+0 15
+0000000000 65535 f 
+0000000015 00000 n 
+0000000112 00000 n 
+0000000214 00000 n 
+0000000319 00000 n 
+0000000418 00000 n 
+0000000516 00000 n 
+0000000616 00000 n 
+0000000711 00000 n 
+0000000811 00000 n 
+0000009291 00000 n 
+0000014316 00000 n 
+0000014514 00000 n 
+0000014713 00000 n 
+0000014781 00000 n 
+trailer
+<< /Size 15 /Root 14 0 R >>
+startxref
+14832
+%%EOF
