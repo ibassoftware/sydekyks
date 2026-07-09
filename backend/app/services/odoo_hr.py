@@ -138,15 +138,19 @@ def add_tag(client: OdooClient, applicant_id: int, tag_id: int) -> None:
 
 
 def search_untagged_applicants(
-    client: OdooClient, tag_name: str, *, since: str | None = None, limit: int = 30
+    client: OdooClient, tag_name: str, *, since: str | None = None, limit: int = 30, require_job: bool = False
 ) -> list[dict]:
     """Applicants NOT yet stamped with `tag_name` (the per-Sydekyk processed marker) — the
-    unprocessed-only cron query. Never returns already-processed records. Hard-capped at 30."""
+    unprocessed-only cron query. Never returns already-processed records. Hard-capped at 30.
+    `require_job` restricts to applicants assigned to a job position (Scout scores against the job,
+    so an applicant with no job can't be scored)."""
     limit = min(limit or 30, 30)
     domain: list = []
     tag_id = find_tag(client, tag_name)
     if tag_id:  # if the tag doesn't exist yet, nothing is tagged → no filter needed
         domain.append(["categ_ids", "not in", [tag_id]])
+    if require_job:
+        domain.append(["job_id", "!=", False])
     if since:
         domain.append(["create_date", ">", since])
     return client.search_read("hr.applicant", domain, _APPLICANT_LIST_FIELDS, limit=limit)

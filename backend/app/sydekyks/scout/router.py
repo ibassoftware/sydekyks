@@ -102,6 +102,7 @@ async def run_now(user: User = Depends(require_tenant_member), db: Session = Dep
     permissions.assert_can_use(db, user, sydekyk.id)
     s = _settings(db, user.tenant_id)
     queued = await recruitment_poll.enqueue_untagged_applicants(
-        db, tenant_id=user.tenant_id, sydekyk_id=sydekyk.id, tag_name=s.processed_tag_name, limit=s.cron_poll_limit,
+        db, tenant_id=user.tenant_id, sydekyk_id=sydekyk.id, tag_name=s.processed_tag_name,
+        limit=s.cron_poll_limit, require_job=True,  # Scout scores against the job — skip unassigned applicants
     )
     return RunNowOut(queued=queued)

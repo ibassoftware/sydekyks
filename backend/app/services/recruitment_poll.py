@@ -18,10 +18,12 @@ from app.services.queue import enqueue_mission
 
 
 async def enqueue_untagged_applicants(
-    db: Session, *, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID, tag_name: str, limit: int = 30, since: str | None = None
+    db: Session, *, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID, tag_name: str, limit: int = 30,
+    since: str | None = None, require_job: bool = False,
 ) -> int:
     """Enqueue a Mission for each Odoo applicant not yet tagged `tag_name` (unprocessed only, ≤30).
-    Skips applicants with no PDF résumé. Returns the number of Missions enqueued."""
+    Skips applicants with no PDF résumé. `require_job` further restricts to applicants assigned to a
+    job position (Scout). Returns the number of Missions enqueued."""
     limit = min(limit or 30, 30)
     link = gadget_links.find_assigned_link(db, tenant_id=tenant_id, sydekyk_id=sydekyk_id, role_key="erp")
     if link is None:
@@ -37,7 +39,7 @@ async def enqueue_untagged_applicants(
         return 0
 
     applicants = await asyncio.to_thread(
-        odoo_hr.search_untagged_applicants, client, tag_name, since=since, limit=limit
+        odoo_hr.search_untagged_applicants, client, tag_name, since=since, limit=limit, require_job=require_job
     )
 
     count = 0

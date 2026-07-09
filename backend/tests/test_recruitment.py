@@ -1,8 +1,38 @@
 """Unit tests for Decode/Scout pure logic — scoring bands + AI id-validation (no network, no DB)."""
 
-from app.services import vision_ai
+from app.services import odoo_hr, vision_ai
 from app.sydekyks.decode import extraction as decode_ext
 from app.sydekyks.scout import scoring
+
+
+class _FakeClient:
+    """Captures the domain/limit search_untagged_applicants builds (no Odoo)."""
+
+    def __init__(self):
+        self.calls = []
+
+    def search_read(self, model, domain, fields, limit=None):
+        # find_tag also calls search_read (hr.applicant.category) — return a tag so the tag filter is added.
+        if model == "hr.applicant.category":
+            return [{"id": 7}]
+        self.calls.append({"model": model, "domain": domain, "limit": limit})
+        return []
+
+
+def test_search_untagged_requires_job_and_caps():
+    client = _FakeClient()
+    odoo_hr.search_untagged_applicants(client, "Sydekyks: Scored", limit=100, require_job=True)
+    call = client.calls[-1]
+    assert call["limit"] == 30  # hard-capped at 30 regardless of the requested limit
+    assert ["job_id", "!=", False] in call["domain"]  # Scout only scores job-assigned applicants
+    assert ["categ_ids", "not in", [7]] in call["domain"]  # unprocessed-only
+
+
+def test_search_untagged_without_require_job_omits_job_filter():
+    client = _FakeClient()
+    odoo_hr.search_untagged_applicants(client, "Sydekyks: Decoded", limit=10)
+    call = client.calls[-1]
+    assert not any(term[0] == "job_id" for term in call["domain"])  # Decode isn't job-constrained
 
 
 def test_clamp_score():

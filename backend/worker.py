@@ -58,9 +58,10 @@ async def run_mission_task(ctx: dict, mission_id: str) -> str:
         db.close()
 
 
-async def _poll_recruitment(db, *, slug: str, settings_model) -> int:
+async def _poll_recruitment(db, *, slug: str, settings_model, require_job: bool = False) -> int:
     """Shared cron body for Decode/Scout: for each tenant with the Sydekyk installed + cron enabled,
-    enqueue Missions for unprocessed applicants (≤30). Bumps each tenant's poll watermark."""
+    enqueue Missions for unprocessed applicants (≤30). `require_job` restricts to job-assigned
+    applicants (Scout). Bumps each tenant's poll watermark."""
     sydekyk = db.query(Sydekyk).filter(Sydekyk.slug == slug).first()
     if sydekyk is None:
         return 0
@@ -76,7 +77,7 @@ async def _poll_recruitment(db, *, slug: str, settings_model) -> int:
         since = st.cron_last_polled_at.strftime("%Y-%m-%d %H:%M:%S") if st.cron_last_polled_at else None
         total += await recruitment_poll.enqueue_untagged_applicants(
             db, tenant_id=st.tenant_id, sydekyk_id=sydekyk.id, tag_name=st.processed_tag_name,
-            limit=st.cron_poll_limit, since=since,
+            limit=st.cron_poll_limit, since=since, require_job=require_job,
         )
         st.cron_last_polled_at = datetime.now(timezone.utc)
         db.commit()
@@ -98,7 +99,7 @@ async def poll_scout(ctx: dict) -> int:
 
     db = SessionLocal()
     try:
-        return await _poll_recruitment(db, slug="scout", settings_model=ScoutTenantSettings)
+        return await _poll_recruitment(db, slug="scout", settings_model=ScoutTenantSettings, require_job=True)
     finally:
         db.close()
 
