@@ -9,7 +9,8 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.sydekyk import SydekykInstall
-from app.sydekyks.decode.models import DecodeApplicant
+from app.services import savings
+from app.sydekyks.decode.models import DecodeApplicant, DecodeTenantSettings
 
 TREND_DAYS = 30
 
@@ -52,6 +53,11 @@ def compute_insights(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -
         for i in range(TREND_DAYS - 1, -1, -1)
     ]
 
+    s = db.query(DecodeTenantSettings).filter(DecodeTenantSettings.tenant_id == tenant_id).first()
+    wage = s.estimated_hourly_wage if s else 20.0
+    minutes = s.estimated_minutes_per_resume if s else 10.0
+    save = savings.compute(db, tenant_id, sydekyk_id, count=total, minutes_each=minutes, hourly_wage=wage)
+
     return {
         "total_applicants": total,
         "with_job_count": total - pooling,
@@ -59,4 +65,5 @@ def compute_insights(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -
         "needs_review_count": needs_review,
         "top_skills": top_skills,
         "daily_trend": daily_trend,
+        **save,
     }

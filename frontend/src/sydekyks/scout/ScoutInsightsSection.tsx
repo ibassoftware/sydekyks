@@ -13,6 +13,7 @@ export function ScoutInsightsSection() {
   if (!data || !data.activated || data.total_scored === 0) return null;
 
   const maxBand = Math.max(1, ...data.distribution.map((b) => b.count));
+  const money = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
 
   return (
     <Card className="relative mt-6 overflow-hidden p-6">
@@ -21,7 +22,18 @@ export function ScoutInsightsSection() {
         <p className="text-xs font-semibold uppercase tracking-widest text-gold-500">Scout — Candidates scored</p>
       </div>
 
-      <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+      <div className="mt-4">
+        <p className="text-xs font-semibold uppercase tracking-wider text-[#8a7f6d]">Estimated $ saved</p>
+        <p className="mt-1 text-4xl font-bold text-[#f5eee0]">${money(data.estimated_net_savings)}</p>
+        <p className="mt-1 text-xs text-[#8a7f6d]">
+          ${money(data.estimated_manual_cost)} manual screening avoided − ${money(data.ai_cost)} AI cost
+        </p>
+        <p className="mt-1 text-[11px] text-[#665c4c]">
+          Assumes ${data.estimated_hourly_wage}/hr, {data.estimated_minutes_each} min per candidate — adjust in Scout settings.
+        </p>
+      </div>
+
+      <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <div>
           <div className="grid grid-cols-3 gap-3">
             <div>

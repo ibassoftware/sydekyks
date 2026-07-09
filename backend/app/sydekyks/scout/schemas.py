@@ -5,6 +5,8 @@ class ScoutSettingsOut(BaseModel):
     processed_tag_name: str
     min_score_threshold: int
     scoring_rubric: str | None = None
+    estimated_hourly_wage: float
+    estimated_minutes_per_candidate: float
     cron_enabled: bool
     cron_poll_limit: int
 
@@ -13,6 +15,8 @@ class ScoutSettingsUpdate(BaseModel):
     processed_tag_name: str = Field(min_length=1, max_length=120)
     min_score_threshold: int = Field(ge=0, le=100)
     scoring_rubric: str | None = None
+    estimated_hourly_wage: float = Field(default=25.0, ge=0)
+    estimated_minutes_per_candidate: float = Field(default=15.0, ge=0)
     cron_enabled: bool
     cron_poll_limit: int = Field(default=30, ge=1, le=30)
 
@@ -68,6 +72,11 @@ class ScoutInsightsOut(BaseModel):
     distribution: list[ScoreBand]
     top_candidates: list[TopCandidate]
     daily_trend: list[ScoutDailyPoint]
+    estimated_hourly_wage: float = 0.0
+    estimated_minutes_each: float = 0.0
+    estimated_manual_cost: float = 0.0
+    ai_cost: float = 0.0
+    estimated_net_savings: float = 0.0
 
 
 class RunNowOut(BaseModel):

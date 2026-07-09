@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -24,6 +24,9 @@ class ScoutTenantSettings(Base):
     min_score_threshold: Mapped[int] = mapped_column(Integer, nullable=False, default=60)
     # Extra tenant criteria fed to the AI scorer on top of the job description.
     scoring_rubric: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Dashboard "estimated $ saved" assumptions — manual time to screen/score one candidate.
+    estimated_hourly_wage: Mapped[float] = mapped_column(Float, nullable=False, default=25.0)
+    estimated_minutes_per_candidate: Mapped[float] = mapped_column(Float, nullable=False, default=15.0)
     cron_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     cron_last_polled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     cron_poll_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=30)

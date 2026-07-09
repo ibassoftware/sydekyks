@@ -18,7 +18,19 @@ export function DecodeInsightsSection() {
         <span className="text-lg">🧑‍💼</span>
         <p className="text-xs font-semibold uppercase tracking-widest text-gold-500">Decode — Résumés parsed</p>
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+
+      <div className="mt-4">
+        <p className="text-xs font-semibold uppercase tracking-wider text-[#8a7f6d]">Estimated $ saved</p>
+        <p className="mt-1 text-4xl font-bold text-[#f5eee0]">${money(data.estimated_net_savings)}</p>
+        <p className="mt-1 text-xs text-[#8a7f6d]">
+          ${money(data.estimated_manual_cost)} manual data entry avoided − ${money(data.ai_cost)} AI cost
+        </p>
+        <p className="mt-1 text-[11px] text-[#665c4c]">
+          Assumes ${data.estimated_hourly_wage}/hr, {data.estimated_minutes_each} min per résumé — adjust in Decode settings.
+        </p>
+      </div>
+
+      <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Tile value={data.total_applicants} label="Applicants" />
         <Tile value={data.with_job_count} label="Matched to a job" />
         <Tile value={data.pooling_count} label="Pooled" />
@@ -38,6 +50,10 @@ export function DecodeInsightsSection() {
       )}
     </Card>
   );
+}
+
+function money(n: number): string {
+  return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
 function Tile({ value, label }: { value: number; label: string }) {

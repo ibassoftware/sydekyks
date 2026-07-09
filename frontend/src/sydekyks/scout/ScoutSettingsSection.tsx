@@ -133,6 +133,39 @@ export function ScoutSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
           <p className="text-xs text-[#8a7f6d]">The cron requires the background worker to be running.</p>
         </div>
       )}
+
+      {settings && (
+        <div className="grid gap-3 border-t border-ink-700 pt-6">
+          <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Estimated Savings</p>
+          <p className="-mt-1 text-xs text-[#8a7f6d]">Powers the “$ saved” metric on your Dashboard.</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Hourly wage ($)</Label>
+              <Input
+                type="number"
+                min={0}
+                step={0.5}
+                disabled={!canManage || saving}
+                value={settings.estimated_hourly_wage}
+                onChange={(e) => setSettings({ ...settings, estimated_hourly_wage: Number(e.target.value) })}
+                onBlur={(e) => save({ ...settings, estimated_hourly_wage: Number(e.target.value) })}
+              />
+            </div>
+            <div>
+              <Label>Minutes to screen one candidate</Label>
+              <Input
+                type="number"
+                min={0}
+                step={0.5}
+                disabled={!canManage || saving}
+                value={settings.estimated_minutes_per_candidate}
+                onChange={(e) => setSettings({ ...settings, estimated_minutes_per_candidate: Number(e.target.value) })}
+                onBlur={(e) => save({ ...settings, estimated_minutes_per_candidate: Number(e.target.value) })}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

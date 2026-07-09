@@ -52,7 +52,9 @@ def _settings(db: Session, tenant_id) -> ScoutTenantSettings:
 def _settings_out(s: ScoutTenantSettings) -> ScoutSettingsOut:
     return ScoutSettingsOut(
         processed_tag_name=s.processed_tag_name, min_score_threshold=s.min_score_threshold,
-        scoring_rubric=s.scoring_rubric, cron_enabled=s.cron_enabled, cron_poll_limit=s.cron_poll_limit,
+        scoring_rubric=s.scoring_rubric, estimated_hourly_wage=s.estimated_hourly_wage,
+        estimated_minutes_per_candidate=s.estimated_minutes_per_candidate,
+        cron_enabled=s.cron_enabled, cron_poll_limit=s.cron_poll_limit,
     )
 
 
@@ -68,6 +70,8 @@ def update_settings(payload: ScoutSettingsUpdate, user: User = Depends(require_t
     s.processed_tag_name = payload.processed_tag_name
     s.min_score_threshold = payload.min_score_threshold
     s.scoring_rubric = payload.scoring_rubric
+    s.estimated_hourly_wage = payload.estimated_hourly_wage
+    s.estimated_minutes_per_candidate = payload.estimated_minutes_per_candidate
     s.cron_enabled = payload.cron_enabled
     s.cron_poll_limit = payload.cron_poll_limit
     db.commit()

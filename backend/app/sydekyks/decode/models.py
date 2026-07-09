@@ -27,6 +27,9 @@ class DecodeTenantSettings(Base):
     pooling_stage_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
     # Max résumé pages sent to the vision model when a résumé has no text layer (scanned/photo).
     max_resume_pages: Mapped[int] = mapped_column(Integer, nullable=False, default=6)
+    # Dashboard "estimated $ saved" assumptions — manual time to key one applicant in from a résumé.
+    estimated_hourly_wage: Mapped[float] = mapped_column(Float, nullable=False, default=20.0)
+    estimated_minutes_per_resume: Mapped[float] = mapped_column(Float, nullable=False, default=10.0)
     cron_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     cron_last_polled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     cron_poll_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=30)

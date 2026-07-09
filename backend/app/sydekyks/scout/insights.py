@@ -8,7 +8,8 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.sydekyk import SydekykInstall
-from app.sydekyks.scout.models import ScoutApplicant
+from app.services import savings
+from app.sydekyks.scout.models import ScoutApplicant, ScoutTenantSettings
 
 TREND_DAYS = 30
 _BANDS = [("85-100", 85, 101), ("70-84", 70, 85), ("50-69", 50, 70), ("0-49", 0, 50)]
@@ -59,6 +60,11 @@ def compute_insights(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -
         for i in range(TREND_DAYS - 1, -1, -1)
     ]
 
+    s = db.query(ScoutTenantSettings).filter(ScoutTenantSettings.tenant_id == tenant_id).first()
+    wage = s.estimated_hourly_wage if s else 25.0
+    minutes = s.estimated_minutes_per_candidate if s else 15.0
+    save = savings.compute(db, tenant_id, sydekyk_id, count=total, minutes_each=minutes, hourly_wage=wage)
+
     return {
         "total_scored": total,
         "average_score": round(float(avg), 1),
@@ -66,4 +72,5 @@ def compute_insights(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -
         "distribution": distribution,
         "top_candidates": top_candidates,
         "daily_trend": daily_trend,
+        **save,
     }

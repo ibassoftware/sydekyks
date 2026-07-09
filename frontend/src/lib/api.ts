@@ -467,6 +467,8 @@ export interface DecodeSettings {
   processed_tag_name: string;
   pooling_stage_name: string | null;
   max_resume_pages: number;
+  estimated_hourly_wage: number;
+  estimated_minutes_per_resume: number;
   cron_enabled: boolean;
   cron_poll_limit: number;
 }
@@ -497,6 +499,11 @@ export interface DecodeInsights {
   needs_review_count: number;
   top_skills: { skill: string; count: number }[];
   daily_trend: { date: string; count: number }[];
+  estimated_hourly_wage: number;
+  estimated_minutes_each: number;
+  estimated_manual_cost: number;
+  ai_cost: number;
+  estimated_net_savings: number;
 }
 
 // --- Scout (résumé scorer) ---
@@ -504,6 +511,8 @@ export interface ScoutSettings {
   processed_tag_name: string;
   min_score_threshold: number;
   scoring_rubric: string | null;
+  estimated_hourly_wage: number;
+  estimated_minutes_per_candidate: number;
   cron_enabled: boolean;
   cron_poll_limit: number;
 }
@@ -527,4 +536,9 @@ export interface ScoutInsights {
   distribution: { band: string; count: number }[];
   top_candidates: { applicant_name: string | null; job_name: string | null; score: number }[];
   daily_trend: { date: string; count: number }[];
+  estimated_hourly_wage: number;
+  estimated_minutes_each: number;
+  estimated_manual_cost: number;
+  ai_cost: number;
+  estimated_net_savings: number;
 }
