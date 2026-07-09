@@ -4,6 +4,7 @@ import { api, type Mission, type MissionDetail, type MissionStatus } from "../li
 import { Badge } from "./ui";
 import { ReviewBadge } from "./review";
 import { MissionDetailPanel } from "./MissionDetailPanel";
+import { registryForPlaybook } from "../sydekyks/registry";
 
 function StatusBadge({ status }: { status: MissionStatus }) {
   if (status === "succeeded") return <Badge tone="gold">Done</Badge>;
@@ -19,6 +20,17 @@ function StatusBadge({ status }: { status: MissionStatus }) {
 
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+/** Human-friendly run time, e.g. "4 seconds", "1 min 4 sec", "2 min". */
+function fmtDuration(startIso: string, endIso: string): string | null {
+  const ms = new Date(endIso).getTime() - new Date(startIso).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return null;
+  const sec = Math.round(ms / 1000);
+  if (sec < 60) return `${sec} second${sec === 1 ? "" : "s"}`;
+  const mins = Math.floor(sec / 60);
+  const rem = sec % 60;
+  return rem ? `${mins} min ${rem} sec` : `${mins} min`;
 }
 
 function sourceLabel(m: Mission): string {
@@ -72,32 +84,55 @@ export function MissionList({
     <div className="divide-y divide-ink-700/60">
       {missions.map((m) => {
         const needsReview = Boolean(m.result_summary?.needs_review) && !m.reviewed;
+        const reg = registryForPlaybook(m.playbook_key);
+        const label = reg?.missionRowLabel?.(m) ?? { title: m.document_filename ?? "document" };
+        const hr = reg?.domain === "hr";
+        // Bluish hue marks HR Sydekyks (Decode/Scout); accounting (Ledger) keeps the default ink row.
+        const hoverTint = hr ? "hover:bg-blue-500/[0.07]" : "hover:bg-ink-800/50";
+        // The Odoo deep link (applicant for HR, bill for Ledger) shown on the collapsed card too.
+        const odooUrl = m.odoo_record_url ?? m.odoo_bill_url ?? null;
+        const odooLabel = m.odoo_record_label ?? "Open bill in Odoo";
         return (
-          <div key={m.id}>
+          <div key={m.id} className={hr ? "bg-blue-500/[0.035]" : undefined}>
             <div className="flex items-stretch">
               <button
                 onClick={() => toggle(m.id)}
-                className="grid flex-1 grid-cols-[1fr_auto] items-center gap-3 px-5 py-3 text-left hover:bg-ink-800/50"
+                className={`grid flex-1 grid-cols-[1fr_auto] items-center gap-3 px-5 py-3 text-left ${hoverTint}`}
               >
                 <div className="min-w-0">
                   <div className="flex min-w-0 items-center gap-2">
                     {showSydekyk && m.sydekyk_name && (
-                      <span className="shrink-0 rounded-md border border-gold-600/40 bg-gold-500/10 px-2 py-0.5 text-[11px] font-semibold text-gold-300">
+                      <span
+                        className={`shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-semibold ${
+                          hr
+                            ? "border-blue-400/40 bg-blue-500/10 text-blue-200"
+                            : "border-gold-600/40 bg-gold-500/10 text-gold-300"
+                        }`}
+                      >
                         {m.sydekyk_name}
                       </span>
                     )}
-                    <p className="truncate text-sm font-medium text-[#ede6da]">
-                      {m.document_filename ?? "document"}
+                    <p className={`truncate text-sm font-medium ${label.muted ? "text-[#8a7f6d]" : "text-[#ede6da]"}`}>
+                      {label.title}
                       {m.attempt_number > 1 && <span className="ml-1 text-xs text-[#8a7f6d]">· retry #{m.attempt_number - 1}</span>}
                     </p>
                   </div>
                   <p className="mt-0.5 truncate text-xs text-[#8a7f6d]">
-                    {sourceLabel(m)} · Started {fmtDate(m.created_at)}
-                    {m.completed_at
-                      ? ` · Done ${fmtDate(m.completed_at)}`
-                      : m.status === "running" || m.status === "queued"
-                        ? " · In progress"
-                        : ""}
+                    {m.document_filename ? `${m.document_filename} · ` : ""}
+                    {sourceLabel(m)} · {fmtDate(m.created_at)}
+                    {m.completed_at ? (
+                      <>
+                        {" · Done "}
+                        {(() => {
+                          const d = fmtDuration(m.created_at, m.completed_at);
+                          return d ? <span className="font-semibold text-gold-300">in {d}</span> : fmtDate(m.completed_at);
+                        })()}
+                      </>
+                    ) : m.status === "running" || m.status === "queued" ? (
+                      " · In progress"
+                    ) : (
+                      ""
+                    )}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -106,11 +141,22 @@ export function MissionList({
                   <StatusBadge status={m.status} />
                 </div>
               </button>
+              {odooUrl && (
+                <a
+                  href={odooUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={odooLabel}
+                  className={`flex items-center border-l border-ink-700/60 px-4 text-xs font-semibold text-gold-400 ${hoverTint}`}
+                >
+                  Odoo →
+                </a>
+              )}
               {needsReview && (
                 <Link
                   to={`/hq/issues?mission=${m.id}`}
-                  title="Jump to this bill on the Issues page"
-                  className="flex items-center border-l border-ink-700/60 px-4 text-xs font-semibold text-amber-400 hover:bg-ink-800/50"
+                  title="Jump to this record on the Issues page"
+                  className={`flex items-center border-l border-ink-700/60 px-4 text-xs font-semibold text-amber-400 ${hoverTint}`}
                 >
                   Review →
                 </Link>

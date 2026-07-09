@@ -58,6 +58,36 @@ def _mission_out(
     )
 
 
+def _attach_odoo_links(db: Session, tenant_id: uuid.UUID, pairs: list[tuple[MissionOut, Mission]]) -> None:
+    """Fill each row's Odoo deep link (bill and/or applicant) so the link shows on the collapsed
+    card, not just the expanded detail. The instance URL is cached per Sydekyk, so a list of N
+    Missions costs one gadget-link lookup per distinct Sydekyk — not per row."""
+    base_cache: dict = {}
+
+    def base_for(sydekyk_id):
+        if sydekyk_id not in base_cache:
+            base_cache[sydekyk_id] = gadget_links.assigned_odoo_base_url(
+                db, tenant_id=tenant_id, sydekyk_id=sydekyk_id
+            )
+        return base_cache[sydekyk_id]
+
+    for out, m in pairs:
+        summary = m.result_summary or {}
+        move_id = summary.get("odoo_move_id")
+        generic = gadget_links.mission_generic_record(summary)
+        if not move_id and generic is None:
+            continue
+        base = base_for(m.sydekyk_id)
+        if not base:
+            continue
+        if move_id:
+            out.odoo_bill_url = gadget_links.odoo_form_url(base, "account.move", move_id)
+        if generic is not None:
+            model, res_id, label = generic
+            out.odoo_record_url = gadget_links.odoo_form_url(base, model, res_id)
+            out.odoo_record_label = label
+
+
 @router.get("/sydekyks/{sydekyk_id}/missions", response_model=list[MissionOut])
 def list_missions(
     sydekyk_id: uuid.UUID, limit: int = 20, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)
@@ -72,7 +102,9 @@ def list_missions(
         .limit(min(limit, 100))
         .all()
     )
-    return [_mission_out(m, filename=fn, source=src, sydekyk_name=name) for m, fn, src, name in rows]
+    pairs = [(_mission_out(m, filename=fn, source=src, sydekyk_name=name), m) for m, fn, src, name in rows]
+    _attach_odoo_links(db, user.tenant_id, pairs)
+    return [out for out, _ in pairs]
 
 
 @router.get("/missions", response_model=MissionPage)
@@ -116,11 +148,12 @@ def list_all_missions(
     total = count_q.scalar() or 0
 
     rows = base.order_by(Mission.created_at.desc()).limit(limit).offset(offset).all()
-    items = [
-        _mission_out(m, filename=fn, source=src, sydekyk_name=name, initiated_by_email=email)
+    pairs = [
+        (_mission_out(m, filename=fn, source=src, sydekyk_name=name, initiated_by_email=email), m)
         for m, fn, src, name, email in rows
     ]
-    return MissionPage(items=items, total=total, limit=limit, offset=offset)
+    _attach_odoo_links(db, user.tenant_id, pairs)
+    return MissionPage(items=[out for out, _ in pairs], total=total, limit=limit, offset=offset)
 
 
 @router.get("/missions/active", response_model=list[MissionOut])
