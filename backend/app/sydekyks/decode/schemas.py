@@ -61,6 +61,24 @@ class DecodeDailyPoint(BaseModel):
     count: int
 
 
+class PositionCount(BaseModel):
+    job_name: str
+    count: int
+
+
+class BandCount(BaseModel):
+    band: str
+    count: int
+
+
+class DecodeDataQuality(BaseModel):
+    with_email: int
+    with_phone: int
+    with_skills: int
+    with_experience: int
+    needs_review: int
+
+
 class DecodeInsightsOut(BaseModel):
     activated: bool
     total_applicants: int
@@ -68,6 +86,9 @@ class DecodeInsightsOut(BaseModel):
     pooling_count: int
     needs_review_count: int
     top_skills: list[TopSkill]
+    applications_by_position: list[PositionCount] = []
+    data_quality: DecodeDataQuality | None = None
+    seniority_mix: list[BandCount] = []
     daily_trend: list[DecodeDailyPoint]
     estimated_hourly_wage: float = 0.0
     estimated_minutes_each: float = 0.0

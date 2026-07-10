@@ -49,10 +49,25 @@ class ScoreBand(BaseModel):
     count: int
 
 
-class TopCandidate(BaseModel):
+class ShortlistCandidate(BaseModel):
     applicant_name: str | None
-    job_name: str | None
     score: int
+    summary: str | None = None
+    odoo_url: str | None = None
+
+
+class RoleHealth(BaseModel):
+    job_name: str
+    scored: int
+    strong: int
+    avg_score: float
+    top_score: int
+    top_candidates: list[ShortlistCandidate] = []
+
+
+class ThemeCount(BaseModel):
+    label: str
+    count: int
 
 
 class ScoutDailyPoint(BaseModel):
@@ -64,8 +79,11 @@ class ScoutInsightsOut(BaseModel):
     activated: bool
     total_scored: int
     average_score: float
+    strong_count: int = 0
     distribution: list[ScoreBand]
-    top_candidates: list[TopCandidate]
+    role_health: list[RoleHealth] = []
+    common_strengths: list[ThemeCount] = []
+    common_weaknesses: list[ThemeCount] = []
     daily_trend: list[ScoutDailyPoint]
     estimated_hourly_wage: float = 0.0
     estimated_minutes_each: float = 0.0

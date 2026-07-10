@@ -1,8 +1,23 @@
 """Unit tests for Decode/Scout pure logic — scoring bands + AI id-validation (no network, no DB)."""
 
+from collections import Counter
+
 from app.services import odoo_hr, vision_ai
 from app.sydekyks.decode import extraction as decode_ext
 from app.sydekyks.scout import scoring
+from app.sydekyks.scout.insights import _tally
+
+
+def test_tally_groups_case_and_whitespace_variants():
+    counter: Counter = Counter()
+    display: dict = {}
+    _tally(counter, display, ["Strong Python", "strong  python", "STRONG PYTHON", "Leadership", ""])
+    # The three Python variants collapse to one theme; empty strings are ignored.
+    assert counter["strong python"] == 3
+    assert counter["leadership"] == 1
+    assert "" not in counter
+    # A readable first-seen label is kept for display.
+    assert display["strong python"] == "Strong Python"
 
 
 class _FakeClient:

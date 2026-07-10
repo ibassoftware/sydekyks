@@ -2,17 +2,31 @@
 ScoutApplicant store. Gated on Scout being installed."""
 
 import uuid
+from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.sydekyk import SydekykInstall
-from app.services import savings
+from app.services import gadget_links, savings
 from app.sydekyks.scout.models import ScoutApplicant, ScoutTenantSettings
 
 TREND_DAYS = 30
 _BANDS = [("85-100", 85, 101), ("70-84", 70, 85), ("50-69", 50, 70), ("0-49", 0, 50)]
+STRONG_SCORE = 80  # display-only band for "strong candidates" (Scout has no review gate)
+
+
+def _tally(counter: Counter, display: dict, phrases) -> None:
+    """Count free-text strength/weakness phrases, grouping case/whitespace variants under one key
+    while keeping a readable first-seen label for display."""
+    for p in phrases or []:
+        norm = " ".join(str(p).split())
+        if not norm:
+            continue
+        key = norm.lower()
+        counter[key] += 1
+        display.setdefault(key, norm)
 
 
 def scout_activated(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -> bool:
@@ -37,12 +51,48 @@ def compute_insights(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -
         for label, lo, hi in _BANDS
     ]
 
-    top = (
-        base.order_by(ScoutApplicant.score.desc(), ScoutApplicant.created_at.desc()).limit(5).all()
-    )
-    top_candidates = [
-        {"applicant_name": r.applicant_name, "job_name": r.job_name, "score": r.score} for r in top
-    ]
+    # Per-role shortlist + health, and common strength/gap themes — one pass over the store.
+    rows_all = base.all()
+    by_role: dict = defaultdict(list)
+    strengths_counter: Counter = Counter()
+    weaknesses_counter: Counter = Counter()
+    s_display: dict = {}
+    w_display: dict = {}
+    for r in rows_all:
+        by_role[r.job_name or "Unassigned"].append(r)
+        _tally(strengths_counter, s_display, r.strengths)
+        _tally(weaknesses_counter, w_display, r.weaknesses)
+
+    base_url = gadget_links.assigned_odoo_base_url(db, tenant_id=tenant_id, sydekyk_id=sydekyk_id)
+
+    def _cand(r) -> dict:
+        return {
+            "applicant_name": r.applicant_name,
+            "score": r.score,
+            "summary": r.summary,
+            "odoo_url": (
+                gadget_links.odoo_form_url(base_url, "hr.applicant", r.odoo_applicant_id)
+                if base_url and r.odoo_applicant_id else None
+            ),
+        }
+
+    role_health = []
+    for job, rs in by_role.items():
+        scored = len(rs)
+        top3 = sorted(rs, key=lambda x: (x.score, x.created_at), reverse=True)[:3]
+        role_health.append({
+            "job_name": job,
+            "scored": scored,
+            "strong": sum(1 for x in rs if x.score >= STRONG_SCORE),
+            "avg_score": round(sum(x.score for x in rs) / scored, 1) if scored else 0.0,
+            "top_score": max((x.score for x in rs), default=0),
+            "top_candidates": [_cand(x) for x in top3],
+        })
+    role_health.sort(key=lambda d: d["scored"], reverse=True)
+    role_health = role_health[:12]
+
+    common_strengths = [{"label": s_display[k], "count": v} for k, v in strengths_counter.most_common(8)]
+    common_weaknesses = [{"label": w_display[k], "count": v} for k, v in weaknesses_counter.most_common(8)]
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=TREND_DAYS)
     rows = (
@@ -68,8 +118,11 @@ def compute_insights(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -
     return {
         "total_scored": total,
         "average_score": round(float(avg), 1),
+        "strong_count": sum(1 for r in rows_all if r.score >= STRONG_SCORE),
         "distribution": distribution,
-        "top_candidates": top_candidates,
+        "role_health": role_health,
+        "common_strengths": common_strengths,
+        "common_weaknesses": common_weaknesses,
         "daily_trend": daily_trend,
         **save,
     }

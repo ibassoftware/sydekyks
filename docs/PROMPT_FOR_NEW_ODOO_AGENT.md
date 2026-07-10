@@ -156,8 +156,21 @@ Build these components (mirror an existing agent):
   **Recent Missions** list (`MissionList`) that polls while work is active.
 - **Dashboard insights card** — renders only when the agent is installed and has data. Lead with a
   small **agent thumbnail** (`AgentThumb slug="<slug>"`, from `/sydekyks/<slug>.png`) + the agent
-  name so the value block is instantly recognizable. Show `$ saved`, the **speed line** (AI time vs
-  manual contrast), key counts, and a trend/chart. Load the `dataviz` skill before charting.
+  name so the value block is instantly recognizable. Show `$ saved` and the **speed line** (AI time
+  vs manual contrast) up top. **Then design the body around a decision, not throughput** — ask "what
+  would the manager who owns this actually log in to decide or catch?" (see below). Load the `dataviz`
+  skill before charting; simple CSS bars/tables (no chart lib) match the house style.
+
+  Two worked examples:
+  - **Scout (a scoring/triage agent)** is a *decision cockpit*: **pipeline health by role** (per job:
+    scored / strong / avg / top, expandable to a **shortlist** with an *Open in Odoo* link on each
+    candidate), the **common gaps & strengths** themes across the pool (the AI-only insight that
+    drives JD/sourcing changes), and a score distribution. Resolve each candidate's Odoo deep link
+    server-side (`gadget_links.assigned_odoo_base_url` + `odoo_form_url`).
+  - **Decode (an intake/parsing agent)** is an *intake monitor*: **applications by position** (where
+    interest lands + the size of the unrouted pool), **data-quality tiles** (% captured with email /
+    phone / skills / experience — trust in the Odoo data), **seniority mix**, and the top skills in
+    the pool.
 - **Mission summary** — reads `result_summary` and shows the business object (applicant · position ·
   score), not raw JSON.
 
@@ -217,5 +230,9 @@ run-now/upload create Missions the normal way; nothing agent-specific to build.
   workflow — the note + a field write is enough.
 - **Version-safe Odoo.** `fields_get` everything; find fields by relation, not name.
 - **Surface value.** Every agent shows `$ saved` and throughput so the user sees the payoff.
+- **Dashboards drive a decision, not a scoreboard.** Throughput proves the agent works; it isn't why
+  a manager logs in. Design the dashboard around the decision the record's owner makes (who to
+  interview, which req is starving, is the captured data trustworthy) and surface the insight only an
+  AI could produce (aggregated gaps/themes), with a click-through into Odoo to act.
 - **Consistent UX via the registry.** Per-agent display (row labels, hue, review noun, panels) lives
   in one registry; shared pages never branch on slug.

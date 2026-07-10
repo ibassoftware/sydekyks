@@ -506,6 +506,15 @@ export interface DecodeInsights {
   pooling_count: number;
   needs_review_count: number;
   top_skills: { skill: string; count: number }[];
+  applications_by_position: { job_name: string; count: number }[];
+  data_quality: {
+    with_email: number;
+    with_phone: number;
+    with_skills: number;
+    with_experience: number;
+    needs_review: number;
+  } | null;
+  seniority_mix: { band: string; count: number }[];
   daily_trend: { date: string; count: number }[];
   estimated_hourly_wage: number;
   estimated_minutes_each: number;
@@ -535,12 +544,29 @@ export interface ScoutPlaybook {
 export interface RunNowResult {
   queued: number;
 }
+export interface ShortlistCandidate {
+  applicant_name: string | null;
+  score: number;
+  summary: string | null;
+  odoo_url: string | null;
+}
+export interface RoleHealth {
+  job_name: string;
+  scored: number;
+  strong: number;
+  avg_score: number;
+  top_score: number;
+  top_candidates: ShortlistCandidate[];
+}
 export interface ScoutInsights {
   activated: boolean;
   total_scored: number;
   average_score: number;
+  strong_count: number;
   distribution: { band: string; count: number }[];
-  top_candidates: { applicant_name: string | null; job_name: string | null; score: number }[];
+  role_health: RoleHealth[];
+  common_strengths: { label: string; count: number }[];
+  common_weaknesses: { label: string; count: number }[];
   daily_trend: { date: string; count: number }[];
   estimated_hourly_wage: number;
   estimated_minutes_each: number;
