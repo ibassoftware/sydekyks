@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type DecodeInsights } from "../../lib/api";
+import { formatWorkTime } from "../../lib/format";
 import { Card } from "../../components/ui";
 
 /** Recruitment (parsing) dashboard card — renders only when Decode is installed and has data. */
@@ -24,6 +25,10 @@ export function DecodeInsightsSection() {
         <p className="mt-1 text-4xl font-bold text-[#f5eee0]">${money(data.estimated_net_savings)}</p>
         <p className="mt-1 text-xs text-[#8a7f6d]">
           ${money(data.estimated_manual_cost)} manual data entry avoided − ${money(data.ai_cost)} AI cost
+        </p>
+        <p className="mt-2 text-sm font-medium text-gold-300">
+          {data.total_applicants.toLocaleString()} résumés parsed in{" "}
+          {formatWorkTime(data.total_applicants * data.estimated_minutes_each)} of manual work
         </p>
         <p className="mt-1 text-[11px] text-[#665c4c]">
           Assumes ${data.estimated_hourly_wage}/hr, {data.estimated_minutes_each} min per résumé — adjust in Decode settings.

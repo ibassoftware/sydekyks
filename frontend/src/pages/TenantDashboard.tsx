@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, type Dashboard, type LedgerInsights } from "../lib/api";
-import { RecentMissionsStrip } from "../lib/activity";
+import { api, type Dashboard, type LedgerInsights, type Mission } from "../lib/api";
+import { useActivity } from "../lib/activity";
+import { formatWorkTime } from "../lib/format";
 import { Button, Card } from "../components/ui";
 import { HQShell } from "../components/HQShell";
+import { MissionList } from "../components/MissionList";
 import { LedgerTrendChart } from "../sydekyks/ledger/LedgerTrendChart";
 import { DecodeInsightsSection } from "../sydekyks/decode/DecodeInsightsSection";
 import { ScoutInsightsSection } from "../sydekyks/scout/ScoutInsightsSection";
@@ -110,9 +112,7 @@ export default function TenantDashboard() {
             <DecodeInsightsSection />
             <ScoutInsightsSection />
 
-            <Card className="mt-6 p-6">
-              <RecentMissionsStrip />
-            </Card>
+            <DashboardRecentMissions />
 
             {dashboard.roster_sydekyk_count === 0 && dashboard.exclusive_sydekyk_count === 0 && (
               <Card className="mt-6 flex flex-col items-center gap-4 p-10 text-center">
@@ -131,6 +131,39 @@ export default function TenantDashboard() {
         )}
       </main>
     </HQShell>
+  );
+}
+
+function DashboardRecentMissions() {
+  const [missions, setMissions] = useState<Mission[] | null>(null);
+  const { active } = useActivity(); // re-fetch as missions start/finish so rows stay fresh
+
+  const load = useCallback(() => {
+    api.get<{ items: Mission[] }>("/tenant/missions", { params: { limit: 8 } }).then((r) => setMissions(r.data.items));
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load, active.length]);
+
+  return (
+    <Card className="mt-6 p-6">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Recent Missions</p>
+        <Link to="/hq/missions" className="text-xs font-semibold text-gold-400 hover:text-gold-300">
+          View all →
+        </Link>
+      </div>
+      {!missions ? (
+        <p className="mt-3 text-sm text-[#8a7f6d]">Loading…</p>
+      ) : missions.length === 0 ? (
+        <p className="mt-3 text-sm text-[#8a7f6d]">No missions yet.</p>
+      ) : (
+        <div className="mt-3 overflow-hidden rounded-lg border border-ink-700">
+          <MissionList missions={missions} onReload={load} />
+        </div>
+      )}
+    </Card>
   );
 }
 
@@ -153,6 +186,10 @@ function LedgerInsightsSection({ insights }: { insights: LedgerInsights }) {
           </p>
           <p className="mt-1 text-xs text-[#8a7f6d]">
             ${compactNumber(insights.estimated_manual_cost)} manual entry avoided − ${compactNumber(insights.ai_cost)} AI cost
+          </p>
+          <p className="mt-2 text-sm font-medium text-gold-300">
+            {compactNumber(insights.succeeded_missions)} bills encoded in{" "}
+            {formatWorkTime(insights.succeeded_missions * insights.estimated_minutes_per_bill)} of manual work
           </p>
           <p className="mt-2 text-xs text-[#665c4c]">
             Assumes ${insights.estimated_hourly_wage}/hr, {insights.estimated_minutes_per_bill} min per bill — adjust in

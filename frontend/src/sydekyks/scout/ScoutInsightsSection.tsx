@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type ScoutInsights } from "../../lib/api";
+import { formatWorkTime } from "../../lib/format";
 import { Card } from "../../components/ui";
 
 /** Recruitment (scoring) dashboard card — renders only when Scout is installed and has data. */
@@ -27,6 +28,10 @@ export function ScoutInsightsSection() {
         <p className="mt-1 text-4xl font-bold text-[#f5eee0]">${money(data.estimated_net_savings)}</p>
         <p className="mt-1 text-xs text-[#8a7f6d]">
           ${money(data.estimated_manual_cost)} manual screening avoided − ${money(data.ai_cost)} AI cost
+        </p>
+        <p className="mt-2 text-sm font-medium text-gold-300">
+          {data.total_scored.toLocaleString()} candidates scored in{" "}
+          {formatWorkTime(data.total_scored * data.estimated_minutes_each)} of manual work
         </p>
         <p className="mt-1 text-[11px] text-[#665c4c]">
           Assumes ${data.estimated_hourly_wage}/hr, {data.estimated_minutes_each} min per candidate — adjust in Scout settings.
