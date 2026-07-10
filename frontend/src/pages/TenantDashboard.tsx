@@ -10,6 +10,7 @@ import { AgentThumb } from "../components/AgentThumb";
 import { LedgerTrendChart } from "../sydekyks/ledger/LedgerTrendChart";
 import { DecodeInsightsSection } from "../sydekyks/decode/DecodeInsightsSection";
 import { ScoutInsightsSection } from "../sydekyks/scout/ScoutInsightsSection";
+import { MirrorInsightsSection } from "../sydekyks/mirror/MirrorInsightsSection";
 
 function compactNumber(n: number): string {
   return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
@@ -113,6 +114,7 @@ export default function TenantDashboard() {
 
             <DecodeInsightsSection />
             <ScoutInsightsSection />
+            <MirrorInsightsSection />
 
             <DashboardRecentMissions />
 

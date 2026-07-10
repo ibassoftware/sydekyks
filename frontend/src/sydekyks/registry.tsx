@@ -11,6 +11,10 @@ import { ScoutSettingsSection } from "./scout/ScoutSettingsSection";
 import { ScoutPlaybookPanel } from "./scout/ScoutPlaybookPanel";
 import { ScoutMissionSummary } from "./scout/ScoutMissionSummary";
 import { ScoutOperationsSection } from "./scout/ScoutOperationsSection";
+import { MirrorSettingsSection } from "./mirror/MirrorSettingsSection";
+import { MirrorPlaybookPanel } from "./mirror/MirrorPlaybookPanel";
+import { MirrorMissionSummary } from "./mirror/MirrorMissionSummary";
+import { MirrorOperationsSection } from "./mirror/MirrorOperationsSection";
 
 /** VS-9: a deliberately plain per-Sydekyk UI registry — mirrors the backend's per-Sydekyk package
  * structure. No dynamic imports, no plugin framework; it just lets a Sydekyk provide optional UI so
@@ -80,6 +84,7 @@ function pick<T>(pool: T[], seed: string | undefined): T {
 const LEDGER_VERBS = ["Encoded", "Booked", "Filed", "Recorded", "Captured", "Logged"];
 const DECODE_VERBS = ["Parsed", "Read", "Filed", "Captured", "Logged", "Processed"];
 const SCOUT_VERBS = ["Graded", "Scored", "Evaluated", "Assessed", "Rated", "Reviewed"];
+const MIRROR_VERBS = ["Checked", "Scanned", "Inspected", "Vetted", "Screened", "Reviewed"];
 
 /** Fallback headline when a Mission produced no business object yet (queued/running) or was rejected
  * (failed) — the friendly error already reads like "This doesn't look like a résumé…". */
@@ -116,6 +121,20 @@ function scoutRowLabel(m: RowLabelInput): MissionRowLabel {
   return { title: `${verb} the application of ${name}${score}` };
 }
 
+function mirrorRowLabel(m: RowLabelInput): MissionRowLabel {
+  const s = m.result_summary ?? {};
+  const vendor = s.vendor_name as string | undefined;
+  if (!vendor) return fallbackRowLabel(m);
+  const verb = pick(MIRROR_VERBS, m.id);
+  const ref = s.ref ? ` ${s.ref}` : "";
+  const flag = s.is_duplicate
+    ? ` · possible duplicate (${(s.confidence as number) ?? 0}%)`
+    : s.suppressed
+      ? " · recurring"
+      : " · unique";
+  return { title: `${verb} the bill${ref} by ${vendor}${flag}` };
+}
+
 const BY_SLUG: Record<string, SydekykRegistryEntry> = {
   ledger: {
     setupSection: LedgerSettingsSection,
@@ -141,12 +160,21 @@ const BY_SLUG: Record<string, SydekykRegistryEntry> = {
     domain: "hr",
     missionRowLabel: scoutRowLabel,
   },
+  mirror: {
+    setupSection: MirrorSettingsSection,
+    playbookPanel: MirrorPlaybookPanel,
+    missionSummary: MirrorMissionSummary,
+    operationsPanel: MirrorOperationsSection,
+    missionRowLabel: mirrorRowLabel,
+    reviewNoun: { one: "duplicate", many: "duplicates" },
+  },
 };
 
 const BY_PLAYBOOK: Record<string, SydekykRegistryEntry> = {
   "ledger.vendor_bill_ingest": { missionSummary: LedgerMissionSummary, missionRowLabel: ledgerRowLabel },
   "decode.resume_parse": { missionSummary: DecodeMissionSummary, domain: "hr", missionRowLabel: decodeRowLabel },
   "scout.resume_score": { missionSummary: ScoutMissionSummary, domain: "hr", missionRowLabel: scoutRowLabel },
+  "mirror.duplicate_check": { missionSummary: MirrorMissionSummary, missionRowLabel: mirrorRowLabel },
 };
 
 export function registryForSlug(slug: string | undefined): SydekykRegistryEntry | undefined {

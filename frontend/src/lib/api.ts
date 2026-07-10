@@ -575,3 +575,61 @@ export interface ScoutInsights {
   estimated_net_savings: number;
   processing_seconds: number;
 }
+
+// --- Mirror (duplicate bill detector) ---
+export interface MirrorSettings {
+  date_window_days: number;
+  flag_threshold: number;
+  estimated_hourly_wage: number;
+  estimated_minutes_per_review: number;
+  cron_enabled: boolean;
+  cron_poll_limit: number;
+  cron_days_back: number;
+}
+export interface MirrorReadiness {
+  items: ReadinessItem[];
+  can_upload: boolean;
+}
+export interface MirrorPlaybook {
+  playbook_key: string;
+  editable: boolean;
+  steps: PlaybookStep[];
+}
+export interface MirrorFlag {
+  odoo_move_id: number;
+  vendor_name: string | null;
+  ref: string | null;
+  amount: number | null;
+  currency: string | null;
+  confidence: number;
+  tier: string | null;
+  reasons: string[];
+  odoo_url: string | null;
+  human_decision: string | null;
+  finding_id: string;
+}
+export interface MirrorInsights {
+  activated: boolean;
+  total_checked: number;
+  duplicates_found: number;
+  suppressed_count: number;
+  prevented_amount: number;
+  by_tier: { tier: string; count: number }[];
+  recent_flags: MirrorFlag[];
+  daily_trend: { date: string; count: number }[];
+  estimated_hourly_wage: number;
+  estimated_minutes_each: number;
+  estimated_manual_cost: number;
+  ai_cost: number;
+  estimated_net_savings: number;
+  processing_seconds: number;
+}
+export interface RecurringPattern {
+  id: string;
+  partner_id: number;
+  vendor_name: string | null;
+  amount: number | null;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
+}

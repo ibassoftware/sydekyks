@@ -23,7 +23,7 @@ from app.core.config import settings
 from app.db.session import SessionLocal
 from app.models.mission import Mission
 from app.models.sydekyk import Sydekyk, SydekykInstall
-from app.services import recruitment_poll, usage_snapshot
+from app.services import bill_poll, recruitment_poll, usage_snapshot
 from app.services.missions import retry_mission, run_mission
 from app.services.queue import enqueue_mission
 
@@ -104,6 +104,42 @@ async def poll_scout(ctx: dict) -> int:
         db.close()
 
 
+async def _poll_bills(db, *, slug: str, settings_model, store_model) -> int:
+    """Shared cron body for the audit agents (Mirror, Shield): for each tenant with the Sydekyk
+    installed + cron enabled, scan forward from the watermark for unchecked vendor bills."""
+    sydekyk = db.query(Sydekyk).filter(Sydekyk.slug == slug).first()
+    if sydekyk is None:
+        return 0
+    total = 0
+    for st in db.query(settings_model).filter(settings_model.cron_enabled.is_(True)).all():
+        installed = (
+            db.query(SydekykInstall)
+            .filter(SydekykInstall.tenant_id == st.tenant_id, SydekykInstall.sydekyk_id == sydekyk.id)
+            .first()
+        )
+        if installed is None:
+            continue
+        count, newest = await bill_poll.enqueue_recent_bills(
+            db, tenant_id=st.tenant_id, sydekyk_id=sydekyk.id, store_model=store_model,
+            days_back=st.cron_days_back, limit=st.cron_poll_limit, since=st.cron_last_checked_at,
+        )
+        if newest:
+            st.cron_last_checked_at = newest
+            db.commit()
+        total += count
+    return total
+
+
+async def poll_mirror(ctx: dict) -> int:
+    from app.sydekyks.mirror.models import MirrorFinding, MirrorTenantSettings
+
+    db = SessionLocal()
+    try:
+        return await _poll_bills(db, slug="mirror", settings_model=MirrorTenantSettings, store_model=MirrorFinding)
+    finally:
+        db.close()
+
+
 async def snapshot_daily_usage(ctx: dict) -> int:
     db = SessionLocal()
     try:
@@ -117,6 +153,7 @@ class WorkerSettings:
     cron_jobs = [
         cron(poll_decode, minute={0, 15, 30, 45}),
         cron(poll_scout, minute={0, 15, 30, 45}),
+        cron(poll_mirror, minute={5, 20, 35, 50}),
         cron(snapshot_daily_usage, hour={0}, minute={5}),
     ]
     redis_settings = RedisSettings.from_dsn(settings.redis_url)

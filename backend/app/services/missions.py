@@ -106,6 +106,34 @@ def record_step(
 # ---------------------------------------------------------------------------
 
 
+def create_mission(
+    db: Session,
+    *,
+    tenant_id: uuid.UUID,
+    sydekyk: Sydekyk,
+    user_id: uuid.UUID | None,
+    source: str,
+    signal_type: str,
+    trigger_context: dict | None = None,
+) -> Mission:
+    """Create a Mission with NO document — for agents that analyze existing Odoo records (Mirror,
+    Shield) rather than an uploaded/emailed file. The target record id rides in `trigger_context`."""
+    mission = Mission(
+        tenant_id=tenant_id,
+        user_id=user_id,
+        sydekyk_id=sydekyk.id,
+        mode="workflow_run",
+        signal_type=signal_type,
+        playbook_key=sydekyk.playbook_key or "",
+        status="queued",
+        trigger_context=trigger_context,
+    )
+    db.add(mission)
+    db.commit()
+    db.refresh(mission)
+    return mission
+
+
 def create_mission_for_document(
     db: Session,
     *,

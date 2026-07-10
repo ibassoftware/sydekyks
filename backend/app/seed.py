@@ -81,6 +81,24 @@ _ROSTER_SYDEKYKS = [
         ),
         model="gpt-4o-mini", temperature=0.2, chat_enabled=False, workflow_enabled=True,
     ),
+    dict(
+        name="Mirror", slug="mirror",
+        tagline="Your accounts-payable watchdog — catches duplicate vendor bills before you pay twice.",
+        description=(
+            "Mirror scans your Odoo vendor bills and flags likely duplicates before they get paid "
+            "twice. It matches on the invoice reference, on the same vendor + amount + date even when "
+            "the reference differs, and across split vendor records that share a Tax ID or bank "
+            "account — and uses AI to confirm resubmitted invoices by their line items. It logs every "
+            "check to the bill's chatter, raises the high-confidence ones for review, and learns which "
+            "recurring bills (rent, subscriptions) are legitimately identical so it stops nagging."
+        ),
+        avatar_url="/sydekyks/mirror.png",
+        system_prompt=(
+            "You are Mirror, a meticulous accounts-payable duplicate detector. Compare vendor bills "
+            "and judge whether they represent the same purchase billed twice."
+        ),
+        model="gpt-4o-mini", temperature=0.1, chat_enabled=False, workflow_enabled=True,
+    ),
 ]
 
 
