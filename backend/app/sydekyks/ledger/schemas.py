@@ -80,3 +80,4 @@ class LedgerInsightsOut(BaseModel):
     estimated_manual_cost: float
     ai_cost: float
     estimated_net_savings: float
+    processing_seconds: float = 0.0

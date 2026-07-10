@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from app.models.mission import Mission
 from app.models.sydekyk import SydekykInstall
 from app.models.usage_record import UsageRecord
+from app.services import savings
 from app.sydekyks.ledger.models import LedgerTenantSettings
 
 TREND_DAYS = 30
@@ -91,4 +92,5 @@ def compute_insights(db: Session, tenant_id: uuid.UUID, ledger_sydekyk_id: uuid.
         "estimated_manual_cost": estimated_manual_cost,
         "ai_cost": ai_cost,
         "estimated_net_savings": estimated_net_savings,
+        "processing_seconds": savings.processing_seconds(db, tenant_id, ledger_sydekyk_id),
     }

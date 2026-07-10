@@ -57,6 +57,7 @@ def compute_insights(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -
     wage = s.estimated_hourly_wage if s else 20.0
     minutes = s.estimated_minutes_per_resume if s else 10.0
     save = savings.compute(db, tenant_id, sydekyk_id, count=total, minutes_each=minutes, hourly_wage=wage)
+    save["processing_seconds"] = savings.processing_seconds(db, tenant_id, sydekyk_id)
 
     return {
         "total_applicants": total,

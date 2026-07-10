@@ -46,6 +46,7 @@ export interface MissionRowLabel {
 /** The minimal Mission shape the row-label builders read — satisfied by both a full `Mission` (list
  * rows) and a `MissionReviewItem` (the Issues review rows), so both surfaces share one headline. */
 export interface RowLabelInput {
+  id?: string; // used to vary the leading verb deterministically (stable per mission)
   result_summary?: Record<string, unknown> | null;
   document_filename?: string | null;
   status?: string;
@@ -68,7 +69,17 @@ export interface SydekykRegistryEntry {
   reviewNoun?: { one: string; many: string };
 }
 
-const SEP = "  ·  ";
+/** Pick a stable-but-varied item from a pool, keyed off the mission id, so a row always reads the
+ * same but adjacent rows use different verbs (avoids a wall of identical "Scored… Scored… Scored"). */
+function pick<T>(pool: T[], seed: string | undefined): T {
+  let h = 2166136261;
+  for (const ch of seed ?? "") h = (Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0);
+  return pool[h % pool.length];
+}
+
+const LEDGER_VERBS = ["Encoded", "Booked", "Filed", "Recorded", "Captured", "Logged"];
+const DECODE_VERBS = ["Parsed", "Read", "Filed", "Captured", "Logged", "Processed"];
+const SCOUT_VERBS = ["Graded", "Scored", "Evaluated", "Assessed", "Rated", "Reviewed"];
 
 /** Fallback headline when a Mission produced no business object yet (queued/running) or was rejected
  * (failed) — the friendly error already reads like "This doesn't look like a résumé…". */
@@ -81,30 +92,28 @@ function ledgerRowLabel(m: RowLabelInput): MissionRowLabel {
   const s = m.result_summary ?? {};
   const vendor = s.vendor_name as string | undefined;
   if (!vendor) return fallbackRowLabel(m);
-  const parts = [vendor];
-  if (s.invoice_number) parts.push(`#${s.invoice_number}`);
-  if (typeof s.total === "number") parts.push(`${(s.currency as string) ?? ""} ${(s.total as number).toFixed(2)}`.trim());
-  return { title: parts.join(SEP) };
+  const verb = pick(LEDGER_VERBS, m.id);
+  const inv = s.invoice_number ? ` ${s.invoice_number}` : "";
+  const amount = typeof s.total === "number" ? ` · ${(s.currency as string) ?? ""} ${(s.total as number).toFixed(2)}`.trimEnd() : "";
+  return { title: `${verb} the bill${inv} by ${vendor}${amount}` };
 }
 
 function decodeRowLabel(m: RowLabelInput): MissionRowLabel {
   const s = m.result_summary ?? {};
   const name = s.applicant_name as string | undefined;
   if (!name) return fallbackRowLabel(m);
-  const parts = [name];
-  if (s.pooling) parts.push("Pool");
-  else if (s.job_name) parts.push(s.job_name as string);
-  return { title: parts.join(SEP) };
+  const verb = pick(DECODE_VERBS, m.id);
+  const where = s.pooling ? " into the pool" : s.job_name ? ` for ${s.job_name}` : "";
+  return { title: `${verb} the résumé of ${name}${where}` };
 }
 
 function scoutRowLabel(m: RowLabelInput): MissionRowLabel {
   const s = m.result_summary ?? {};
   const name = s.applicant_name as string | undefined;
   if (!name) return fallbackRowLabel(m);
-  const parts = [name];
-  if (s.job_name) parts.push(s.job_name as string);
-  if (typeof s.score === "number") parts.push(`${s.score as number}/100`);
-  return { title: parts.join(SEP) };
+  const verb = pick(SCOUT_VERBS, m.id);
+  const score = typeof s.score === "number" ? ` · ${s.score as number}/100` : "";
+  return { title: `${verb} the application of ${name}${score}` };
 }
 
 const BY_SLUG: Record<string, SydekykRegistryEntry> = {

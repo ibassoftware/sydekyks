@@ -64,6 +64,7 @@ export interface LedgerInsights {
   estimated_manual_cost: number;
   ai_cost: number;
   estimated_net_savings: number;
+  processing_seconds: number;
 }
 
 // --- HQ team management (RBAC) ---
@@ -511,6 +512,7 @@ export interface DecodeInsights {
   estimated_manual_cost: number;
   ai_cost: number;
   estimated_net_savings: number;
+  processing_seconds: number;
 }
 
 // --- Scout (résumé scorer) ---
@@ -545,4 +547,5 @@ export interface ScoutInsights {
   estimated_manual_cost: number;
   ai_cost: number;
   estimated_net_savings: number;
+  processing_seconds: number;
 }

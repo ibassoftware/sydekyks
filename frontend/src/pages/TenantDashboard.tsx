@@ -2,10 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type Dashboard, type LedgerInsights, type Mission } from "../lib/api";
 import { useActivity } from "../lib/activity";
-import { formatWorkTime } from "../lib/format";
+import { formatWorkTime, formatFastTime } from "../lib/format";
 import { Button, Card } from "../components/ui";
 import { HQShell } from "../components/HQShell";
 import { MissionList } from "../components/MissionList";
+import { AgentThumb } from "../components/AgentThumb";
 import { LedgerTrendChart } from "../sydekyks/ledger/LedgerTrendChart";
 import { DecodeInsightsSection } from "../sydekyks/decode/DecodeInsightsSection";
 import { ScoutInsightsSection } from "../sydekyks/scout/ScoutInsightsSection";
@@ -107,6 +108,7 @@ export default function TenantDashboard() {
               />
             </div>
 
+            <p className="mt-10 text-xs font-semibold uppercase tracking-widest text-gold-500">Your Agents at Work</p>
             {insights && (insights.activated ? <LedgerInsightsSection insights={insights} /> : <LedgerNotActivatedCard />)}
 
             <DecodeInsightsSection />
@@ -171,11 +173,12 @@ function LedgerInsightsSection({ insights }: { insights: LedgerInsights }) {
   return (
     <Card className="relative mt-6 overflow-hidden p-6">
       <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-gold-500/10 blur-3xl" />
-      <div className="relative flex items-center gap-2">
-        <span className="text-lg" style={{ filter: "drop-shadow(0 0 6px rgba(212,168,40,0.6))" }}>
-          📒
-        </span>
-        <p className="text-xs font-semibold uppercase tracking-widest text-gold-500">Ledger — Live</p>
+      <div className="relative flex items-center gap-3">
+        <AgentThumb slug="ledger" alt="Ledger" />
+        <div>
+          <p className="text-sm font-bold text-[#f5eee0]">Ledger</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-gold-500">Bills encoded · Live</p>
+        </div>
       </div>
 
       <div className="relative mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
@@ -188,8 +191,10 @@ function LedgerInsightsSection({ insights }: { insights: LedgerInsights }) {
             ${compactNumber(insights.estimated_manual_cost)} manual entry avoided − ${compactNumber(insights.ai_cost)} AI cost
           </p>
           <p className="mt-2 text-sm font-medium text-gold-300">
-            {compactNumber(insights.succeeded_missions)} bills encoded in{" "}
-            {formatWorkTime(insights.succeeded_missions * insights.estimated_minutes_per_bill)} of manual work
+            {compactNumber(insights.succeeded_missions)} bills encoded in {formatFastTime(insights.processing_seconds)}
+            <span className="font-normal text-[#8a7f6d]">
+              {" "}· ~{formatWorkTime(insights.succeeded_missions * insights.estimated_minutes_per_bill)} by hand
+            </span>
           </p>
           <p className="mt-2 text-xs text-[#665c4c]">
             Assumes ${insights.estimated_hourly_wage}/hr, {insights.estimated_minutes_per_bill} min per bill — adjust in

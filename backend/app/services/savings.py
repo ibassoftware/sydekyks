@@ -5,7 +5,27 @@ Ledger's insight so every Sydekyk frames its value the same way."""
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.models.mission import Mission
 from app.models.usage_record import UsageRecord
+
+
+def processing_seconds(db: Session, tenant_id, sydekyk_id) -> float:
+    """Total wall-clock the agent actually spent doing the work — the sum of completed_at−created_at
+    over its succeeded Missions. Powers the dashboard's 'how fast we are' metric (contrast against the
+    manual-hours-equivalent)."""
+    total = (
+        db.query(
+            func.coalesce(func.sum(func.extract("epoch", Mission.completed_at - Mission.created_at)), 0.0)
+        )
+        .filter(
+            Mission.tenant_id == tenant_id,
+            Mission.sydekyk_id == sydekyk_id,
+            Mission.status == "succeeded",
+            Mission.completed_at.isnot(None),
+        )
+        .scalar()
+    )
+    return round(float(total or 0.0), 1)
 
 
 def ai_cost(db: Session, tenant_id, sydekyk_id) -> float:

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { api, type ScoutInsights } from "../../lib/api";
-import { formatWorkTime } from "../../lib/format";
+import { formatWorkTime, formatFastTime } from "../../lib/format";
 import { Card } from "../../components/ui";
+import { AgentThumb } from "../../components/AgentThumb";
 
 /** Recruitment (scoring) dashboard card — renders only when Scout is installed and has data. */
 export function ScoutInsightsSection() {
@@ -18,9 +19,12 @@ export function ScoutInsightsSection() {
 
   return (
     <Card className="relative mt-6 overflow-hidden p-6">
-      <div className="relative flex items-center gap-2">
-        <span className="text-lg">⭐</span>
-        <p className="text-xs font-semibold uppercase tracking-widest text-gold-500">Scout — Candidates scored</p>
+      <div className="relative flex items-center gap-3">
+        <AgentThumb slug="scout" alt="Scout" />
+        <div>
+          <p className="text-sm font-bold text-[#f5eee0]">Scout</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-gold-500">Candidates scored · Live</p>
+        </div>
       </div>
 
       <div className="mt-4">
@@ -30,8 +34,10 @@ export function ScoutInsightsSection() {
           ${money(data.estimated_manual_cost)} manual screening avoided − ${money(data.ai_cost)} AI cost
         </p>
         <p className="mt-2 text-sm font-medium text-gold-300">
-          {data.total_scored.toLocaleString()} candidates scored in{" "}
-          {formatWorkTime(data.total_scored * data.estimated_minutes_each)} of manual work
+          {data.total_scored.toLocaleString()} candidates scored in {formatFastTime(data.processing_seconds)}
+          <span className="font-normal text-[#8a7f6d]">
+            {" "}· ~{formatWorkTime(data.total_scored * data.estimated_minutes_each)} by hand
+          </span>
         </p>
         <p className="mt-1 text-[11px] text-[#665c4c]">
           Assumes ${data.estimated_hourly_wage}/hr, {data.estimated_minutes_each} min per candidate — adjust in Scout settings.

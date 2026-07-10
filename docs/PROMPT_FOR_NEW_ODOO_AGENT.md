@@ -112,8 +112,12 @@ mission)` drives the Mission to a terminal status and records a `MissionStep` pe
 - **Migrations are handwritten and idempotent.** Use `migrations.helpers.has_table/has_column/
   has_index` guards so re-running is safe. Number sequentially.
 - **Savings** via `app.services.savings.compute(db, tenant_id, sydekyk_id, count=..., minutes_each=...,
-  hourly_wage=...)` → `{estimated_manual_cost, ai_cost, estimated_net_savings, ...}`. The dashboard
-  shows `$ saved` **and** "N <units> <verb> in ~T of manual work" (`count × minutes_each`).
+  hourly_wage=...)` → `{estimated_manual_cost, ai_cost, estimated_net_savings, ...}`.
+- **Speed** via `app.services.savings.processing_seconds(db, tenant_id, sydekyk_id)` — the actual
+  wall-clock the agent spent (sum of succeeded-Mission `completed_at − created_at`). The dashboard
+  **leads with how fast the agent was**, using the manual-hours equivalent only as contrast:
+  *"142 bills encoded in 3 min · ~19 h by hand"* (`processing_seconds` vs `count × minutes_each`).
+  Show the AI time first — that's the wow; the manual figure is the payoff.
 
 ---
 
@@ -130,10 +134,17 @@ pages (`SydekykDetail`, `MissionList`, `Issues`, `TenantDashboard`) stay generic
   operationsPanel: <Agent>OperationsSection, // OPTIONAL: "Run now" + Recent Missions (non-upload agents)
   uploadContext: <Agent>UploadContext,    // OPTIONAL: per-upload context (e.g. pick a job)
   domain: "hr",                            // OPTIONAL: tints Mission rows (HR = bluish; accounting = default)
-  missionRowLabel: (m) => ({...}),         // business headline for a Mission row (vendor·#·amount / applicant·position)
+  missionRowLabel: (m) => ({...}),         // verb-led headline for a Mission row (see below)
   reviewNoun: { one: "bill", many: "bills" }, // what a needs-review item is called
 }
 ```
+
+**Mission row headlines lead with a past-tense verb**, not the filename, and read like a sentence
+with the key business fields folded in — *"Encoded the bill INV-001 by Northwind · $1,200.00"*,
+*"Graded the application of Diego Khan · 78/100"*, *"Parsed the résumé of Jane Doe for Senior Dev"*.
+**Vary the verb** from a small pool, picked deterministically off the mission id, so a long list
+doesn't read as a wall of the same word. Fall back (muted) to the friendly error / filename when the
+Mission produced no business object (queued, running, or rejected as "not a résumé").
 
 Build these components (mirror an existing agent):
 
@@ -143,8 +154,10 @@ Build these components (mirror an existing agent):
   "Create" button once set.
 - **Operations panel** (for non-upload agents) — the batch action (`Run now`) **at the top** + a live
   **Recent Missions** list (`MissionList`) that polls while work is active.
-- **Dashboard insights card** — renders only when the agent is installed and has data. Show `$ saved`,
-  the throughput line, key counts, and a trend/chart. Load the `dataviz` skill before charting.
+- **Dashboard insights card** — renders only when the agent is installed and has data. Lead with a
+  small **agent thumbnail** (`AgentThumb slug="<slug>"`, from `/sydekyks/<slug>.png`) + the agent
+  name so the value block is instantly recognizable. Show `$ saved`, the **speed line** (AI time vs
+  manual contrast), key counts, and a trend/chart. Load the `dataviz` skill before charting.
 - **Mission summary** — reads `result_summary` and shows the business object (applicant · position ·
   score), not raw JSON.
 

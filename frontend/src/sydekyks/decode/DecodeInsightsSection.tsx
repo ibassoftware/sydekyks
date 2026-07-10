@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { api, type DecodeInsights } from "../../lib/api";
-import { formatWorkTime } from "../../lib/format";
+import { formatWorkTime, formatFastTime } from "../../lib/format";
 import { Card } from "../../components/ui";
+import { AgentThumb } from "../../components/AgentThumb";
 
 /** Recruitment (parsing) dashboard card — renders only when Decode is installed and has data. */
 export function DecodeInsightsSection() {
@@ -15,9 +16,12 @@ export function DecodeInsightsSection() {
 
   return (
     <Card className="relative mt-6 overflow-hidden p-6">
-      <div className="relative flex items-center gap-2">
-        <span className="text-lg">🧑‍💼</span>
-        <p className="text-xs font-semibold uppercase tracking-widest text-gold-500">Decode — Résumés parsed</p>
+      <div className="relative flex items-center gap-3">
+        <AgentThumb slug="decode" alt="Decode" />
+        <div>
+          <p className="text-sm font-bold text-[#f5eee0]">Decode</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-gold-500">Résumés parsed · Live</p>
+        </div>
       </div>
 
       <div className="mt-4">
@@ -27,8 +31,10 @@ export function DecodeInsightsSection() {
           ${money(data.estimated_manual_cost)} manual data entry avoided − ${money(data.ai_cost)} AI cost
         </p>
         <p className="mt-2 text-sm font-medium text-gold-300">
-          {data.total_applicants.toLocaleString()} résumés parsed in{" "}
-          {formatWorkTime(data.total_applicants * data.estimated_minutes_each)} of manual work
+          {data.total_applicants.toLocaleString()} résumés parsed in {formatFastTime(data.processing_seconds)}
+          <span className="font-normal text-[#8a7f6d]">
+            {" "}· ~{formatWorkTime(data.total_applicants * data.estimated_minutes_each)} by hand
+          </span>
         </p>
         <p className="mt-1 text-[11px] text-[#665c4c]">
           Assumes ${data.estimated_hourly_wage}/hr, {data.estimated_minutes_each} min per résumé — adjust in Decode settings.

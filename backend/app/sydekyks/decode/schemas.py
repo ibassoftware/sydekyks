@@ -74,6 +74,7 @@ class DecodeInsightsOut(BaseModel):
     estimated_manual_cost: float = 0.0
     ai_cost: float = 0.0
     estimated_net_savings: float = 0.0
+    processing_seconds: float = 0.0
 
 
 class DecodeJob(BaseModel):

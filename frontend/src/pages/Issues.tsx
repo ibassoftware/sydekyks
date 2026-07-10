@@ -317,7 +317,7 @@ export default function Issues() {
                   {visibleMissions.map((m) => {
                     const open = expanded.has(m.mission_id);
                     const reg = registryForPlaybook(m.playbook_key ?? undefined);
-                    const label = reg?.missionRowLabel?.(m) ?? { title: m.document_filename ?? "document" };
+                    const label = reg?.missionRowLabel?.({ ...m, id: m.mission_id }) ?? { title: m.document_filename ?? "document" };
                     const hr = reg?.domain === "hr";
                     const duration = m.completed_at ? formatDuration(m.created_at, m.completed_at) : null;
                     return (
