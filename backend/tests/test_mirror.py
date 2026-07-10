@@ -1,7 +1,8 @@
-"""Unit tests for Mirror's deterministic duplicate detection (no DB, no network)."""
+"""Unit tests for Mirror's deterministic duplicate detection + AI adjudication (no DB, no network)."""
 
+from app.services import vision_ai
 from app.services.odoo_finance import normalize_ref
-from app.sydekyks.mirror import detection
+from app.sydekyks.mirror import detection, extraction
 
 
 def test_normalize_ref_collapses_variants():
@@ -34,6 +35,15 @@ def test_fuzzy_match_same_amount_within_window_diff_ref():
     diff_amt = _bill(4, 9, "D-4", 251, "2026-06-11")
     ids, _r, conf = detection.fuzzy_match(bill, [within, outside, diff_amt], window_days=30)
     assert ids == [2] and conf >= 70
+
+
+def test_adjudicate_duplicate_parses_and_clamps(monkeypatch):
+    monkeypatch.setattr(vision_ai, "llm_completion",
+                        lambda *a, **k: (True, "ok", {"is_duplicate": True, "confidence": 140, "reasoning": "same purchase"}, {}))
+    candidate = {"vendor_name": "Acme", "ref": "A", "amount": 100, "currency": "USD", "invoice_date": "2026-06-01", "lines": []}
+    ok, _m, verdict, _meta = extraction.adjudicate_duplicate("v", "m", candidate, [candidate])
+    assert ok and verdict["is_duplicate"] is True and verdict["confidence"] == 100  # clamped
+    assert verdict["reasoning"] == "same purchase"
 
 
 def test_cross_vendor_same_amount_shared_vat():

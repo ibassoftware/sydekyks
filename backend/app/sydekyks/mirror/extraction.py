@@ -1,47 +1,61 @@
-"""Mirror's AI step — the only part that genuinely needs a model. When two bills have different
-references but suspiciously similar totals, an LLM judges whether their LINE ITEMS describe the same
-underlying purchase (a resubmitted invoice), which plain string matching can't tell. Everything else
-(exact ref, amount/date fuzzy, cross-vendor) is deterministic in detection.py.
+"""Mirror's AI judgment. The deterministic tiers (detection.py) surface CANDIDATE matches grounded in
+real data — same vendor, same reference, same amount, shared VAT/bank. The model then adjudicates
+holistically: given the candidate bill and the specific bills it was matched against (with their line
+items), is this truly the same purchase billed twice? It weighs vendor identity, reference, amount,
+date proximity and line-item meaning — so a coincidental same-round-amount is cleared while a
+resubmitted invoice under a fresh number is caught. The model can only judge the candidates the
+deterministic layer found; it cannot invent a match.
 """
 
 from app.services import vision_ai
 
-_TEMPLATE = """You are Mirror, an accounts-payable duplicate detector. Two vendor bills have similar \
-totals but different reference numbers. Decide whether they are the SAME underlying purchase billed \
-twice (a resubmitted/duplicated invoice) by comparing their line items — judge by meaning, not exact \
-text ("Consulting - June" ≈ "June consulting services").
+_ADJUDICATE_TEMPLATE = """You are Mirror, an accounts-payable duplicate detector. A candidate vendor \
+bill was matched against one or more existing bills by deterministic checks. Judge, holistically, \
+whether the candidate is TRULY a duplicate of any of them — i.e. the same purchase billed more than \
+once. Weigh vendor identity, reference number, amount, how close the dates are, and whether the line \
+items describe the same goods/services (by meaning, not exact text).
 
-Bill A line items:
-{lines_a}
+Rules of thumb: two bills with the same round amount but clearly different goods/services are NOT \
+duplicates; a resubmitted invoice under a different reference number IS; the same vendor + same \
+reference is almost always a duplicate.
 
-Bill B line items:
-{lines_b}
+Candidate bill:
+{candidate}
+
+Matched against:
+{matches}
 
 Respond with ONLY a JSON object (no prose, no markdown fences):
-{{"similarity": integer 0-100 (how likely the SAME purchase), "same_items": boolean, "reasoning": one short sentence}}"""
+{{"is_duplicate": boolean, "confidence": integer 0-100, "reasoning": "one or two short sentences"}}"""
 
 
-def _fmt(lines: list[dict]) -> str:
-    rows = []
-    for ln in lines[:40]:
-        rows.append(
-            f"- {ln.get('name') or '(no label)'} | qty {ln.get('quantity')} | unit {ln.get('price_unit')} | subtotal {ln.get('price_subtotal')}"
-        )
-    return "\n".join(rows) or "(no line items)"
+def _fmt_bill(b: dict, lines: list[dict]) -> str:
+    head = (
+        f"vendor={b.get('vendor_name')!r} ref={b.get('ref')!r} "
+        f"amount={b.get('amount')} {b.get('currency') or ''} date={b.get('invoice_date')}"
+    )
+    items = "; ".join(
+        f"{ln.get('name') or '(no label)'} x{ln.get('quantity')} @ {ln.get('price_unit')}"
+        for ln in (lines or [])[:20]
+    ) or "(no line items)"
+    return f"{head}\n  line items: {items}"
 
 
-def compare_line_items(virtual_key, model_alias, lines_a: list[dict], lines_b: list[dict], timeout: float = 45.0):
-    """Returns (ok, msg, {similarity:int, same_items:bool, reasoning:str} | None, meta)."""
-    prompt = _TEMPLATE.format(lines_a=_fmt(lines_a), lines_b=_fmt(lines_b))
+def adjudicate_duplicate(virtual_key, model_alias, candidate: dict, matches: list[dict], timeout: float = 45.0):
+    """Given the candidate bill and the matched bills (each a dict with vendor_name/ref/amount/
+    currency/invoice_date + a 'lines' list), return (ok, msg, {is_duplicate, confidence, reasoning}, meta)."""
+    cand_txt = _fmt_bill(candidate, candidate.get("lines") or [])
+    match_txt = "\n".join(f"[{i + 1}] {_fmt_bill(m, m.get('lines') or [])}" for i, m in enumerate(matches[:4])) or "(none)"
+    prompt = _ADJUDICATE_TEMPLATE.format(candidate=cand_txt, matches=match_txt)
     ok, msg, raw, meta = vision_ai.llm_completion(virtual_key, model_alias, prompt, [], timeout)
     if not ok or raw is None:
         return ok, msg, None, meta
     try:
-        sim = max(0, min(100, int(round(float(raw.get("similarity") or 0)))))
+        conf = max(0, min(100, int(round(float(raw.get("confidence") or 0)))))
     except (TypeError, ValueError):
-        sim = 0
+        conf = 0
     return True, "ok", {
-        "similarity": sim,
-        "same_items": bool(raw.get("same_items")),
+        "is_duplicate": bool(raw.get("is_duplicate")),
+        "confidence": conf,
         "reasoning": str(raw.get("reasoning") or ""),
     }, meta

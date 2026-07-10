@@ -12,8 +12,13 @@ It captures the architecture and the hard-won lessons from building **Ledger** (
 record-analysis shape reuse `missions.create_mission` (no-doc), and for bill auditors the shared
 `odoo_finance` (bill/partner reads, reference normalization, employee cross-refs) + `bill_poll`
 (scan-forward watermark poller, ≤5 days, ≤30/run, skips already-analysed via the finding store).
-Mostly-deterministic agents (Mirror's tiers, Shield's rules) keep the LLM **optional** — used only
-where judgement is needed (line-item semantic match; the advisory "warrants review" narrative).
+**Ground the facts deterministically; let AI do the judgment.** This is an AI platform — bake real
+intelligence into every agent. The pattern for audit-style agents: deterministic checks surface
+*grounded candidates/signals* (same reference, shared VAT/bank, a bank change on an unpaid bill — no
+hallucinated ids), and the **LLM is the primary judgment layer** that reasons over them plus the full
+record context: *is this truly the same purchase billed twice?* *how risky is this bank change given
+the vendor's history?* The model renders the verdict/score and the narrative and can surface concerns
+the rules missed; a deterministic fallback keeps the agent working if the engine is briefly down.
 
 Every new agent should mirror those three: a self-contained backend package, zero-config discovery,
 a grounded AI pipeline, an Odoo write layer, a settings + readiness + insights surface, and a

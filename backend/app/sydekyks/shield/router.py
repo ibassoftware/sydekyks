@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -115,7 +116,7 @@ async def run_now(user: User = Depends(require_tenant_member), db: Session = Dep
 
 
 @router.post("/findings/{finding_id}/decision", status_code=status.HTTP_204_NO_CONTENT)
-def decide_alert(finding_id, payload: AlertDecisionIn, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+def decide_alert(finding_id: uuid.UUID, payload: AlertDecisionIn, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
     """The learning loop: the auditor adjudicates. 'cleared' (false positive) can suppress a rule for
     that vendor so it stops firing."""
     sydekyk = _shield(db, user)

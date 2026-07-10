@@ -155,45 +155,56 @@ def run(db: Session, mission: Mission) -> None:
                     output={"same_vendor_bills": len(others), "related_partners": len(others_by_partner)})
         idx += 1
 
-        # --- Detect (deterministic tiers, strongest first) --------------------------------------
+        # --- Detect: deterministic tiers surface grounded CANDIDATES; AI renders the verdict --------
         tier, confidence, reasons, matched = "none", 0, [], []
         ex_ids, ex_reasons, ex_conf = detection.exact_match(bill, others)
+        fz_ids, fz_reasons, fz_conf = detection.fuzzy_match(bill, others, window_days=settings.date_window_days)
+        cv_ids, cv_reasons, cv_conf = detection.cross_vendor_match(
+            bill, partner, others_by_partner,
+            same_vat_partner_ids=same_vat_ids, same_bank_partner_ids=same_bank_ids,
+            window_days=settings.date_window_days,
+        )
         if ex_ids:
-            tier, confidence, reasons, matched = "exact", ex_conf, ex_reasons, ex_ids
-        else:
-            fz_ids, fz_reasons, fz_conf = detection.fuzzy_match(bill, others, window_days=settings.date_window_days)
-            cv_ids, cv_reasons, cv_conf = detection.cross_vendor_match(
-                bill, partner, others_by_partner,
-                same_vat_partner_ids=same_vat_ids, same_bank_partner_ids=same_bank_ids,
-                window_days=settings.date_window_days,
-            )
-            if fz_ids:
-                tier, confidence, reasons, matched = "fuzzy", fz_conf, list(fz_reasons), list(fz_ids)
-            if cv_ids:
-                # cross-vendor is a distinct, valuable signal — merge it in
-                matched = list(dict.fromkeys(matched + cv_ids))
-                reasons += cv_reasons
-                if cv_conf > confidence:
-                    tier, confidence = "cross_vendor", cv_conf
+            tier, confidence, reasons, matched = "exact", ex_conf, list(ex_reasons), list(ex_ids)
+        if fz_ids and fz_conf > confidence:
+            tier, confidence = "fuzzy", fz_conf
+        if fz_ids:
+            reasons += fz_reasons
+            matched = list(dict.fromkeys(matched + fz_ids))
+        if cv_ids:
+            reasons += cv_reasons
+            matched = list(dict.fromkeys(matched + cv_ids))
+            if cv_conf > confidence:
+                tier, confidence = "cross_vendor", cv_conf
 
-            # AI confirmation of the ambiguous same-amount/different-reference case, when configured.
-            if matched:
-                llm, virtual_key, model_alias = mission_ai.get_llm(db, mission)
-                allowed = True
-                if llm is not None:
-                    allowed, _deny = usage_guard.check_allowed(db, mission.tenant_id, mission.sydekyk_id, model_alias)
-                if llm is not None and allowed:
-                    top_lines = odoo_finance.bill_lines(client, matched[0])
-                    this_lines = odoo_finance.bill_lines(client, int(move_id))
-                    ok_ai, _m, verdict, meta = extraction.compare_line_items(virtual_key, model_alias, this_lines, top_lines)
-                    mission_ai.emit_usage(db, mission, llm, meta)
-                    if ok_ai and verdict:
-                        sim = verdict["similarity"]
-                        reasons.append(f"Line items {sim}% similar — {verdict['reasoning']}")
-                        if verdict["same_items"] and sim >= 70:
-                            tier, confidence = "line_item", max(confidence, sim, 85)
-                        elif sim < 40:
-                            confidence = min(confidence, 45)  # same amount looks coincidental
+        # AI adjudication is the primary verdict — it judges the candidates the deterministic layer
+        # found (it can't invent a match), weighing vendor/ref/amount/date/line-items holistically.
+        # An exact-reference hit is already near-certain, so we skip the (billable) call there.
+        if matched and tier != "exact":
+            llm, virtual_key, model_alias = mission_ai.get_llm(db, mission)
+            allowed = True
+            if llm is not None:
+                allowed, _deny = usage_guard.check_allowed(db, mission.tenant_id, mission.sydekyk_id, model_alias)
+            if llm is not None and allowed:
+                candidate = {"vendor_name": vendor_name, "ref": bill.get("ref"), "amount": amount,
+                             "currency": currency, "invoice_date": bill.get("invoice_date"),
+                             "lines": odoo_finance.bill_lines(client, int(move_id))}
+                match_ctx = []
+                by_id = {o["id"]: o for o in others + [x for lst in others_by_partner.values() for x in lst]}
+                for mid in matched[:4]:
+                    o = by_id.get(mid, {})
+                    ov = o.get("partner_id")[1] if isinstance(o.get("partner_id"), list) else None
+                    oc = o.get("currency_id")[1] if isinstance(o.get("currency_id"), list) else None
+                    match_ctx.append({"vendor_name": ov, "ref": o.get("ref"),
+                                      "amount": round(float(o.get("amount_total") or 0.0), 2), "currency": oc,
+                                      "invoice_date": o.get("invoice_date"), "lines": odoo_finance.bill_lines(client, mid)})
+                ok_ai, _m, verdict, meta = extraction.adjudicate_duplicate(virtual_key, model_alias, candidate, match_ctx)
+                mission_ai.emit_usage(db, mission, llm, meta)
+                if ok_ai and verdict:
+                    confidence = verdict["confidence"]
+                    tier = "ai_judgment"
+                    if verdict["reasoning"]:
+                        reasons.append("AI: " + verdict["reasoning"])
 
         suppressed = bool(matched) and _is_suppressed(db, mission.tenant_id, mission.sydekyk_id, partner_id, amount)
         is_duplicate = bool(matched) and confidence >= settings.flag_threshold and not suppressed

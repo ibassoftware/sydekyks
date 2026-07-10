@@ -156,19 +156,30 @@ def run(db: Session, mission: Mission) -> None:
             detection.rule_off_hours_entry(bill),
         ]
         flags = [f for f in candidates if f and f["code"] not in suppressed]
+        # Deterministic base (grounded); a bank-change fires a hard-hold regardless of the model.
         risk_score, hold = detection.score(flags)
 
         summary = "; ".join(f["label"] for f in flags) or None
         if flags:
+            # AI reasons holistically over the grounded signals + context — the primary risk verdict.
             llm, virtual_key, model_alias = mission_ai.get_llm(db, mission)
             if llm is not None:
                 allowed, _deny = usage_guard.check_allowed(db, mission.tenant_id, mission.sydekyk_id, model_alias)
                 if allowed:
-                    ok_ai, _m, narrative, meta = extraction.summarize_risk(
-                        virtual_key, model_alias, vendor=vendor_name, amount=f"{currency or ''} {amount}", flags=flags)
+                    bill_ctx = f"vendor={vendor_name!r} amount={amount} {currency or ''} ref={bill.get('ref')!r} payment_state={bill.get('payment_state')}"
+                    vendor_ctx = (
+                        f"created={(partner or {}).get('create_date')} prior_bills={(partner or {}).get('supplier_invoice_count')} "
+                        f"tax_id={(partner or {}).get('vat')}" if partner else "(unknown vendor)"
+                    )
+                    ok_ai, _m, assessment, meta = extraction.assess_risk(
+                        virtual_key, model_alias, bill=bill_ctx, vendor=vendor_ctx, flags=flags)
                     mission_ai.emit_usage(db, mission, llm, meta)
-                    if ok_ai and narrative:
-                        summary = narrative
+                    if ok_ai and assessment:
+                        # AI score is primary; a hard-hold keeps a high floor so it can't be under-rated.
+                        risk_score = max(assessment["risk_score"], 60) if hold else assessment["risk_score"]
+                        summary = assessment["summary"] or summary
+                        for concern in assessment["extra_concerns"]:
+                            flags.append({"code": "ai_concern", "weight": 0, "label": "AI: worth checking", "evidence": concern})
         flagged = bool(flags) and (risk_score >= settings.flag_threshold or hold)
         record_step(db, mission, idx, "assess", "internal", "succeeded",
                     output={"risk_score": risk_score, "hold": hold, "flags": [f["code"] for f in flags]})

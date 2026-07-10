@@ -1,8 +1,9 @@
-"""Unit tests for Shield's fraud-risk rules (no DB, no network)."""
+"""Unit tests for Shield's fraud-risk rules + AI assessment (no DB, no network)."""
 
 from datetime import datetime
 
-from app.sydekyks.shield import detection
+from app.services import vision_ai
+from app.sydekyks.shield import detection, extraction
 
 NOW = datetime(2026, 7, 10, 12, 0, 0)
 
@@ -49,6 +50,15 @@ def test_amount_above_norm_and_round_and_offhours():
     assert detection.rule_round_number({"amount_total": 9000})
     assert detection.rule_round_number({"amount_total": 1234.56}) is None
     assert detection.rule_off_hours_entry(bill)  # weekend + late
+
+
+def test_assess_risk_parses_and_defaults_priority(monkeypatch):
+    monkeypatch.setattr(vision_ai, "llm_completion",
+                        lambda *a, **k: (True, "ok", {"risk_score": 72, "summary": "Review the bank change.",
+                                                      "extra_concerns": ["verify the new bank details", ""]}, {}))
+    ok, _m, res, _meta = extraction.assess_risk("v", "m", bill="b", vendor="v", flags=[{"label": "x", "evidence": "y"}])
+    assert ok and res["risk_score"] == 72 and res["priority"] == "high"  # derived from score
+    assert res["extra_concerns"] == ["verify the new bank details"]  # blanks dropped
 
 
 def test_score_and_hold():
