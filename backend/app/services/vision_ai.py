@@ -42,20 +42,24 @@ def document_to_image_uris(
     except ImportError:
         return [], "PDF support isn't installed (pypdfium2). Install it or upload an image."
 
-    try:
-        pdf = pdfium.PdfDocument(document_bytes)
-    except Exception as exc:  # noqa: BLE001 — corrupt/encrypted PDF
-        return [], f"Couldn't open the PDF: {exc}"
+    from app.services.pdfium_lock import PDFIUM_LOCK
 
-    uris: list[str] = []
-    try:
-        for i in range(min(len(pdf), max_pages)):
-            bitmap = pdf[i].render(scale=_PDF_RENDER_SCALE)
-            buf = io.BytesIO()
-            bitmap.to_pil().save(buf, format="PNG")
-            uris.append(data_uri("image/png", buf.getvalue()))
-    finally:
-        pdf.close()
+    # pdfium is not thread-safe: serialize the whole open→render→close cycle across Missions.
+    with PDFIUM_LOCK:
+        try:
+            pdf = pdfium.PdfDocument(document_bytes)
+        except Exception as exc:  # noqa: BLE001 — corrupt/encrypted PDF
+            return [], f"Couldn't open the PDF: {exc}"
+
+        uris: list[str] = []
+        try:
+            for i in range(min(len(pdf), max_pages)):
+                bitmap = pdf[i].render(scale=_PDF_RENDER_SCALE)
+                buf = io.BytesIO()
+                bitmap.to_pil().save(buf, format="PNG")
+                uris.append(data_uri("image/png", buf.getvalue()))
+        finally:
+            pdf.close()
     if not uris:
         return [], "The PDF had no rasterizable pages."
     return uris, None

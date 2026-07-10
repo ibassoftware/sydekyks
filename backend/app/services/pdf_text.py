@@ -12,25 +12,30 @@ def extract_text(document_bytes: bytes) -> str | None:
     except ImportError:
         return None
 
-    try:
-        pdf = pdfium.PdfDocument(document_bytes)
-    except Exception:  # noqa: BLE001 — corrupt/encrypted PDF
-        return None
+    from app.services.pdfium_lock import PDFIUM_LOCK
 
-    parts: list[str] = []
-    try:
-        for i in range(len(pdf)):
-            page = pdf[i]
-            textpage = page.get_textpage()
-            try:
-                parts.append(textpage.get_text_range())
-            finally:
-                textpage.close()
-                page.close()
-    except Exception:  # noqa: BLE001 — any rendering/text quirk → let the caller fall back to images
-        return None
-    finally:
-        pdf.close()
+    # pdfium is not thread-safe: hold the process-wide lock for the whole open→read→close cycle so
+    # concurrent Missions can't corrupt its state and crash the process.
+    with PDFIUM_LOCK:
+        try:
+            pdf = pdfium.PdfDocument(document_bytes)
+        except Exception:  # noqa: BLE001 — corrupt/encrypted PDF
+            return None
+
+        parts: list[str] = []
+        try:
+            for i in range(len(pdf)):
+                page = pdf[i]
+                textpage = page.get_textpage()
+                try:
+                    parts.append(textpage.get_text_range())
+                finally:
+                    textpage.close()
+                    page.close()
+        except Exception:  # noqa: BLE001 — any text quirk → let the caller fall back to images
+            return None
+        finally:
+            pdf.close()
 
     text = "\n".join(p for p in parts if p).strip()
     return text or None
