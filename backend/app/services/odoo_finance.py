@@ -6,13 +6,13 @@ account.move.line / res.partner / res.partner.bank but read defensively so it su
 import re
 
 from app.services import odoo
-from app.services.odoo import OdooClient
+from app.services.odoo import OdooClient, OdooError
 
 # The columns both agents need on a vendor bill.
 BILL_FIELDS = [
     "id", "name", "ref", "partner_id", "commercial_partner_id", "amount_total", "amount_untaxed",
     "currency_id", "invoice_date", "invoice_date_due", "state", "payment_state", "move_type",
-    "create_uid", "create_date", "write_date", "partner_bank_id", "invoice_origin",
+    "create_uid", "create_date", "write_date", "partner_bank_id", "invoice_origin", "payment_ids",
 ]
 
 
@@ -97,3 +97,42 @@ def bank_accounts(client: OdooClient, partner_id: int) -> list[dict]:
 
 def post_bill_note(client: OdooClient, move_id: int, body: str) -> tuple[bool, str]:
     return odoo.post_message(client, model="account.move", res_id=move_id, body=body)
+
+
+# --- Shield helpers: employee cross-check + who paid the bill -----------------------------------
+
+
+def employee_bank_numbers(client: OdooClient) -> set[str]:
+    """Sanitized bank-account numbers belonging to employees — to catch a vendor bank matching an
+    employee's (shell-vendor / collusion). Empty set if the HR module isn't installed."""
+    try:
+        emps = client.search_read("hr.employee", [["bank_account_ids", "!=", False]], ["bank_account_ids"], limit=1000)
+    except OdooError:
+        return set()
+    bank_ids = {bid for e in emps for bid in (e.get("bank_account_ids") or [])}
+    if not bank_ids:
+        return set()
+    banks = client.search_read("res.partner.bank", [["id", "in", list(bank_ids)]], ["sanitized_acc_number"])
+    return {str(b["sanitized_acc_number"]) for b in banks if b.get("sanitized_acc_number")}
+
+
+def employee_identifications(client: OdooClient) -> set[str]:
+    """Employee identification numbers — to catch a vendor Tax ID matching an employee's ID."""
+    try:
+        emps = client.search_read("hr.employee", [["identification_id", "!=", False]], ["identification_id"], limit=2000)
+    except OdooError:
+        return set()
+    return {str(e["identification_id"]) for e in emps if e.get("identification_id")}
+
+
+def bill_payment_creator_uid(client: OdooClient, bill: dict) -> int | None:
+    """The user who created a payment against this bill (for the segregation-of-duties check)."""
+    pay_ids = bill.get("payment_ids") or []
+    if not pay_ids:
+        return None
+    rows = client.execute_kw("account.payment", "read", [pay_ids], {"fields": ["create_uid"]})
+    for r in rows:
+        cu = r.get("create_uid")
+        if isinstance(cu, list) and cu:
+            return cu[0]
+    return None

@@ -3,7 +3,17 @@
 A working brief for designing and building a new **Sydekyk** — an AI agent that turns documents or
 Odoo records into finished ERP work. Hand this to a developer (or an AI coding agent) as the spec.
 It captures the architecture and the hard-won lessons from building **Ledger** (vendor-bill encoder),
-**Decode** (résumé parser), and **Scout** (résumé scorer).
+**Decode** (résumé parser), **Scout** (résumé scorer), **Mirror** (duplicate-bill detector), and
+**Shield** (fraud-risk detector).
+
+**Two agent shapes.** Some agents turn an inbound *document* into a record (Ledger, Decode). Others
+*analyse existing Odoo records* in batches and flag/score them (Scout, Mirror, Shield) — no upload, a
+"Run now" + cron trigger, and a Mission that carries just the record id in `trigger_context`. For the
+record-analysis shape reuse `missions.create_mission` (no-doc), and for bill auditors the shared
+`odoo_finance` (bill/partner reads, reference normalization, employee cross-refs) + `bill_poll`
+(scan-forward watermark poller, ≤5 days, ≤30/run, skips already-analysed via the finding store).
+Mostly-deterministic agents (Mirror's tiers, Shield's rules) keep the LLM **optional** — used only
+where judgement is needed (line-item semantic match; the advisory "warrants review" narrative).
 
 Every new agent should mirror those three: a self-contained backend package, zero-config discovery,
 a grounded AI pipeline, an Odoo write layer, a settings + readiness + insights surface, and a

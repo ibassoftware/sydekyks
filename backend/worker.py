@@ -140,6 +140,16 @@ async def poll_mirror(ctx: dict) -> int:
         db.close()
 
 
+async def poll_shield(ctx: dict) -> int:
+    from app.sydekyks.shield.models import ShieldFinding, ShieldTenantSettings
+
+    db = SessionLocal()
+    try:
+        return await _poll_bills(db, slug="shield", settings_model=ShieldTenantSettings, store_model=ShieldFinding)
+    finally:
+        db.close()
+
+
 async def snapshot_daily_usage(ctx: dict) -> int:
     db = SessionLocal()
     try:
@@ -154,6 +164,7 @@ class WorkerSettings:
         cron(poll_decode, minute={0, 15, 30, 45}),
         cron(poll_scout, minute={0, 15, 30, 45}),
         cron(poll_mirror, minute={5, 20, 35, 50}),
+        cron(poll_shield, minute={10, 25, 40, 55}),
         cron(snapshot_daily_usage, hour={0}, minute={5}),
     ]
     redis_settings = RedisSettings.from_dsn(settings.redis_url)

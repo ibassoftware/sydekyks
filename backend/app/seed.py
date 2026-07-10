@@ -99,6 +99,24 @@ _ROSTER_SYDEKYKS = [
         ),
         model="gpt-4o-mini", temperature=0.1, chat_enabled=False, workflow_enabled=True,
     ),
+    dict(
+        name="Shield", slug="shield",
+        tagline="Your internal-audit watchdog — surfaces suspicious vendor bills for review.",
+        description=(
+            "Shield reviews your Odoo vendor bills for fraud-risk signals and builds a ranked review "
+            "queue for an internal auditor. It watches for a vendor bank account changed right before "
+            "an unpaid bill (the classic payment-diversion pattern), vendor details colliding with an "
+            "employee's, segregation-of-duties breaks, phantom-vendor markers, off-norm amounts, and "
+            "statistical tells — each alert carrying the evidence that fired it. Shield surfaces risk "
+            "for a human to judge; it never accuses, and it defers duplicate detection to Mirror."
+        ),
+        avatar_url="/sydekyks/shield.png",
+        system_prompt=(
+            "You are Shield, an internal-audit assistant. Describe why a transaction warrants review "
+            "based on the risk signals provided. Be factual and advisory — never accuse."
+        ),
+        model="gpt-4o-mini", temperature=0.1, chat_enabled=False, workflow_enabled=True,
+    ),
 ]
 
 

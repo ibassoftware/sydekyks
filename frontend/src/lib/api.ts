@@ -633,3 +633,60 @@ export interface RecurringPattern {
   created_by: string | null;
   created_at: string;
 }
+
+// --- Shield (fraud risk detector) ---
+export interface ShieldSettings {
+  recent_change_days: number;
+  high_amount_threshold: number;
+  flag_threshold: number;
+  estimated_hourly_wage: number;
+  estimated_minutes_per_review: number;
+  cron_enabled: boolean;
+  cron_poll_limit: number;
+  cron_days_back: number;
+}
+export interface ShieldReadiness {
+  items: ReadinessItem[];
+  can_upload: boolean;
+}
+export interface ShieldPlaybook {
+  playbook_key: string;
+  editable: boolean;
+  steps: PlaybookStep[];
+}
+export interface ShieldRuleFlag {
+  code: string;
+  label: string;
+  weight: number;
+  evidence: string | null;
+}
+export interface ShieldAlert {
+  odoo_move_id: number;
+  vendor_name: string | null;
+  ref: string | null;
+  amount: number | null;
+  currency: string | null;
+  risk_score: number;
+  hold: boolean;
+  flags: ShieldRuleFlag[];
+  summary: string | null;
+  odoo_url: string | null;
+  human_decision: string | null;
+  finding_id: string;
+}
+export interface ShieldInsights {
+  activated: boolean;
+  total_assessed: number;
+  flagged_count: number;
+  holds_count: number;
+  exposure_amount: number;
+  top_rules: { label: string; count: number }[];
+  review_queue: ShieldAlert[];
+  daily_trend: { date: string; count: number }[];
+  estimated_hourly_wage: number;
+  estimated_minutes_each: number;
+  estimated_manual_cost: number;
+  ai_cost: number;
+  estimated_net_savings: number;
+  processing_seconds: number;
+}

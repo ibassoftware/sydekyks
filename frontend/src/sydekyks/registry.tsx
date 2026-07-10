@@ -15,6 +15,10 @@ import { MirrorSettingsSection } from "./mirror/MirrorSettingsSection";
 import { MirrorPlaybookPanel } from "./mirror/MirrorPlaybookPanel";
 import { MirrorMissionSummary } from "./mirror/MirrorMissionSummary";
 import { MirrorOperationsSection } from "./mirror/MirrorOperationsSection";
+import { ShieldSettingsSection } from "./shield/ShieldSettingsSection";
+import { ShieldPlaybookPanel } from "./shield/ShieldPlaybookPanel";
+import { ShieldMissionSummary } from "./shield/ShieldMissionSummary";
+import { ShieldOperationsSection } from "./shield/ShieldOperationsSection";
 
 /** VS-9: a deliberately plain per-Sydekyk UI registry — mirrors the backend's per-Sydekyk package
  * structure. No dynamic imports, no plugin framework; it just lets a Sydekyk provide optional UI so
@@ -85,6 +89,7 @@ const LEDGER_VERBS = ["Encoded", "Booked", "Filed", "Recorded", "Captured", "Log
 const DECODE_VERBS = ["Parsed", "Read", "Filed", "Captured", "Logged", "Processed"];
 const SCOUT_VERBS = ["Graded", "Scored", "Evaluated", "Assessed", "Rated", "Reviewed"];
 const MIRROR_VERBS = ["Checked", "Scanned", "Inspected", "Vetted", "Screened", "Reviewed"];
+const SHIELD_VERBS = ["Assessed", "Screened", "Reviewed", "Audited", "Vetted", "Examined"];
 
 /** Fallback headline when a Mission produced no business object yet (queued/running) or was rejected
  * (failed) — the friendly error already reads like "This doesn't look like a résumé…". */
@@ -135,6 +140,20 @@ function mirrorRowLabel(m: RowLabelInput): MissionRowLabel {
   return { title: `${verb} the bill${ref} by ${vendor}${flag}` };
 }
 
+function shieldRowLabel(m: RowLabelInput): MissionRowLabel {
+  const s = m.result_summary ?? {};
+  const vendor = s.vendor_name as string | undefined;
+  if (!vendor) return fallbackRowLabel(m);
+  const verb = pick(SHIELD_VERBS, m.id);
+  const ref = s.ref ? ` ${s.ref}` : "";
+  const flag = s.hold
+    ? ` · HARD-HOLD (risk ${(s.risk_score as number) ?? 0})`
+    : s.needs_review
+      ? ` · warrants review (risk ${(s.risk_score as number) ?? 0})`
+      : " · no risk signals";
+  return { title: `${verb} the bill${ref} by ${vendor}${flag}` };
+}
+
 const BY_SLUG: Record<string, SydekykRegistryEntry> = {
   ledger: {
     setupSection: LedgerSettingsSection,
@@ -168,6 +187,14 @@ const BY_SLUG: Record<string, SydekykRegistryEntry> = {
     missionRowLabel: mirrorRowLabel,
     reviewNoun: { one: "duplicate", many: "duplicates" },
   },
+  shield: {
+    setupSection: ShieldSettingsSection,
+    playbookPanel: ShieldPlaybookPanel,
+    missionSummary: ShieldMissionSummary,
+    operationsPanel: ShieldOperationsSection,
+    missionRowLabel: shieldRowLabel,
+    reviewNoun: { one: "risk alert", many: "risk alerts" },
+  },
 };
 
 const BY_PLAYBOOK: Record<string, SydekykRegistryEntry> = {
@@ -175,6 +202,7 @@ const BY_PLAYBOOK: Record<string, SydekykRegistryEntry> = {
   "decode.resume_parse": { missionSummary: DecodeMissionSummary, domain: "hr", missionRowLabel: decodeRowLabel },
   "scout.resume_score": { missionSummary: ScoutMissionSummary, domain: "hr", missionRowLabel: scoutRowLabel },
   "mirror.duplicate_check": { missionSummary: MirrorMissionSummary, missionRowLabel: mirrorRowLabel },
+  "shield.risk_assess": { missionSummary: ShieldMissionSummary, missionRowLabel: shieldRowLabel },
 };
 
 export function registryForSlug(slug: string | undefined): SydekykRegistryEntry | undefined {
