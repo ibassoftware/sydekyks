@@ -10,6 +10,7 @@ from app.models.llm_provider import (
 )
 from app.models.metering import ModelRateProfile, PlanTier, PlatformMeteringConfig
 from app.models.mission import Mission, MissionDocument, MissionStep
+from app.models.review_assignment import ReviewAssignment
 from app.models.sydekyk import Sydekyk, SydekykInstall
 from app.models.tenant import Tenant
 from app.models.tenant_issue import TenantIssue

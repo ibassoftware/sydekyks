@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.core.crypto import decrypt_secret
 from app.models.mission import Mission
-from app.services import gadget_links, mission_ai, odoo, odoo_finance, tenant_issues, usage_guard
+from app.services import gadget_links, mission_ai, odoo, odoo_finance, review_assignment, tenant_issues, usage_guard
 from app.services.missions import record_step, register_playbook
 
 from app.sydekyks.shield import detection, extraction
@@ -198,6 +198,11 @@ def run(db: Session, mission: Mission) -> None:
             tenant_issues.report_issue(
                 db, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id, kind="shield_risk",
                 title=title, detail=(summary or "") + " — advisory; auditor review recommended.", mission_id=mission.id,
+            )
+            review_assignment.assign_on_flag(
+                db, client, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id,
+                model="account.move", res_id=int(move_id), summary=title,
+                note="<p>" + (summary or "") + " — advisory only; review recommended.</p>",
             )
         record_step(db, mission, idx, "record", "gadget_call", "succeeded", output={"flagged": flagged})
         idx += 1

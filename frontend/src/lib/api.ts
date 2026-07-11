@@ -85,6 +85,18 @@ export interface SydekykPermission {
   can_configure: boolean;
 }
 
+// --- Review assignment (shared across all agents) ---
+export interface OdooUser {
+  id: number;
+  name: string;
+  login: string | null;
+}
+export interface ReviewerConfig {
+  create_activity: boolean;
+  odoo_user_ids: number[];
+  activity_days: number;
+}
+
 export interface Sydekyk {
   id: string;
   name: string;

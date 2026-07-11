@@ -12,6 +12,7 @@ from app.routers import (
     issues,
     llm_settings,
     missions,
+    review_assignments,
     team,
     tenant,
 )
@@ -36,6 +37,7 @@ app.include_router(llm_settings.router)
 app.include_router(documents.router)
 app.include_router(missions.router)
 app.include_router(team.router)
+app.include_router(review_assignments.router)
 app.include_router(issues.router)
 app.include_router(email_webhook.router)
 

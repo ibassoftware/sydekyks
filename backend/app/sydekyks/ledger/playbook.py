@@ -12,7 +12,7 @@ from app.models.gadget import TenantGadgetLink
 from app.models.gadget_requirement import SydekykGadgetRequirement, TenantSydekykGadgetAssignment
 from app.models.llm_provider import SydekykHostedAssignment, TenantSydekykLLMConfig
 from app.models.mission import Mission, MissionDocument
-from app.services import document_storage, odoo
+from app.services import document_storage, odoo, review_assignment
 from app.services.missions import record_step, register_playbook
 
 from app.sydekyks.ledger import confidence, duplicates, extraction, narration, odoo_bills
@@ -451,6 +451,14 @@ def run(db: Session, mission: Mission) -> None:
             record_step(db, mission, idx, "post_bill", "gadget_call", "succeeded" if ok else "failed",
                         error=None if ok else msg, output={"posted": ok})
             idx += 1
+
+        if tax_needs_review:
+            review_assignment.assign_on_flag(
+                db, client, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id,
+                model="account.move", res_id=move_id,
+                summary=f"Review vendor bill — {bill.vendor_name or 'vendor'} {bill.invoice_number or ''}".strip(),
+                note=f"<p>{tax_review_reason or 'Ledger flagged this bill for review.'}</p>",
+            )
 
         bill_row = odoo_bills.read_bill(client, move_id)
         _finish(db, mission, "succeeded", {

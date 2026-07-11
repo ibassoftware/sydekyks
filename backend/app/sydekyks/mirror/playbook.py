@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.core.crypto import decrypt_secret
 from app.models.mission import Mission
-from app.services import gadget_links, mission_ai, odoo, odoo_finance, tenant_issues, usage_guard
+from app.services import gadget_links, mission_ai, odoo, odoo_finance, review_assignment, tenant_issues, usage_guard
 from app.services.missions import record_step, register_playbook
 
 from app.sydekyks.mirror import detection, extraction
@@ -229,6 +229,12 @@ def run(db: Session, mission: Mission) -> None:
                 db, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id, kind="mirror_duplicate",
                 title=f"Possible duplicate bill — {vendor_name or 'vendor'} {bill.get('ref') or ''}".strip(),
                 detail=f"{confidence}% confidence ({tier}). " + "; ".join(reasons), mission_id=mission.id,
+            )
+            review_assignment.assign_on_flag(
+                db, client, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id,
+                model="account.move", res_id=int(move_id),
+                summary=f"Possible duplicate ({confidence}%) — {vendor_name or 'vendor'} {bill.get('ref') or ''}".strip(),
+                note="<p>" + "; ".join(reasons) + "</p>" if reasons else None,
             )
         record_step(db, mission, idx, "record", "gadget_call", "succeeded", output={"flagged": is_duplicate})
         idx += 1

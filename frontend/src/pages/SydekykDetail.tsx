@@ -15,6 +15,7 @@ import { useAuth } from "../lib/auth";
 import { Badge, Button, Card, Input, Label } from "../components/ui";
 import { HQShell } from "../components/HQShell";
 import { DocumentIntakeSection } from "../components/DocumentIntakeSection";
+import { ReviewerAssignment } from "../components/ReviewerAssignment";
 import { registryForSlug } from "../sydekyks/registry";
 
 const ENGINE_LABEL: Record<LLMProvider, string> = {
@@ -189,6 +190,11 @@ export default function SydekykDetail() {
                       <registryEntry.setupSection sydekyk={sydekyk} canManage={canConfigure} onReadiness={setReadiness} />
                     </Card>
                   )}
+                  {sydekyk.workflow_enabled && (
+                    <Card className="p-6">
+                      <ReviewerAssignment sydekykId={sydekyk.id} canManage={canConfigure} />
+                    </Card>
+                  )}
                   {registryEntry?.playbookPanel && (
                     <Card className="p-6">
                       <registryEntry.playbookPanel />
@@ -209,6 +215,11 @@ export default function SydekykDetail() {
                 {registryEntry?.setupSection && (
                   <Card className="p-6">
                     <registryEntry.setupSection sydekyk={sydekyk} canManage={canConfigure} onReadiness={setReadiness} />
+                  </Card>
+                )}
+                {sydekyk.workflow_enabled && (
+                  <Card className="p-6">
+                    <ReviewerAssignment sydekykId={sydekyk.id} canManage={canConfigure} />
                   </Card>
                 )}
                 {registryEntry?.playbookPanel && (

@@ -257,3 +257,12 @@ run-now/upload create Missions the normal way; nothing agent-specific to build.
   AI could produce (aggregated gaps/themes), with a click-through into Odoo to act.
 - **Consistent UX via the registry.** Per-agent display (row labels, hue, review noun, panels) lives
   in one registry; shared pages never branch on slug.
+- **Common tools are built once, keyed by sydekyk_id.** The review-assignment tool is the model:
+  ONE table (`agent_review_assignments`), ONE service (`review_assignment` — `assign_on_flag` +
+  `audit_assignees`), ONE router (`/tenant/sydekyks/{id}/reviewers` + `/odoo-users`), and ONE
+  frontend component (`ReviewerAssignment`, rendered generically in `SydekykDetail` for every
+  workflow agent). Each playbook only adds a single `review_assignment.assign_on_flag(...)` call at
+  its flag point (the record model + id it just flagged). A daily worker cron audits the assigned
+  Odoo users and raises a Command-Center issue if one was removed/deactivated. When a capability is
+  common to all agents, resist per-agent copies — add a shared table/service/router/component keyed
+  by `sydekyk_id` and wire agents in with one call.

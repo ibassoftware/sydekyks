@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.core.crypto import decrypt_secret
 from app.models.mission import Mission, MissionDocument
-from app.services import document_storage, gadget_links, mission_ai, odoo, odoo_hr, tenant_issues, usage_guard, vision_ai
+from app.services import document_storage, gadget_links, mission_ai, odoo, odoo_hr, review_assignment, tenant_issues, usage_guard, vision_ai
 from app.services.missions import record_step, register_playbook
 
 from app.sydekyks.decode import extraction
@@ -303,6 +303,14 @@ def run(db: Session, mission: Mission) -> None:
             review_reason = "Some skills need adding to your Odoo taxonomy."
         elif is_pooling:
             review_reason = "No matching job — added to the pool."
+
+        if needs_review:
+            review_assignment.assign_on_flag(
+                db, client, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id,
+                model="hr.applicant", res_id=applicant_id,
+                summary=f"Review applicant — {resume.full_name}",
+                note=f"<p>{review_reason or 'Flagged by Decode for review.'}</p>",
+            )
 
         source = "odoo" if existing_applicant_id else (document.source or "web_upload")
         db.add(DecodeApplicant(

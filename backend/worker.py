@@ -152,6 +152,25 @@ async def poll_shield(ctx: dict) -> int:
         db.close()
 
 
+async def audit_review_assignees(ctx: dict) -> int:
+    """Daily: check that each agent's assigned Odoo reviewers still exist + are active; raise a
+    Command-Center issue for the admin if any were removed or deactivated."""
+    from app.models.review_assignment import ReviewAssignment
+    from app.services import review_assignment as ra_svc
+
+    db = SessionLocal()
+    try:
+        targets = [(ra.tenant_id, ra.sydekyk_id) for ra in db.query(ReviewAssignment).all() if ra.odoo_user_ids]
+        flagged = 0
+        for tid, sid in targets:
+            bad = await asyncio.to_thread(ra_svc.audit_assignees, db, tenant_id=tid, sydekyk_id=sid)
+            if bad:
+                flagged += 1
+        return flagged
+    finally:
+        db.close()
+
+
 async def snapshot_daily_usage(ctx: dict) -> int:
     db = SessionLocal()
     try:
@@ -167,6 +186,7 @@ class WorkerSettings:
         cron(poll_scout, minute={0, 15, 30, 45}),
         cron(poll_mirror, minute={5, 20, 35, 50}),
         cron(poll_shield, minute={10, 25, 40, 55}),
+        cron(audit_review_assignees, hour={2}, minute={0}),
         cron(snapshot_daily_usage, hour={0}, minute={5}),
     ]
     redis_settings = RedisSettings.from_dsn(settings.redis_url)
