@@ -618,7 +618,6 @@ export interface MirrorInsights {
   suppressed_count: number;
   prevented_amount: number;
   by_tier: { tier: string; count: number }[];
-  recent_flags: MirrorFlag[];
   daily_trend: { date: string; count: number }[];
   estimated_hourly_wage: number;
   estimated_minutes_each: number;
@@ -635,6 +634,12 @@ export interface RecurringPattern {
   note: string | null;
   created_by: string | null;
   created_at: string;
+}
+export interface MirrorFlagPage {
+  items: MirrorFlag[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 // --- Shield (fraud risk detector) ---
@@ -677,6 +682,12 @@ export interface ShieldAlert {
   human_decision: string | null;
   finding_id: string;
 }
+export interface ShieldQueuePage {
+  items: ShieldAlert[];
+  total: number;
+  limit: number;
+  offset: number;
+}
 export interface ShieldInsights {
   activated: boolean;
   total_assessed: number;
@@ -684,7 +695,6 @@ export interface ShieldInsights {
   holds_count: number;
   exposure_amount: number;
   top_rules: { label: string; count: number }[];
-  review_queue: ShieldAlert[];
   daily_trend: { date: string; count: number }[];
   estimated_hourly_wage: number;
   estimated_minutes_each: number;

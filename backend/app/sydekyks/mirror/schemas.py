@@ -72,6 +72,13 @@ class MirrorFlag(BaseModel):
     finding_id: uuid.UUID
 
 
+class MirrorFlagPage(BaseModel):
+    items: list[MirrorFlag]
+    total: int
+    limit: int
+    offset: int
+
+
 class MirrorDailyPoint(BaseModel):
     date: str
     count: int
@@ -84,7 +91,6 @@ class MirrorInsightsOut(BaseModel):
     suppressed_count: int
     prevented_amount: float
     by_tier: list[TierCount]
-    recent_flags: list[MirrorFlag]
     daily_trend: list[MirrorDailyPoint]
     estimated_hourly_wage: float = 0.0
     estimated_minutes_each: float = 0.0

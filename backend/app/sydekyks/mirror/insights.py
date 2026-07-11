@@ -23,6 +23,28 @@ def mirror_activated(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -
     ) is not None
 
 
+def _flag_out(f: MirrorFinding, base_url: str | None) -> dict:
+    return {
+        "odoo_move_id": f.odoo_move_id, "vendor_name": f.vendor_name, "ref": f.ref,
+        "amount": f.amount, "currency": f.currency, "confidence": f.confidence, "tier": f.tier,
+        "reasons": f.reasons or [],
+        "odoo_url": gadget_links.odoo_form_url(base_url, "account.move", f.odoo_move_id) if base_url else None,
+        "human_decision": f.human_decision, "finding_id": f.id,
+    }
+
+
+def pending_flags(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID, *, limit: int, offset: int) -> dict:
+    """A paged worklist of flagged duplicates still awaiting a human decision (newest first)."""
+    base = db.query(MirrorFinding).filter(
+        MirrorFinding.tenant_id == tenant_id, MirrorFinding.sydekyk_id == sydekyk_id,
+        MirrorFinding.is_duplicate.is_(True), MirrorFinding.human_decision.is_(None),
+    )
+    total = base.count()
+    rows = base.order_by(MirrorFinding.created_at.desc()).limit(limit).offset(offset).all()
+    base_url = gadget_links.assigned_odoo_base_url(db, tenant_id=tenant_id, sydekyk_id=sydekyk_id)
+    return {"items": [_flag_out(r, base_url) for r in rows], "total": total, "limit": limit, "offset": offset}
+
+
 def compute_insights(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -> dict:
     base = db.query(MirrorFinding).filter(
         MirrorFinding.tenant_id == tenant_id, MirrorFinding.sydekyk_id == sydekyk_id
@@ -35,19 +57,6 @@ def compute_insights(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -
 
     tiers: Counter = Counter(r.tier or "none" for r in dupes)
     by_tier = [{"tier": k, "count": v} for k, v in tiers.most_common()]
-
-    base_url = gadget_links.assigned_odoo_base_url(db, tenant_id=tenant_id, sydekyk_id=sydekyk_id)
-    recent = sorted(dupes, key=lambda r: r.created_at, reverse=True)[:10]
-    recent_flags = [
-        {
-            "odoo_move_id": r.odoo_move_id, "vendor_name": r.vendor_name, "ref": r.ref,
-            "amount": r.amount, "currency": r.currency, "confidence": r.confidence, "tier": r.tier,
-            "reasons": r.reasons or [],
-            "odoo_url": gadget_links.odoo_form_url(base_url, "account.move", r.odoo_move_id) if base_url else None,
-            "human_decision": r.human_decision, "finding_id": r.id,
-        }
-        for r in recent
-    ]
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=TREND_DAYS)
     trend_rows = (
@@ -76,7 +85,6 @@ def compute_insights(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -
         "suppressed_count": suppressed,
         "prevented_amount": prevented,
         "by_tier": by_tier,
-        "recent_flags": recent_flags,
         "daily_trend": daily_trend,
         **save,
     }

@@ -20,6 +20,7 @@ from app.sydekyks.shield.schemas import (
     RunNowOut,
     ShieldInsightsOut,
     ShieldPlaybook,
+    ShieldQueuePage,
     ShieldReadiness,
     ShieldSettingsOut,
     ShieldSettingsUpdate,
@@ -97,6 +98,14 @@ def get_insights(user: User = Depends(require_tenant_member), db: Session = Depe
     sydekyk = _shield(db, user)
     activated = insights_svc.shield_activated(db, user.tenant_id, sydekyk.id)
     return ShieldInsightsOut(activated=activated, **insights_svc.compute_insights(db, user.tenant_id, sydekyk.id))
+
+
+@router.get("/queue", response_model=ShieldQueuePage)
+def get_queue(limit: int = 8, offset: int = 0, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+    """Paged auditor review queue of flagged bills awaiting confirm / clear."""
+    sydekyk = _shield(db, user)
+    limit = max(1, min(limit, 50))
+    return ShieldQueuePage(**insights_svc.pending_alerts(db, user.tenant_id, sydekyk.id, limit=limit, offset=max(0, offset)))
 
 
 @router.post("/run-now", response_model=RunNowOut)

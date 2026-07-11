@@ -17,6 +17,7 @@ from app.sydekyks.mirror.models import MirrorFinding, MirrorRecurringPattern, Mi
 from app.sydekyks.mirror.playbook import PLAYBOOK_KEY, PLAYBOOK_STEPS
 from app.sydekyks.mirror.schemas import (
     FindingDecisionIn,
+    MirrorFlagPage,
     MirrorInsightsOut,
     MirrorPlaybook,
     MirrorReadiness,
@@ -102,6 +103,14 @@ def get_insights(user: User = Depends(require_tenant_member), db: Session = Depe
     sydekyk = _mirror(db, user)
     activated = insights_svc.mirror_activated(db, user.tenant_id, sydekyk.id)
     return MirrorInsightsOut(activated=activated, **insights_svc.compute_insights(db, user.tenant_id, sydekyk.id))
+
+
+@router.get("/flags", response_model=MirrorFlagPage)
+def get_flags(limit: int = 8, offset: int = 0, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+    """Paged worklist of duplicates awaiting a decision (approve / dismiss / mark recurring)."""
+    sydekyk = _mirror(db, user)
+    limit = max(1, min(limit, 50))
+    return MirrorFlagPage(**insights_svc.pending_flags(db, user.tenant_id, sydekyk.id, limit=limit, offset=max(0, offset)))
 
 
 @router.post("/run-now", response_model=RunNowOut)

@@ -74,6 +74,13 @@ class ShieldAlert(BaseModel):
     finding_id: uuid.UUID
 
 
+class ShieldQueuePage(BaseModel):
+    items: list[ShieldAlert]
+    total: int
+    limit: int
+    offset: int
+
+
 class TopRule(BaseModel):
     label: str
     count: int
@@ -91,7 +98,6 @@ class ShieldInsightsOut(BaseModel):
     holds_count: int
     exposure_amount: float
     top_rules: list[TopRule]
-    review_queue: list[ShieldAlert]
     daily_trend: list[ShieldDailyPoint]
     estimated_hourly_wage: float = 0.0
     estimated_minutes_each: float = 0.0

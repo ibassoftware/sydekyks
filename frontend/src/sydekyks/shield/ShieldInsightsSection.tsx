@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { api, type ShieldAlert, type ShieldInsights } from "../../lib/api";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { api, type ShieldAlert, type ShieldInsights, type ShieldQueuePage } from "../../lib/api";
 import { formatWorkTime, formatFastTime } from "../../lib/format";
 import { Card } from "../../components/ui";
 import { AgentThumb } from "../../components/AgentThumb";
@@ -16,32 +16,42 @@ function riskPill(score: number): string {
 
 /** Shield dashboard card — the ranked auditor review queue is the product. Advisory framing only:
  * "warrants review", confirm / clear, never an accusation. */
+const PAGE = 8;
+
 export function ShieldInsightsSection() {
   const [data, setData] = useState<ShieldInsights | null>(null);
-  const [decided, setDecided] = useState<Record<string, string>>({});
+  const [queue, setQueue] = useState<ShieldQueuePage | null>(null);
+  const [offset, setOffset] = useState(0);
 
-  useEffect(() => {
+  const loadStats = useCallback(() => {
     api.get<ShieldInsights>("/tenant/shield/insights").then((r) => setData(r.data)).catch(() => setData(null));
   }, []);
+  const loadQueue = useCallback((off: number) => {
+    api.get<ShieldQueuePage>("/tenant/shield/queue", { params: { limit: PAGE, offset: off } })
+      .then((r) => setQueue(r.data)).catch(() => setQueue(null));
+  }, []);
+
+  useEffect(() => loadStats(), [loadStats]);
+  useEffect(() => loadQueue(offset), [loadQueue, offset]);
 
   if (!data || !data.activated || data.total_assessed === 0) return null;
 
   async function decide(a: ShieldAlert, decision: "confirmed" | "cleared") {
-    setDecided((d) => ({ ...d, [a.finding_id]: decision }));
     // On a false positive, suppress the strongest rule for this vendor so it stops firing.
     const rule_code = decision === "cleared" ? [...a.flags].sort((x, y) => y.weight - x.weight)[0]?.code : undefined;
     try {
       await api.post(`/tenant/shield/findings/${a.finding_id}/decision`, { decision, rule_code });
-    } catch {
-      setDecided((d) => {
-        const next = { ...d };
-        delete next[a.finding_id];
-        return next;
-      });
+    } finally {
+      const remaining = (queue?.items.length ?? 1) - 1;
+      if (remaining <= 0 && offset >= PAGE) setOffset(offset - PAGE);
+      else loadQueue(offset);
+      loadStats();
     }
   }
 
-  const cur = data.review_queue[0]?.currency ?? "";
+  const items = queue?.items ?? [];
+  const total = queue?.total ?? 0;
+  const cur = items[0]?.currency ?? "";
 
   return (
     <Card className="relative mt-6 overflow-hidden p-6">
@@ -70,50 +80,52 @@ export function ShieldInsightsSection() {
         <Stat value={data.total_assessed.toLocaleString()} label="Bills assessed" />
       </div>
 
-      {data.review_queue.length > 0 && (
+      {total > 0 && (
         <div className="mt-6">
-          <p className="text-xs font-semibold uppercase tracking-wider text-[#8a7f6d]">Auditor review queue</p>
-          <div className="mt-2 grid gap-2">
-            {data.review_queue.map((a) => {
-              const outcome = decided[a.finding_id] ?? a.human_decision;
-              return (
-                <div key={a.finding_id} className={`rounded-lg border px-3 py-2.5 ${a.hold ? "border-red-700/50 bg-red-500/[0.06]" : "border-ink-700"}`}>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${riskPill(a.risk_score)}`}>
-                      risk {a.risk_score}
-                    </span>
-                    {a.hold && <span className="rounded-full border border-red-700/50 bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-300">HARD-HOLD</span>}
-                    <span className="text-sm font-medium text-[#ede6da]">{a.vendor_name ?? "Vendor"}</span>
-                    {a.ref && <span className="text-xs text-[#8a7f6d]">#{a.ref}</span>}
-                    {a.amount != null && <span className="text-sm text-[#ede6da]">{a.currency} {a.amount.toFixed(2)}</span>}
-                    {a.odoo_url && (
-                      <a href={a.odoo_url} target="_blank" rel="noopener noreferrer" className="ml-auto shrink-0 text-xs font-semibold text-gold-400 hover:text-gold-300">
-                        Open →
-                      </a>
-                    )}
-                  </div>
-                  {a.summary && <p className="mt-1 text-xs text-[#d8cdb9]">{a.summary}</p>}
-                  {a.flags.length > 0 && (
-                    <ul className="mt-1 grid gap-0.5">
-                      {a.flags.map((f) => (
-                        <li key={f.code} className="text-[11px] text-[#8a7f6d]">• {f.label}{f.evidence ? ` — ${f.evidence}` : ""}</li>
-                      ))}
-                    </ul>
-                  )}
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {outcome ? (
-                      <span className="text-xs font-semibold text-gold-400">Marked: {outcome === "confirmed" ? "confirmed risk" : "cleared (false positive)"}</span>
-                    ) : (
-                      <>
-                        <DecisionBtn label="Confirm — escalate" tone="danger" onClick={() => decide(a, "confirmed")} />
-                        <DecisionBtn label="Clear — false positive" tone="ghost" onClick={() => decide(a, "cleared")} />
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#8a7f6d]">Auditor review queue</p>
+            <span className="text-[11px] text-[#8a7f6d]">
+              {offset + 1}–{Math.min(offset + PAGE, total)} of {total}
+            </span>
           </div>
+          <div className="mt-2 grid gap-2">
+            {items.map((a) => (
+              <div key={a.finding_id} className={`rounded-lg border px-3 py-2.5 ${a.hold ? "border-red-700/50 bg-red-500/[0.06]" : "border-ink-700"}`}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${riskPill(a.risk_score)}`}>
+                    risk {a.risk_score}
+                  </span>
+                  {a.hold && <span className="rounded-full border border-red-700/50 bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-300">HARD-HOLD</span>}
+                  <span className="text-sm font-medium text-[#ede6da]">{a.vendor_name ?? "Vendor"}</span>
+                  {a.ref && <span className="text-xs text-[#8a7f6d]">#{a.ref}</span>}
+                  {a.amount != null && <span className="text-sm text-[#ede6da]">{a.currency} {a.amount.toFixed(2)}</span>}
+                  {a.odoo_url && (
+                    <a href={a.odoo_url} target="_blank" rel="noopener noreferrer" className="ml-auto shrink-0 text-xs font-semibold text-gold-400 hover:text-gold-300">
+                      Open →
+                    </a>
+                  )}
+                </div>
+                {a.summary && <p className="mt-1 text-xs text-[#d8cdb9]">{a.summary}</p>}
+                {a.flags.length > 0 && (
+                  <ul className="mt-1 grid gap-0.5">
+                    {a.flags.map((f) => (
+                      <li key={f.code} className="text-[11px] text-[#8a7f6d]">• {f.label}{f.evidence ? ` — ${f.evidence}` : ""}</li>
+                    ))}
+                  </ul>
+                )}
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <DecisionBtn label="Confirm — escalate" tone="danger" onClick={() => decide(a, "confirmed")} />
+                  <DecisionBtn label="Clear — false positive" tone="ghost" onClick={() => decide(a, "cleared")} />
+                </div>
+              </div>
+            ))}
+          </div>
+          {total > PAGE && (
+            <div className="mt-3 flex items-center justify-end gap-2">
+              <PagerBtn disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))}>← Prev</PagerBtn>
+              <PagerBtn disabled={offset + PAGE >= total} onClick={() => setOffset(offset + PAGE)}>Next →</PagerBtn>
+            </div>
+          )}
         </div>
       )}
 
@@ -150,6 +162,18 @@ function DecisionBtn({ label, tone, onClick }: { label: string; tone: "danger" |
   return (
     <button onClick={onClick} className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${cls}`}>
       {label}
+    </button>
+  );
+}
+
+function PagerBtn({ disabled, onClick, children }: { disabled: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      disabled={disabled}
+      onClick={onClick}
+      className="rounded-md border border-ink-600 bg-ink-800/60 px-2.5 py-1 text-xs font-semibold text-[#b9ad98] hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      {children}
     </button>
   );
 }

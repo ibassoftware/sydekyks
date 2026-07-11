@@ -1,37 +1,47 @@
-import { useEffect, useState } from "react";
-import { api, type MirrorFlag, type MirrorInsights } from "../../lib/api";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { api, type MirrorFlag, type MirrorFlagPage, type MirrorInsights } from "../../lib/api";
 import { formatWorkTime, formatFastTime } from "../../lib/format";
 import { Card } from "../../components/ui";
 import { AgentThumb } from "../../components/AgentThumb";
 
 const money = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+const PAGE = 8;
 
-/** Mirror dashboard card — double-payments prevented ($) up top, then the review queue of recent
- * flags with confirm / dismiss / mark-recurring actions (the learning loop). */
+/** Mirror dashboard card — double-payments prevented ($) up top, then the PAGED review queue of
+ * duplicates awaiting a decision (confirm / dismiss / mark-recurring — the learning loop). */
 export function MirrorInsightsSection() {
   const [data, setData] = useState<MirrorInsights | null>(null);
-  const [decided, setDecided] = useState<Record<string, string>>({});
+  const [queue, setQueue] = useState<MirrorFlagPage | null>(null);
+  const [offset, setOffset] = useState(0);
 
-  useEffect(() => {
+  const loadStats = useCallback(() => {
     api.get<MirrorInsights>("/tenant/mirror/insights").then((r) => setData(r.data)).catch(() => setData(null));
   }, []);
+  const loadQueue = useCallback((off: number) => {
+    api.get<MirrorFlagPage>("/tenant/mirror/flags", { params: { limit: PAGE, offset: off } })
+      .then((r) => setQueue(r.data)).catch(() => setQueue(null));
+  }, []);
+
+  useEffect(() => loadStats(), [loadStats]);
+  useEffect(() => loadQueue(offset), [loadQueue, offset]);
 
   if (!data || !data.activated || data.total_checked === 0) return null;
 
   async function decide(f: MirrorFlag, decision: "confirmed_duplicate" | "not_duplicate" | "recurring") {
-    setDecided((d) => ({ ...d, [f.finding_id]: decision }));
     try {
       await api.post(`/tenant/mirror/findings/${f.finding_id}/decision`, { decision });
-    } catch {
-      setDecided((d) => {
-        const next = { ...d };
-        delete next[f.finding_id];
-        return next;
-      });
+    } finally {
+      // The item leaves the pending queue; step back a page if we just emptied a later one.
+      const remaining = (queue?.items.length ?? 1) - 1;
+      if (remaining <= 0 && offset >= PAGE) setOffset(offset - PAGE);
+      else loadQueue(offset);
+      loadStats();
     }
   }
 
-  const cur = data.recent_flags[0]?.currency ?? "";
+  const items = queue?.items ?? [];
+  const total = queue?.total ?? 0;
+  const cur = items[0]?.currency ?? "";
 
   return (
     <Card className="relative mt-6 overflow-hidden p-6">
@@ -60,46 +70,46 @@ export function MirrorInsightsSection() {
         <Stat value={data.suppressed_count.toLocaleString()} label="Recurring (suppressed)" />
       </div>
 
-      {data.recent_flags.length > 0 && (
+      {total > 0 && (
         <div className="mt-6">
-          <p className="text-xs font-semibold uppercase tracking-wider text-[#8a7f6d]">Review queue</p>
-          <div className="mt-2 grid gap-2">
-            {data.recent_flags.map((f) => {
-              const outcome = decided[f.finding_id] ?? f.human_decision;
-              return (
-                <div key={f.finding_id} className="rounded-lg border border-ink-700 px-3 py-2.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full border border-red-700/50 bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-300">
-                      {f.confidence}%
-                    </span>
-                    <span className="text-sm font-medium text-[#ede6da]">{f.vendor_name ?? "Vendor"}</span>
-                    {f.ref && <span className="text-xs text-[#8a7f6d]">#{f.ref}</span>}
-                    {f.amount != null && <span className="text-sm text-[#ede6da]">{f.currency} {f.amount.toFixed(2)}</span>}
-                    {f.tier && <span className="text-[11px] text-[#8a7f6d]">· {f.tier}</span>}
-                    {f.odoo_url && (
-                      <a href={f.odoo_url} target="_blank" rel="noopener noreferrer" className="ml-auto shrink-0 text-xs font-semibold text-gold-400 hover:text-gold-300">
-                        Open →
-                      </a>
-                    )}
-                  </div>
-                  {f.reasons.length > 0 && <p className="mt-1 text-xs text-[#8a7f6d]">{f.reasons.join("; ")}</p>}
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {outcome ? (
-                      <span className="text-xs font-semibold text-gold-400">
-                        Marked: {outcome.replace(/_/g, " ")}
-                      </span>
-                    ) : (
-                      <>
-                        <DecisionBtn label="Confirm duplicate" tone="danger" onClick={() => decide(f, "confirmed_duplicate")} />
-                        <DecisionBtn label="Not a duplicate" tone="ghost" onClick={() => decide(f, "not_duplicate")} />
-                        <DecisionBtn label="Recurring — stop flagging" tone="ghost" onClick={() => decide(f, "recurring")} />
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#8a7f6d]">Review queue</p>
+            <span className="text-[11px] text-[#8a7f6d]">
+              {offset + 1}–{Math.min(offset + PAGE, total)} of {total}
+            </span>
           </div>
+          <div className="mt-2 grid gap-2">
+            {items.map((f) => (
+              <div key={f.finding_id} className="rounded-lg border border-ink-700 px-3 py-2.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-red-700/50 bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-300">
+                    {f.confidence}%
+                  </span>
+                  <span className="text-sm font-medium text-[#ede6da]">{f.vendor_name ?? "Vendor"}</span>
+                  {f.ref && <span className="text-xs text-[#8a7f6d]">#{f.ref}</span>}
+                  {f.amount != null && <span className="text-sm text-[#ede6da]">{f.currency} {f.amount.toFixed(2)}</span>}
+                  {f.tier && <span className="text-[11px] text-[#8a7f6d]">· {f.tier}</span>}
+                  {f.odoo_url && (
+                    <a href={f.odoo_url} target="_blank" rel="noopener noreferrer" className="ml-auto shrink-0 text-xs font-semibold text-gold-400 hover:text-gold-300">
+                      Open →
+                    </a>
+                  )}
+                </div>
+                {f.reasons.length > 0 && <p className="mt-1 text-xs text-[#8a7f6d]">{f.reasons.join("; ")}</p>}
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <DecisionBtn label="Confirm duplicate" tone="danger" onClick={() => decide(f, "confirmed_duplicate")} />
+                  <DecisionBtn label="Not a duplicate" tone="ghost" onClick={() => decide(f, "not_duplicate")} />
+                  <DecisionBtn label="Recurring — stop flagging" tone="ghost" onClick={() => decide(f, "recurring")} />
+                </div>
+              </div>
+            ))}
+          </div>
+          {total > PAGE && (
+            <div className="mt-3 flex items-center justify-end gap-2">
+              <PagerBtn disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))}>← Prev</PagerBtn>
+              <PagerBtn disabled={offset + PAGE >= total} onClick={() => setOffset(offset + PAGE)}>Next →</PagerBtn>
+            </div>
+          )}
         </div>
       )}
     </Card>
@@ -123,6 +133,18 @@ function DecisionBtn({ label, tone, onClick }: { label: string; tone: "danger" |
   return (
     <button onClick={onClick} className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${cls}`}>
       {label}
+    </button>
+  );
+}
+
+function PagerBtn({ disabled, onClick, children }: { disabled: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      disabled={disabled}
+      onClick={onClick}
+      className="rounded-md border border-ink-600 bg-ink-800/60 px-2.5 py-1 text-xs font-semibold text-[#b9ad98] hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      {children}
     </button>
   );
 }
