@@ -206,6 +206,12 @@ def run(db: Session, mission: Mission) -> None:
             "odoo_move_id": int(move_id), "vendor_name": vendor_name, "ref": bill.get("ref"),
             "amount": amount, "currency": currency, "risk_score": risk_score, "hold": hold,
             "flag_count": len(flags), "needs_review": flagged,
+            # Surface the AI's "why it warrants review" briefing + evidence on the Mission itself, so
+            # the auditor doesn't have to open Odoo to read it. `review_reason` also feeds the Issues
+            # "Missions Needing Review" list.
+            "summary": summary,
+            "review_reason": summary,
+            "flags": [{"label": f["label"], "evidence": f.get("evidence")} for f in flags],
         })
     except odoo.OdooError as exc:
         record_step(db, mission, idx, "odoo_error", "gadget_call", "failed", error=str(exc))
