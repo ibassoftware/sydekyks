@@ -19,6 +19,8 @@ class MirrorTenantSettings(Base):
     )
     # Fuzzy match tuning: same vendor + same amount within this many days counts as a strong match.
     date_window_days: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
+    # Include unposted draft bills when scanning + comparing (off → only posted bills).
+    include_drafts: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     # Confidence at/above which Mirror raises a Command-Center issue (below → note only).
     flag_threshold: Mapped[int] = mapped_column(Integer, nullable=False, default=70)
     # Dashboard "$ prevented" assumes the review time a caught duplicate saves.

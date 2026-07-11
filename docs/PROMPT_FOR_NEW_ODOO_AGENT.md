@@ -206,8 +206,14 @@ run-now/upload create Missions the normal way; nothing agent-specific to build.
 - **Cron + Run-now:** share one routine (e.g. `recruitment_poll.enqueue_untagged_applicants`) — DRY.
   Cron needs `queue_enabled=True` + Redis + the running **arq worker** (`worker.py`, `cron_jobs`).
   Run-now works inline without the worker. Surface the worker requirement in the settings UI.
-- **RBAC:** guard config with `permissions.assert_can_configure`, actions with
-  `permissions.assert_can_use`.
+- **RBAC (enforce on BOTH ends).** Backend: guard config endpoints (settings, gadget assignment,
+  recurring/suppression) with `permissions.assert_can_configure`, and action endpoints (run-now,
+  retry, decide-on-finding, upload) with `permissions.assert_can_use`. A commander has both; a hero
+  is scoped by per-Sydekyk `can_use`/`can_configure` flags. Frontend: the sydekyk endpoint
+  (`/tenant/sydekyks/{id}`) returns the requesting user's `can_use`/`can_configure`, and
+  `SydekykDetail` gates **run-actions on `canUse`** (operations panel, upload) and **settings/engine
+  on `canConfigure`** — so a use-only teammate can actually operate an agent they're granted without
+  seeing (server-blocked) config controls. Don't gate the UI on `role === "commander"` alone.
 - **Concurrency:** the arq worker runs at its **default `max_jobs = 10`** (not set explicitly). A
   run-now of ≤30 records therefore executes ~10 at a time. If the agent hammers Odoo or an LLM rate
   limit, set an explicit `max_jobs` in `WorkerSettings`.

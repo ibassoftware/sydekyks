@@ -28,8 +28,13 @@ export default function SydekykDetail() {
   const { sydekykId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const canManage = user?.role === "commander";
+  const isCommander = user?.role === "commander";
   const [sydekyk, setSydekyk] = useState<Sydekyk | null>(null);
+  // Per-Sydekyk permissions (a commander has both). Run-actions gate on canUse; settings/engine on
+  // canConfigure — mirrors the backend's assert_can_use / assert_can_configure so use-only heroes
+  // can actually operate an agent they're granted, without seeing (blocked) config controls.
+  const canUse = sydekyk?.can_use ?? isCommander;
+  const canConfigure = sydekyk?.can_configure ?? isCommander;
   const [notFound, setNotFound] = useState(false);
   const [pending, setPending] = useState(false);
   const [readiness, setReadiness] = useState<LedgerReadiness | null>(null);
@@ -52,7 +57,7 @@ export default function SydekykDetail() {
   }, [sydekykId]);
 
   async function toggleInstall() {
-    if (!sydekyk || !canManage || sydekyk.is_exclusive) return;
+    if (!sydekyk || !isCommander || sydekyk.is_exclusive) return;
     setPending(true);
     try {
       const res = sydekyk.installed
@@ -114,7 +119,7 @@ export default function SydekykDetail() {
                       <span className="text-sm text-[#8a7f6d]">Not yet activated for your HQ</span>
                     )}
 
-                    {!sydekyk.is_exclusive && canManage && (
+                    {!sydekyk.is_exclusive && isCommander && (
                       <Button
                         variant={sydekyk.installed ? "ghost" : "primary"}
                         disabled={pending}
@@ -171,17 +176,17 @@ export default function SydekykDetail() {
                     Settings keeps running and gates the upload panel even while Operations is open. */}
                 <div className={activeTab === "operations" ? "grid gap-6" : "hidden"}>
                   <Card className="p-6">
-                    <DocumentIntakeSection sydekyk={sydekyk} canManage={canManage} readiness={readiness} uploadContext={registryEntry?.uploadContext} />
+                    <DocumentIntakeSection sydekyk={sydekyk} canManage={canUse} readiness={readiness} uploadContext={registryEntry?.uploadContext} />
                   </Card>
                 </div>
 
                 <div className={activeTab === "settings" ? "grid gap-6" : "hidden"}>
                   <Card className="p-6">
-                    <AIEngineSection sydekyk={sydekyk} canManage={canManage} />
+                    <AIEngineSection sydekyk={sydekyk} canManage={canConfigure} />
                   </Card>
                   {registryEntry?.setupSection && (
                     <Card className="p-6">
-                      <registryEntry.setupSection sydekyk={sydekyk} canManage={canManage} onReadiness={setReadiness} />
+                      <registryEntry.setupSection sydekyk={sydekyk} canManage={canConfigure} onReadiness={setReadiness} />
                     </Card>
                   )}
                   {registryEntry?.playbookPanel && (
@@ -195,15 +200,15 @@ export default function SydekykDetail() {
               <>
                 {registryEntry?.operationsPanel && (
                   <Card className="p-6">
-                    <registryEntry.operationsPanel sydekyk={sydekyk} canManage={canManage} />
+                    <registryEntry.operationsPanel sydekyk={sydekyk} canManage={canUse} />
                   </Card>
                 )}
                 <Card className="p-6">
-                  <AIEngineSection sydekyk={sydekyk} canManage={canManage} />
+                  <AIEngineSection sydekyk={sydekyk} canManage={canConfigure} />
                 </Card>
                 {registryEntry?.setupSection && (
                   <Card className="p-6">
-                    <registryEntry.setupSection sydekyk={sydekyk} canManage={canManage} onReadiness={setReadiness} />
+                    <registryEntry.setupSection sydekyk={sydekyk} canManage={canConfigure} onReadiness={setReadiness} />
                   </Card>
                 )}
                 {registryEntry?.playbookPanel && (

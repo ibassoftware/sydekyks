@@ -119,9 +119,11 @@ async def _poll_bills(db, *, slug: str, settings_model, store_model) -> int:
         )
         if installed is None:
             continue
+        # Mirror can restrict to posted bills via include_drafts; Shield always scans both.
+        states = None if getattr(st, "include_drafts", True) else ["posted"]
         count, newest = await bill_poll.enqueue_recent_bills(
             db, tenant_id=st.tenant_id, sydekyk_id=sydekyk.id, store_model=store_model,
-            days_back=st.cron_days_back, limit=st.cron_poll_limit, since=st.cron_last_checked_at,
+            days_back=st.cron_days_back, limit=st.cron_poll_limit, since=st.cron_last_checked_at, states=states,
         )
         if newest:
             st.cron_last_checked_at = newest

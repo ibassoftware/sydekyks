@@ -52,6 +52,16 @@ export function MirrorSettingsSection({ sydekyk, canManage, onReadiness }: Sydek
       {settings && (
         <div className="grid gap-3 border-t border-ink-700 pt-6">
           <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Detection Settings</p>
+          <label className="flex items-center gap-2 text-sm text-[#ede6da]">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-gold-500"
+              disabled={!canManage || saving}
+              checked={settings.include_drafts}
+              onChange={(e) => save({ ...settings, include_drafts: e.target.checked })}
+            />
+            Include draft (unposted) bills
+          </label>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Same-amount date window (days)</Label>

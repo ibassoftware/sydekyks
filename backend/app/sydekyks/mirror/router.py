@@ -54,10 +54,14 @@ def _settings(db: Session, tenant_id) -> MirrorTenantSettings:
 
 def _settings_out(s: MirrorTenantSettings) -> MirrorSettingsOut:
     return MirrorSettingsOut(
-        date_window_days=s.date_window_days, flag_threshold=s.flag_threshold,
+        date_window_days=s.date_window_days, include_drafts=s.include_drafts, flag_threshold=s.flag_threshold,
         estimated_hourly_wage=s.estimated_hourly_wage, estimated_minutes_per_review=s.estimated_minutes_per_review,
         cron_enabled=s.cron_enabled, cron_poll_limit=s.cron_poll_limit, cron_days_back=s.cron_days_back,
     )
+
+
+def _states(s: MirrorTenantSettings) -> list[str]:
+    return ["draft", "posted"] if s.include_drafts else ["posted"]
 
 
 @router.get("/settings", response_model=MirrorSettingsOut)
@@ -70,6 +74,7 @@ def update_settings(payload: MirrorSettingsUpdate, user: User = Depends(require_
     permissions.assert_can_configure(db, user, _mirror(db, user).id)
     s = _settings(db, user.tenant_id)
     s.date_window_days = payload.date_window_days
+    s.include_drafts = payload.include_drafts
     s.flag_threshold = payload.flag_threshold
     s.estimated_hourly_wage = payload.estimated_hourly_wage
     s.estimated_minutes_per_review = payload.estimated_minutes_per_review
@@ -107,7 +112,7 @@ async def run_now(user: User = Depends(require_tenant_member), db: Session = Dep
     s = _settings(db, user.tenant_id)
     queued, newest = await bill_poll.enqueue_recent_bills(
         db, tenant_id=user.tenant_id, sydekyk_id=sydekyk.id, store_model=MirrorFinding,
-        days_back=s.cron_days_back, limit=s.cron_poll_limit, since=s.cron_last_checked_at,
+        days_back=s.cron_days_back, limit=s.cron_poll_limit, since=s.cron_last_checked_at, states=_states(s),
     )
     if newest:
         s.cron_last_checked_at = newest

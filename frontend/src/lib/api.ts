@@ -98,6 +98,8 @@ export interface Sydekyk {
   workflow_enabled: boolean;
   accepts_document_uploads: boolean;
   installed: boolean;
+  can_use: boolean;
+  can_configure: boolean;
   created_at: string;
 }
 
@@ -579,6 +581,7 @@ export interface ScoutInsights {
 // --- Mirror (duplicate bill detector) ---
 export interface MirrorSettings {
   date_window_days: number;
+  include_drafts: boolean;
   flag_threshold: number;
   estimated_hourly_wage: number;
   estimated_minutes_per_review: number;

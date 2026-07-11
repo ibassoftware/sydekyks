@@ -25,11 +25,12 @@ MAX_DAYS_BACK = 5
 
 async def enqueue_recent_bills(
     db: Session, *, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID, store_model,
-    days_back: int = 5, limit: int = 30, since: str | None = None,
+    days_back: int = 5, limit: int = 30, since: str | None = None, states: list[str] | None = None,
 ) -> tuple[int, str | None]:
     """Enqueue an analysis Mission for each unchecked vendor bill (scan-forward, ≤`days_back` days,
     ≤30). `store_model` is the agent's finding table (must have tenant_id/sydekyk_id/odoo_move_id) —
-    used to skip already-analysed bills. Returns (enqueued_count, newest_create_date_seen)."""
+    used to skip already-analysed bills. `states` limits which move states are scanned (e.g.
+    ["posted"] to skip drafts). Returns (enqueued_count, newest_create_date_seen)."""
     limit = min(limit or MAX_LIMIT, MAX_LIMIT)
     days_back = min(days_back or MAX_DAYS_BACK, MAX_DAYS_BACK)
 
@@ -49,7 +50,7 @@ async def enqueue_recent_bills(
     cutoff = (datetime.now(timezone.utc) - timedelta(days=days_back)).strftime("%Y-%m-%d %H:%M:%S")
     # Pull a buffer (2×) so that after skipping already-analysed bills we can still fill the batch.
     candidates = await asyncio.to_thread(
-        odoo_finance.list_recent_bills, client, since=since, cutoff=cutoff, limit=limit * 2
+        odoo_finance.list_recent_bills, client, since=since, cutoff=cutoff, limit=limit * 2, states=states
     )
     if not candidates:
         return 0, None

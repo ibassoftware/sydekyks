@@ -44,14 +44,18 @@ def bill_lines(client: OdooClient, move_id: int) -> list[dict]:
     return rows
 
 
+DEFAULT_STATES = ["draft", "posted"]
+
+
 def list_recent_bills(
-    client: OdooClient, *, since: str | None, cutoff: str, limit: int = 30
+    client: OdooClient, *, since: str | None, cutoff: str, limit: int = 30, states: list[str] | None = None
 ) -> list[dict]:
     """Vendor bills created on/after `cutoff` (and strictly after the `since` watermark when given),
-    oldest first, so the agent scans forward from where it last checked. Draft + posted only."""
+    oldest first, so the agent scans forward from where it last checked. `states` limits which move
+    states are scanned (e.g. ["posted"] to skip unposted drafts)."""
     domain: list = [
         ["move_type", "=", "in_invoice"],
-        ["state", "in", ["draft", "posted"]],
+        ["state", "in", states or DEFAULT_STATES],
         ["create_date", ">=", cutoff],
     ]
     if since:
@@ -64,10 +68,10 @@ def list_recent_bills(
 
 def search_vendor_bills(
     client: OdooClient, *, partner_id: int | None = None, exclude_id: int | None = None,
-    fields: list[str] | None = None, limit: int = 200,
+    fields: list[str] | None = None, limit: int = 200, states: list[str] | None = None,
 ) -> list[dict]:
-    """Other vendor bills to compare a candidate against (optionally scoped to one vendor)."""
-    domain: list = [["move_type", "=", "in_invoice"], ["state", "in", ["draft", "posted"]]]
+    """Other vendor bills to compare a candidate against (optionally scoped to one vendor / states)."""
+    domain: list = [["move_type", "=", "in_invoice"], ["state", "in", states or DEFAULT_STATES]]
     if partner_id:
         domain.append(["partner_id", "=", partner_id])
     if exclude_id:

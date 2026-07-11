@@ -12,7 +12,7 @@ from app.models.user import User
 from app.models.metering import PlanTier
 from app.schemas.dashboard import DashboardOut
 from app.schemas.sydekyk import SydekykOut
-from app.services import metering
+from app.services import metering, permissions
 
 router = APIRouter(prefix="/api/tenant", tags=["tenant"], dependencies=[Depends(require_tenant_member)])
 
@@ -34,7 +34,7 @@ def _installed_ids(db: Session, tenant_id: uuid.UUID) -> set[uuid.UUID]:
     return {row[0] for row in rows}
 
 
-def _to_out(sydekyk: Sydekyk, installed: bool) -> SydekykOut:
+def _to_out(sydekyk: Sydekyk, installed: bool, *, can_use: bool, can_configure: bool) -> SydekykOut:
     return SydekykOut(
         id=sydekyk.id,
         name=sydekyk.name,
@@ -48,6 +48,8 @@ def _to_out(sydekyk: Sydekyk, installed: bool) -> SydekykOut:
         workflow_enabled=sydekyk.workflow_enabled,
         accepts_document_uploads=sydekyk.accepts_document_uploads,
         installed=installed,
+        can_use=can_use,
+        can_configure=can_configure,
         created_at=sydekyk.created_at,
     )
 
@@ -87,7 +89,13 @@ def dashboard(user: User = Depends(require_tenant_member), db: Session = Depends
 def list_sydekyks(user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
     installed_ids = _installed_ids(db, user.tenant_id)
     sydekyks = _visible_sydekyks(db, user.tenant_id)
-    return [_to_out(s, installed=s.is_exclusive or s.id in installed_ids) for s in sydekyks]
+    return [
+        _to_out(
+            s, installed=s.is_exclusive or s.id in installed_ids,
+            can_use=permissions.can_use(db, user, s.id), can_configure=permissions.can_configure(db, user, s.id),
+        )
+        for s in sydekyks
+    ]
 
 
 def _get_visible_sydekyk(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -> Sydekyk:
@@ -109,7 +117,10 @@ def _get_visible_sydekyk(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUI
 def get_sydekyk(sydekyk_id: uuid.UUID, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
     sydekyk = _get_visible_sydekyk(db, user.tenant_id, sydekyk_id)
     installed = sydekyk.id in _installed_ids(db, user.tenant_id)
-    return _to_out(sydekyk, installed=sydekyk.is_exclusive or installed)
+    return _to_out(
+        sydekyk, installed=sydekyk.is_exclusive or installed,
+        can_use=permissions.can_use(db, user, sydekyk.id), can_configure=permissions.can_configure(db, user, sydekyk.id),
+    )
 
 
 @router.post("/sydekyks/{sydekyk_id}/install", response_model=SydekykOut, status_code=status.HTTP_201_CREATED)
@@ -127,7 +138,7 @@ def install_sydekyk(sydekyk_id: uuid.UUID, user: User = Depends(require_commande
         db.add(SydekykInstall(tenant_id=user.tenant_id, sydekyk_id=sydekyk_id))
         db.commit()
 
-    return _to_out(sydekyk, installed=True)
+    return _to_out(sydekyk, installed=True, can_use=True, can_configure=True)  # require_commander → full access
 
 
 @router.delete("/sydekyks/{sydekyk_id}/install", response_model=SydekykOut)
@@ -141,4 +152,4 @@ def uninstall_sydekyk(sydekyk_id: uuid.UUID, user: User = Depends(require_comman
     ).delete()
     db.commit()
 
-    return _to_out(sydekyk, installed=False)
+    return _to_out(sydekyk, installed=False, can_use=True, can_configure=True)  # require_commander → full access

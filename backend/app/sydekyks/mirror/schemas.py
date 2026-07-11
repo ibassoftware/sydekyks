@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 class MirrorSettingsOut(BaseModel):
     date_window_days: int
+    include_drafts: bool
     flag_threshold: int
     estimated_hourly_wage: float
     estimated_minutes_per_review: float
@@ -16,6 +17,7 @@ class MirrorSettingsOut(BaseModel):
 
 class MirrorSettingsUpdate(BaseModel):
     date_window_days: int = Field(default=30, ge=0, le=120)
+    include_drafts: bool = True
     flag_threshold: int = Field(default=70, ge=0, le=100)
     estimated_hourly_wage: float = Field(default=30.0, ge=0)
     estimated_minutes_per_review: float = Field(default=8.0, ge=0)

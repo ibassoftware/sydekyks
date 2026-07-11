@@ -133,7 +133,8 @@ def run(db: Session, mission: Mission) -> None:
         idx += 1
 
         # --- Gather comparison set --------------------------------------------------------------
-        others = odoo_finance.search_vendor_bills(client, partner_id=partner_id, exclude_id=int(move_id)) if partner_id else []
+        states = ["draft", "posted"] if settings.include_drafts else ["posted"]
+        others = odoo_finance.search_vendor_bills(client, partner_id=partner_id, exclude_id=int(move_id), states=states) if partner_id else []
         same_vat_ids: set[int] = set()
         same_bank_ids: set[int] = set()
         others_by_partner: dict[int, list[dict]] = {}
@@ -152,7 +153,7 @@ def run(db: Session, mission: Mission) -> None:
                     if pid and pid != partner_id:
                         same_bank_ids.add(pid)
             for pid in same_vat_ids | same_bank_ids:
-                others_by_partner[pid] = odoo_finance.search_vendor_bills(client, partner_id=pid)
+                others_by_partner[pid] = odoo_finance.search_vendor_bills(client, partner_id=pid, states=states)
         record_step(db, mission, idx, "gather_candidates", "gadget_call", "succeeded",
                     output={"same_vendor_bills": len(others), "related_partners": len(others_by_partner)})
         idx += 1

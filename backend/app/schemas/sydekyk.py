@@ -17,6 +17,10 @@ class SydekykOut(BaseModel):
     workflow_enabled: bool
     accepts_document_uploads: bool
     installed: bool
+    # The requesting user's per-Sydekyk permissions — the UI gates run-actions on can_use and
+    # settings/engine on can_configure (a commander has both).
+    can_use: bool = True
+    can_configure: bool = True
     created_at: datetime
 
     class Config:
