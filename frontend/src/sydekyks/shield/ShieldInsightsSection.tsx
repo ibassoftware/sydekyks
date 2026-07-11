@@ -16,7 +16,7 @@ function riskPill(score: number): string {
 
 /** Shield dashboard card — the ranked auditor review queue is the product. Advisory framing only:
  * "warrants review", confirm / clear, never an accusation. */
-const PAGE = 8;
+const PAGE = 3;
 
 export function ShieldInsightsSection() {
   const [data, setData] = useState<ShieldInsights | null>(null);

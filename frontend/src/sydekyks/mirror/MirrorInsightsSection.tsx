@@ -5,7 +5,7 @@ import { Card } from "../../components/ui";
 import { AgentThumb } from "../../components/AgentThumb";
 
 const money = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-const PAGE = 8;
+const PAGE = 3;
 
 /** Mirror dashboard card — double-payments prevented ($) up top, then the PAGED review queue of
  * duplicates awaiting a decision (confirm / dismiss / mark-recurring — the learning loop). */
