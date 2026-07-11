@@ -90,6 +90,7 @@ class MirrorInsightsOut(BaseModel):
     duplicates_found: int
     suppressed_count: int
     prevented_amount: float
+    currency: str | None = None
     by_tier: list[TierCount]
     daily_trend: list[MirrorDailyPoint]
     estimated_hourly_wage: float = 0.0

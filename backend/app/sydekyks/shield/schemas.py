@@ -97,6 +97,7 @@ class ShieldInsightsOut(BaseModel):
     flagged_count: int
     holds_count: int
     exposure_amount: float
+    currency: str | None = None
     top_rules: list[TopRule]
     daily_trend: list[ShieldDailyPoint]
     estimated_hourly_wage: float = 0.0

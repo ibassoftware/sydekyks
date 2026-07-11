@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { api, type MirrorFlag, type MirrorFlagPage, type MirrorInsights } from "../../lib/api";
-import { formatWorkTime, formatFastTime } from "../../lib/format";
+import { formatWorkTime, formatFastTime, formatMoney } from "../../lib/format";
 import { Card } from "../../components/ui";
 import { AgentThumb } from "../../components/AgentThumb";
 
@@ -41,7 +41,6 @@ export function MirrorInsightsSection() {
 
   const items = queue?.items ?? [];
   const total = queue?.total ?? 0;
-  const cur = items[0]?.currency ?? "";
 
   return (
     <Card className="relative mt-6 overflow-hidden p-6">
@@ -55,12 +54,16 @@ export function MirrorInsightsSection() {
 
       <div className="mt-4">
         <p className="text-xs font-semibold uppercase tracking-wider text-[#8a7f6d]">Double-payments prevented</p>
-        <p className="mt-1 text-4xl font-bold text-[#f5eee0]">{cur} {money(data.prevented_amount)}</p>
+        <p className="mt-1 text-4xl font-bold text-[#f5eee0]">{formatMoney(data.prevented_amount, data.currency)}</p>
         <p className="mt-2 text-sm font-medium text-gold-300">
           {data.total_checked.toLocaleString()} bills checked in {formatFastTime(data.processing_seconds)}
           <span className="font-normal text-[#8a7f6d]">
             {" "}· ~{formatWorkTime(data.total_checked * data.estimated_minutes_each)} by hand
           </span>
+        </p>
+        <p className="mt-1 text-xs text-[#8a7f6d]">
+          Plus <span className="font-semibold text-gold-300">${money(data.estimated_net_savings)}</span> in review time saved
+          <span className="text-[#665c4c]"> (${money(data.estimated_manual_cost)} manual − ${money(data.ai_cost)} AI)</span>
         </p>
       </div>
 

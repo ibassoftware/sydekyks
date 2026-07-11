@@ -2,7 +2,7 @@
 flags to act on. Gated on Mirror being installed. Reads the MirrorFinding store."""
 
 import uuid
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func
@@ -45,6 +45,41 @@ def pending_flags(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID, *, l
     return {"items": [_flag_out(r, base_url) for r in rows], "total": total, "limit": limit, "offset": offset}
 
 
+def _prevented_amount(dupes: list[MirrorFinding]) -> float:
+    """The double-payment actually avoided. Mirror flags BOTH bills of a duplicate pair, so naively
+    summing every flagged amount double-counts. Cluster the mutually-referencing findings (each
+    cluster = one purchase billed 2+ times) and, per cluster, count only the EXTRA copies: total
+    minus one legitimate payment (the cheapest)."""
+    parent: dict = {}
+
+    def find(x):
+        parent.setdefault(x, x)
+        root = x
+        while parent[root] != root:
+            root = parent[root]
+        while parent[x] != root:
+            parent[x], x = root, parent[x]
+        return root
+
+    for f in dupes:
+        find(f.odoo_move_id)
+        for m in (f.matched_move_ids or []):
+            parent[find(f.odoo_move_id)] = find(m)
+
+    clusters: dict = defaultdict(list)
+    for f in dupes:
+        clusters[find(f.odoo_move_id)].append(f)
+
+    total = 0.0
+    for group in clusters.values():
+        amts = sorted(float(f.amount or 0.0) for f in group)
+        s = sum(amts)
+        if len(group) >= 2:  # both/all copies were flagged → drop one legitimate payment
+            s -= amts[0]
+        total += s
+    return round(total, 2)
+
+
 def compute_insights(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -> dict:
     base = db.query(MirrorFinding).filter(
         MirrorFinding.tenant_id == tenant_id, MirrorFinding.sydekyk_id == sydekyk_id
@@ -53,7 +88,9 @@ def compute_insights(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -
     total = len(rows)
     dupes = [r for r in rows if r.is_duplicate]
     suppressed = sum(1 for r in rows if r.suppressed)
-    prevented = round(sum(float(r.amount or 0.0) for r in dupes), 2)
+    prevented = _prevented_amount(dupes)
+    cur_counter: Counter = Counter(r.currency for r in dupes if r.currency)
+    currency = cur_counter.most_common(1)[0][0] if cur_counter else None
 
     tiers: Counter = Counter(r.tier or "none" for r in dupes)
     by_tier = [{"tier": k, "count": v} for k, v in tiers.most_common()]
@@ -84,6 +121,7 @@ def compute_insights(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -
         "duplicates_found": len(dupes),
         "suppressed_count": suppressed,
         "prevented_amount": prevented,
+        "currency": currency,
         "by_tier": by_tier,
         "daily_trend": daily_trend,
         **save,

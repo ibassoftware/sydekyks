@@ -617,6 +617,7 @@ export interface MirrorInsights {
   duplicates_found: number;
   suppressed_count: number;
   prevented_amount: number;
+  currency: string | null;
   by_tier: { tier: string; count: number }[];
   daily_trend: { date: string; count: number }[];
   estimated_hourly_wage: number;
@@ -694,6 +695,7 @@ export interface ShieldInsights {
   flagged_count: number;
   holds_count: number;
   exposure_amount: number;
+  currency: string | null;
   top_rules: { label: string; count: number }[];
   daily_trend: { date: string; count: number }[];
   estimated_hourly_wage: number;

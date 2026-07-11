@@ -62,6 +62,8 @@ def compute_insights(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -
     flagged = [r for r in rows if (r.flags or [])]
     holds = sum(1 for r in rows if r.hold)
     exposure = round(sum(float(r.amount or 0.0) for r in flagged if r.human_decision is None), 2)
+    cur_counter: Counter = Counter(r.currency for r in flagged if r.currency)
+    currency = cur_counter.most_common(1)[0][0] if cur_counter else None
 
     rule_counter: Counter = Counter()
     for r in flagged:
@@ -95,6 +97,7 @@ def compute_insights(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -
         "flagged_count": len(flagged),
         "holds_count": holds,
         "exposure_amount": exposure,
+        "currency": currency,
         "top_rules": top_rules,
         "daily_trend": daily_trend,
         **save,

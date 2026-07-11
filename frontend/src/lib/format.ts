@@ -8,6 +8,19 @@ export function formatWorkTime(minutes: number): string {
   return `~${Math.round(hours / 8)} days`;
 }
 
+/** Format an amount as money. Uses the bill's ISO currency when known (e.g. "$34.50", "€1,200.00");
+ * falls back to a plain "$" with 2 decimals. */
+export function formatMoney(amount: number, currency?: string | null): string {
+  if (currency && /^[A-Za-z]{3}$/.test(currency)) {
+    try {
+      return new Intl.NumberFormat(undefined, { style: "currency", currency: currency.toUpperCase() }).format(amount);
+    } catch {
+      /* fall through */
+    }
+  }
+  return `$${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 /** Human-friendly actual AI run time, from seconds: "under 1s", "12s", "3 min", "1.4 h". Used to
  * show how FAST the agent actually was (contrast against the manual-hours equivalent). */
 export function formatFastTime(seconds: number): string {

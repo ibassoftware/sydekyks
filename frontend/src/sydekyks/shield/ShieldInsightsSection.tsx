@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { api, type ShieldAlert, type ShieldInsights, type ShieldQueuePage } from "../../lib/api";
-import { formatWorkTime, formatFastTime } from "../../lib/format";
+import { formatWorkTime, formatFastTime, formatMoney } from "../../lib/format";
 import { Card } from "../../components/ui";
 import { AgentThumb } from "../../components/AgentThumb";
 
@@ -51,7 +51,6 @@ export function ShieldInsightsSection() {
 
   const items = queue?.items ?? [];
   const total = queue?.total ?? 0;
-  const cur = items[0]?.currency ?? "";
 
   return (
     <Card className="relative mt-6 overflow-hidden p-6">
@@ -65,12 +64,16 @@ export function ShieldInsightsSection() {
 
       <div className="mt-4">
         <p className="text-xs font-semibold uppercase tracking-wider text-[#8a7f6d]">Exposure under review</p>
-        <p className="mt-1 text-4xl font-bold text-[#f5eee0]">{cur} {money(data.exposure_amount)}</p>
+        <p className="mt-1 text-4xl font-bold text-[#f5eee0]">{formatMoney(data.exposure_amount, data.currency)}</p>
         <p className="mt-2 text-sm font-medium text-gold-300">
           {data.total_assessed.toLocaleString()} bills assessed in {formatFastTime(data.processing_seconds)}
           <span className="font-normal text-[#8a7f6d]">
             {" "}· ~{formatWorkTime(data.total_assessed * data.estimated_minutes_each)} by hand
           </span>
+        </p>
+        <p className="mt-1 text-xs text-[#8a7f6d]">
+          Plus <span className="font-semibold text-gold-300">${money(data.estimated_net_savings)}</span> in review time saved
+          <span className="text-[#665c4c]"> (${money(data.estimated_manual_cost)} manual − ${money(data.ai_cost)} AI)</span>
         </p>
       </div>
 
