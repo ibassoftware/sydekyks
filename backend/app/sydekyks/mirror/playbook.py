@@ -21,21 +21,23 @@ from app.sydekyks.mirror.models import MirrorFinding, MirrorRecurringPattern, Mi
 
 PLAYBOOK_KEY = "mirror.duplicate_check"
 
+# Superhero-themed step copy (Mirror is the AP watchdog that unmasks impostor bills) — flavour in the
+# titles, but every description/failure stays plain so it's clear what actually happens.
 PLAYBOOK_STEPS = [
-    {"key": "connect_odoo", "title": "Connect to Odoo",
-     "description": "Open an authenticated session to the assigned Odoo instance.",
-     "likely_failures": "No Odoo assigned, wrong credentials, or Odoo unreachable."},
-    {"key": "load_bill", "title": "Load the bill",
-     "description": "Read the vendor bill, its lines, and the vendor's profile.",
+    {"key": "connect_odoo", "title": "Link up with Odoo",
+     "description": "Open a secure line to your assigned Odoo instance.",
+     "likely_failures": "No Odoo assigned, wrong credentials, or Odoo is unreachable."},
+    {"key": "load_bill", "title": "Scan the target bill",
+     "description": "Read the vendor bill, its line items, and the vendor's profile.",
      "likely_failures": "The bill was deleted or isn't a vendor bill."},
-    {"key": "gather_candidates", "title": "Gather comparison set",
-     "description": "Collect the vendor's other bills and any records sharing its Tax ID or bank.",
-     "likely_failures": "None fatal."},
-    {"key": "detect", "title": "Check for duplicates",
-     "description": "Match by reference, amount+date, and cross-vendor; confirm ambiguous cases by line items.",
-     "likely_failures": "None fatal — a clean bill just scores 0."},
-    {"key": "record", "title": "Log the check",
-     "description": "Post the result to the bill's chatter and flag high-confidence duplicates.",
+    {"key": "gather_candidates", "title": "Round up the suspects",
+     "description": "Gather the vendor's other bills and any records sharing its Tax ID or bank account.",
+     "likely_failures": "None fatal — Mirror just has fewer bills to compare against."},
+    {"key": "detect", "title": "Unmask the duplicate",
+     "description": "Match by reference, by amount + date, and across split vendor records — then let the AI confirm sneaky look-alikes by their line items.",
+     "likely_failures": "None fatal — a clean bill simply scores zero and walks free."},
+    {"key": "record", "title": "Sound the alarm",
+     "description": "Log the verdict to the bill's chatter and flag high-confidence duplicates for review.",
      "likely_failures": "Best-effort writes to Odoo."},
 ]
 
