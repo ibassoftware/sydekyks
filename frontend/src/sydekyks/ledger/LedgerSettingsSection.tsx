@@ -27,6 +27,7 @@ export function LedgerSettingsSection({
 }) {
   const [settings, setSettings] = useState<LedgerSettings | null>(null);
   const [saving, setSaving] = useState(false);
+  const [readinessKey, setReadinessKey] = useState(0); // bump to force the readiness card to re-fetch
 
   useEffect(() => {
     api.get<LedgerSettings>("/tenant/ledger/settings").then((res) => setSettings(res.data));
@@ -46,7 +47,7 @@ export function LedgerSettingsSection({
 
   return (
     <div className="grid gap-6">
-      <LedgerReadinessCard onReadiness={onReadiness} />
+      <LedgerReadinessCard onReadiness={onReadiness} refreshKey={readinessKey} />
 
       <IssuesQuickLink sydekykId={sydekyk.id} />
 
@@ -60,7 +61,14 @@ export function LedgerSettingsSection({
       <EmailInboxBlock canManage={canManage} />
 
       <div id="ai-engine">
-        <VisionTestBlock settings={settings} canManage={canManage} onTested={setSettings} />
+        <VisionTestBlock
+          settings={settings}
+          canManage={canManage}
+          onTested={(s) => {
+            setSettings(s);
+            setReadinessKey((k) => k + 1); // vision test changed readiness → re-fetch the checklist
+          }}
+        />
       </div>
 
       {settings && (

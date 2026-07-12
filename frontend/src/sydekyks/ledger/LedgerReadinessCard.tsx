@@ -10,8 +10,9 @@ const DOT: Record<ReadinessState, string> = {
 
 const LABEL: Record<ReadinessState, string> = { ok: "Ready", warn: "Attention", blocked: "Action needed" };
 
-/** VS-1: the guided setup checklist. Also exposes readiness upward so the upload panel can gate. */
-export function LedgerReadinessCard({ onReadiness }: { onReadiness?: (r: LedgerReadiness) => void }) {
+/** VS-1: the guided setup checklist. Also exposes readiness upward so the upload panel can gate.
+ * `refreshKey` lets the parent force a re-fetch (e.g. after the vision test flips "vision verified"). */
+export function LedgerReadinessCard({ onReadiness, refreshKey = 0 }: { onReadiness?: (r: LedgerReadiness) => void; refreshKey?: number }) {
   const [readiness, setReadiness] = useState<LedgerReadiness | null>(null);
 
   useEffect(() => {
@@ -20,7 +21,7 @@ export function LedgerReadinessCard({ onReadiness }: { onReadiness?: (r: LedgerR
       onReadiness?.(res.data);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [refreshKey]);
 
   if (!readiness) return <p className="text-sm text-[#8a7f6d]">Checking readiness…</p>;
 
