@@ -5,6 +5,7 @@ import { useAuth } from "../lib/auth";
 import { useActivity } from "../lib/activity";
 import { Badge, Button, Card } from "../components/ui";
 import { HQShell } from "../components/HQShell";
+import { FUNCTION_GROUPS, functionGroupForSlug, type FunctionGroup } from "../sydekyks/registry";
 
 export default function Roster() {
   const { user } = useAuth();
@@ -50,23 +51,47 @@ export default function Roster() {
         ) : sydekyks.length === 0 ? (
           <Card className="mt-10 p-10 text-center text-[#b9ad98]">No Sydekyks available yet.</Card>
         ) : (
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {sydekyks.map((s) => (
-              <SydekykCard
-                key={s.id}
-                sydekyk={s}
-                canManage={canManage}
-                pending={pendingId === s.id}
-                working={activeSydekykIds.has(s.id)}
-                onOpen={() => navigate(`/hq/roster/${s.id}`)}
-                onToggleInstall={() => toggleInstall(s)}
-              />
-            ))}
-          </div>
+          groupByFunction(sydekyks).map(({ key, label, items }) => (
+            <section key={key} className="mt-10">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-500">{label}</p>
+              <div className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map((s) => (
+                  <SydekykCard
+                    key={s.id}
+                    sydekyk={s}
+                    canManage={canManage}
+                    pending={pendingId === s.id}
+                    working={activeSydekykIds.has(s.id)}
+                    onOpen={() => navigate(`/hq/roster/${s.id}`)}
+                    onToggleInstall={() => toggleInstall(s)}
+                  />
+                ))}
+              </div>
+            </section>
+          ))
         )}
       </main>
     </HQShell>
   );
+}
+
+/** Group the roster by business function (Sales · Accounting · HR), in that order, with any
+ * unmapped or exclusive Sydekyks collected under "Specialists" at the end. Empty groups are dropped. */
+function groupByFunction(sydekyks: Sydekyk[]): { key: string; label: string; items: Sydekyk[] }[] {
+  const buckets = new Map<FunctionGroup, Sydekyk[]>();
+  const other: Sydekyk[] = [];
+  for (const s of sydekyks) {
+    const g = functionGroupForSlug(s.slug);
+    if (g) buckets.set(g, [...(buckets.get(g) ?? []), s]);
+    else other.push(s);
+  }
+  const groups = FUNCTION_GROUPS.filter((g) => buckets.get(g.key)?.length).map((g) => ({
+    key: g.key,
+    label: g.label,
+    items: buckets.get(g.key)!,
+  }));
+  if (other.length) groups.push({ key: "other", label: "Specialists", items: other });
+  return groups;
 }
 
 function SydekykCard({

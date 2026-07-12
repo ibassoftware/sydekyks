@@ -735,3 +735,83 @@ export interface ShieldInsights {
   estimated_net_savings: number;
   processing_seconds: number;
 }
+
+// --- Nudge (sales follow-up) ---
+export interface NudgeStageThreshold {
+  stage_id: number;
+  stage_name?: string | null;
+  days: number;
+}
+export interface NudgeSettings {
+  default_stale_days: number;
+  stage_thresholds: NudgeStageThreshold[];
+  cadence_days: number;
+  activity_days: number;
+  estimated_hourly_wage: number;
+  estimated_minutes_per_followup: number;
+  cron_enabled: boolean;
+  cron_poll_limit: number;
+}
+export interface NudgeStage {
+  id: number;
+  name: string | null;
+  is_won: boolean;
+}
+export interface NudgeReadiness {
+  items: ReadinessItem[];
+  can_upload: boolean;
+}
+export interface NudgePlaybook {
+  playbook_key: string;
+  editable: boolean;
+  steps: PlaybookStep[];
+}
+export interface NudgeItem {
+  finding_id: string;
+  odoo_lead_id: number;
+  opp_name: string | null;
+  partner_name: string | null;
+  salesperson: string | null;
+  stage_name: string | null;
+  expected_revenue: number | null;
+  currency: string | null;
+  days_stale: number;
+  silence_score: number;
+  value_at_risk: number | null;
+  overdue: boolean;
+  activity_created: boolean;
+  draft_body: string | null;
+  odoo_url: string | null;
+  human_decision: string | null;
+}
+export interface NudgeQueuePage {
+  items: NudgeItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+export interface NudgeSnoozeEntry {
+  id: string;
+  odoo_lead_id: number;
+  opp_name: string | null;
+  snooze_until: string | null;
+  note: string | null;
+  created_by: string | null;
+}
+export interface NudgeInsights {
+  activated: boolean;
+  open_total: number;
+  stale_caught: number;
+  coverage_pct: number;
+  followups_drafted: number;
+  value_at_risk_total: number;
+  currency: string | null;
+  top_stages: { label: string; count: number }[];
+  daily_trend: { date: string; count: number }[];
+  estimated_hourly_wage: number;
+  estimated_minutes_each: number;
+  estimated_manual_cost: number;
+  ai_cost: number;
+  estimated_net_savings: number;
+  processing_seconds: number;
+}

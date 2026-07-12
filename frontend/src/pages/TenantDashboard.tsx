@@ -12,6 +12,7 @@ import { DecodeInsightsSection } from "../sydekyks/decode/DecodeInsightsSection"
 import { ScoutInsightsSection } from "../sydekyks/scout/ScoutInsightsSection";
 import { MirrorInsightsSection } from "../sydekyks/mirror/MirrorInsightsSection";
 import { ShieldInsightsSection } from "../sydekyks/shield/ShieldInsightsSection";
+import { NudgeInsightsSection } from "../sydekyks/nudge/NudgeInsightsSection";
 
 function compactNumber(n: number): string {
   return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
@@ -111,12 +112,16 @@ export default function TenantDashboard() {
             </div>
 
             <p className="mt-10 text-xs font-semibold uppercase tracking-widest text-gold-500">Your Agents at Work</p>
+
+            {/* Grouped by business function: Sales · Accounting · HR. Each card self-gates on activation. */}
+            <NudgeInsightsSection />
+
             {insights && (insights.activated ? <LedgerInsightsSection insights={insights} /> : <LedgerNotActivatedCard />)}
+            <MirrorInsightsSection />
+            <ShieldInsightsSection />
 
             <DecodeInsightsSection />
             <ScoutInsightsSection />
-            <MirrorInsightsSection />
-            <ShieldInsightsSection />
 
             <DashboardRecentMissions />
 

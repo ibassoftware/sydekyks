@@ -82,6 +82,25 @@ _ROSTER_SYDEKYKS = [
         model="gpt-4o-mini", temperature=0.2, chat_enabled=False, workflow_enabled=True,
     ),
     dict(
+        name="Nudge", slug="nudge",
+        tagline="Your sales follow-up sidekick — no opportunity goes cold on your watch.",
+        description=(
+            "Nudge watches your Odoo pipeline for open opportunities that have gone quiet and drafts "
+            "the follow-up before the deal cools. It measures silence per stage (a fresh lead is given "
+            "less rope than a late-stage negotiation), reads the real thread history, and writes a "
+            "context-aware follow-up that references the last exchange — never a generic 'just checking "
+            "in'. It creates a To-Do for the opportunity's salesperson, logs the suggested message to "
+            "the chatter for the rep to edit and send, ranks the queue by revenue-at-risk, and remembers "
+            "the deals you've paused so it never nags a deal that's legitimately quiet."
+        ),
+        avatar_url="/sydekyks/nudge.png",
+        system_prompt=(
+            "You are Nudge, a sales rep's follow-up assistant. Draft warm, specific follow-ups that "
+            "reference the real last exchange and fit the deal's stage. You draft; the rep sends."
+        ),
+        model="gpt-4o-mini", temperature=0.3, chat_enabled=False, workflow_enabled=True,
+    ),
+    dict(
         name="Mirror", slug="mirror",
         tagline="Your accounts-payable watchdog — catches duplicate vendor bills before you pay twice.",
         description=(

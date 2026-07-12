@@ -152,6 +152,42 @@ async def poll_shield(ctx: dict) -> int:
         db.close()
 
 
+async def poll_nudge(ctx: dict) -> int:
+    """Cron body for the sales follow-up agent: for each tenant with Nudge installed + cron enabled,
+    scan for stale open opportunities and enqueue a follow-up Mission for each (≤30). Snapshots the
+    open-opportunity total for the dashboard's coverage metric."""
+    from app.services import lead_poll
+    from app.sydekyks.nudge.models import NudgeFinding, NudgeSnooze, NudgeTenantSettings
+
+    db = SessionLocal()
+    try:
+        sydekyk = db.query(Sydekyk).filter(Sydekyk.slug == "nudge").first()
+        if sydekyk is None:
+            return 0
+        total = 0
+        for st in db.query(NudgeTenantSettings).filter(NudgeTenantSettings.cron_enabled.is_(True)).all():
+            installed = (
+                db.query(SydekykInstall)
+                .filter(SydekykInstall.tenant_id == st.tenant_id, SydekykInstall.sydekyk_id == sydekyk.id)
+                .first()
+            )
+            if installed is None:
+                continue
+            count, open_total = await lead_poll.enqueue_stale_opportunities(
+                db, tenant_id=st.tenant_id, sydekyk_id=sydekyk.id, store_model=NudgeFinding,
+                snooze_model=NudgeSnooze, cadence_days=st.cadence_days,
+                min_stale_days=st.default_stale_days, limit=st.cron_poll_limit,
+            )
+            if open_total is not None:
+                st.last_open_total = open_total
+            st.cron_last_checked_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            db.commit()
+            total += count
+        return total
+    finally:
+        db.close()
+
+
 async def audit_review_assignees(ctx: dict) -> int:
     """Daily: check that each agent's assigned Odoo reviewers still exist + are active; raise a
     Command-Center issue for the admin if any were removed or deactivated."""
@@ -186,6 +222,7 @@ class WorkerSettings:
         cron(poll_scout, minute={0, 15, 30, 45}),
         cron(poll_mirror, minute={5, 20, 35, 50}),
         cron(poll_shield, minute={10, 25, 40, 55}),
+        cron(poll_nudge, minute={12, 42}),
         cron(audit_review_assignees, hour={2}, minute={0}),
         cron(snapshot_daily_usage, hour={0}, minute={5}),
     ]

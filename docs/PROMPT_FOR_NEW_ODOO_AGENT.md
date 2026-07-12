@@ -287,3 +287,38 @@ run-now/upload create Missions the normal way; nothing agent-specific to build.
   position), not just the reason. A reviewer should be able to resolve it without guessing. Note:
   `mail.activity.note` is an html field, so the steps render as real HTML (unlike chatter's
   `message_post`, which needs the plaintext2html workaround).
+
+## 10. Record-monitoring / sales agents (the Nudge lessons)
+
+Some agents don't parse a document at all — they **watch existing Odoo records for a condition** and
+act (Mirror/Shield on bills; **Nudge** on `crm.lead` opportunities). The shape:
+
+- **The cron does the catching (deterministic); the AI does the writing.** Nudge detects staleness
+  with plain math (days since last real touch vs a per-stage threshold) — cheap, explainable, no
+  tokens. The LLM only *drafts the follow-up*, grounded in the real thread + opp fields, matched to
+  the stage. Never spend a model call on something a query can answer.
+- **Poll forward, never full-sweep, hard-capped.** A shared poller (`lead_poll` / `bill_poll`) pulls
+  a bounded candidate set (open, not-won, untouched-since-cutoff, no *future* scheduled activity),
+  enqueues one Mission per record with just the id in `trigger_context`, and caps at 30/run. The
+  playbook re-confirms the condition per record (state can change between poll and run).
+- **Guard rails prevent nagging.** Three checks *before* acting: a **snooze/whitelist** memory for
+  legitimately-paused records (`snooze_until` date = pause until; NULL = never — the "circle back in
+  Q3" trap), a **cadence guard** (never act on the same record more than once per M days, keyed off
+  the finding store), and an **implicit-handled** signal (a future-dated `mail.activity` means the
+  human already planned the next touch — skip). A skipped run still `succeeds` with a `skipped`
+  reason on the summary, so the Mission row reads calmly ("Left X alone — paused deal").
+- **Don't duplicate what Odoo already tracks.** If an *overdue* `mail.activity` already exists,
+  surface it — don't create a second To-Do.
+- **Draft, don't send.** For anything that goes to a customer, the agent writes the suggestion to the
+  chatter + a To-Do for the record's owner; the human edits and sends. Definition of done = the
+  next-touch activity exists + the record is tagged/stored for this cycle so the cron skips it until
+  it goes stale again.
+- **Rank by value-at-risk.** The queue's sort key is the business stake weighted by how overdue it is
+  (`expected_revenue × days_over_ratio`), so the highest-value-at-risk record surfaces first — not
+  just the oldest.
+- **Coverage as the headline metric.** "Follow-ups never missed" = records acted on / open records
+  tracked. The open-total denominator is a live `search_count` **snapshotted during the poll** (stored
+  on settings), so the dashboard never hits Odoo on every load.
+- **Group the roster by business function.** Each registry entry declares a `functionGroup`
+  (`sales | accounting | hr`); the Roster page and Dashboard render Sydekyks grouped Sales ·
+  Accounting · HR in one place. Shared pages still never branch on slug.

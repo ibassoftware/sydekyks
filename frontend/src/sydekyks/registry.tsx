@@ -19,6 +19,10 @@ import { ShieldSettingsSection } from "./shield/ShieldSettingsSection";
 import { ShieldPlaybookPanel } from "./shield/ShieldPlaybookPanel";
 import { ShieldMissionSummary } from "./shield/ShieldMissionSummary";
 import { ShieldOperationsSection } from "./shield/ShieldOperationsSection";
+import { NudgeSettingsSection } from "./nudge/NudgeSettingsSection";
+import { NudgePlaybookPanel } from "./nudge/NudgePlaybookPanel";
+import { NudgeMissionSummary } from "./nudge/NudgeMissionSummary";
+import { NudgeOperationsSection } from "./nudge/NudgeOperationsSection";
 
 /** VS-9: a deliberately plain per-Sydekyk UI registry — mirrors the backend's per-Sydekyk package
  * structure. No dynamic imports, no plugin framework; it just lets a Sydekyk provide optional UI so
@@ -61,6 +65,15 @@ export interface RowLabelInput {
   error_message?: string | null;
 }
 
+/** The departments Sydekyks are grouped under on the roster, in display order. */
+export type FunctionGroup = "sales" | "accounting" | "hr";
+
+export const FUNCTION_GROUPS: { key: FunctionGroup; label: string }[] = [
+  { key: "sales", label: "Sales" },
+  { key: "accounting", label: "Accounting" },
+  { key: "hr", label: "HR" },
+];
+
 export interface SydekykRegistryEntry {
   setupSection?: ComponentType<SydekykSetupProps>;
   playbookPanel?: ComponentType;
@@ -69,6 +82,9 @@ export interface SydekykRegistryEntry {
   /** Domain tints the Mission row: HR Sydekyks (Decode/Scout) get a bluish hue; accounting (Ledger)
    * uses the default. */
   domain?: "hr";
+  /** The business function this Sydekyk serves — used to group the roster by department
+   * (Sales · Accounting · HR). */
+  functionGroup?: FunctionGroup;
   /** The business-meaningful row headline (falls back to the filename when absent). */
   missionRowLabel?: (m: RowLabelInput) => MissionRowLabel;
   /** A prominent operations area for non-upload Sydekyks (Scout's "Run now" + Recent Missions). */
@@ -90,6 +106,7 @@ const DECODE_VERBS = ["Parsed", "Read", "Filed", "Captured", "Logged", "Processe
 const SCOUT_VERBS = ["Graded", "Scored", "Evaluated", "Assessed", "Rated", "Reviewed"];
 const MIRROR_VERBS = ["Checked", "Scanned", "Inspected", "Vetted", "Screened", "Reviewed"];
 const SHIELD_VERBS = ["Assessed", "Screened", "Reviewed", "Audited", "Vetted", "Examined"];
+const NUDGE_VERBS = ["Nudged", "Followed up on", "Chased", "Revived", "Re-engaged", "Warmed"];
 
 /** Fallback headline when a Mission produced no business object yet (queued/running) or was rejected
  * (failed) — the friendly error already reads like "This doesn't look like a résumé…". */
@@ -154,12 +171,36 @@ function shieldRowLabel(m: RowLabelInput): MissionRowLabel {
   return { title: `${verb} the bill${ref} by ${vendor}${flag}` };
 }
 
+function nudgeRowLabel(m: RowLabelInput): MissionRowLabel {
+  const s = m.result_summary ?? {};
+  const opp = s.opp_name as string | undefined;
+  if (!opp) return fallbackRowLabel(m);
+  const skipped = s.skipped as string | undefined;
+  if (skipped === "snoozed") return { title: `Left ${opp} alone — paused deal`, muted: true };
+  if (skipped === "cadence") return { title: `Held off on ${opp} — nudged recently`, muted: true };
+  if (skipped === "future_activity") return { title: `${opp} — next touch already scheduled`, muted: true };
+  if (s.stale === false) return { title: `${opp} — still fresh, no nudge needed`, muted: true };
+  const verb = pick(NUDGE_VERBS, m.id);
+  const days = typeof s.days_stale === "number" ? ` · silent ${s.days_stale as number}d` : "";
+  return { title: `${verb} ${opp}${days}` };
+}
+
 const BY_SLUG: Record<string, SydekykRegistryEntry> = {
+  nudge: {
+    setupSection: NudgeSettingsSection,
+    playbookPanel: NudgePlaybookPanel,
+    missionSummary: NudgeMissionSummary,
+    operationsPanel: NudgeOperationsSection,
+    missionRowLabel: nudgeRowLabel,
+    functionGroup: "sales",
+    reviewNoun: { one: "follow-up", many: "follow-ups" },
+  },
   ledger: {
     setupSection: LedgerSettingsSection,
     playbookPanel: LedgerPlaybookPanel,
     missionSummary: LedgerMissionSummary,
     missionRowLabel: ledgerRowLabel,
+    functionGroup: "accounting",
     reviewNoun: { one: "bill", many: "bills" },
   },
   decode: {
@@ -168,6 +209,7 @@ const BY_SLUG: Record<string, SydekykRegistryEntry> = {
     missionSummary: DecodeMissionSummary,
     uploadContext: DecodeUploadContext,
     domain: "hr",
+    functionGroup: "hr",
     missionRowLabel: decodeRowLabel,
     reviewNoun: { one: "applicant", many: "applicants" },
   },
@@ -177,6 +219,7 @@ const BY_SLUG: Record<string, SydekykRegistryEntry> = {
     missionSummary: ScoutMissionSummary,
     operationsPanel: ScoutOperationsSection,
     domain: "hr",
+    functionGroup: "hr",
     missionRowLabel: scoutRowLabel,
   },
   mirror: {
@@ -185,6 +228,7 @@ const BY_SLUG: Record<string, SydekykRegistryEntry> = {
     missionSummary: MirrorMissionSummary,
     operationsPanel: MirrorOperationsSection,
     missionRowLabel: mirrorRowLabel,
+    functionGroup: "accounting",
     reviewNoun: { one: "duplicate", many: "duplicates" },
   },
   shield: {
@@ -193,9 +237,15 @@ const BY_SLUG: Record<string, SydekykRegistryEntry> = {
     missionSummary: ShieldMissionSummary,
     operationsPanel: ShieldOperationsSection,
     missionRowLabel: shieldRowLabel,
+    functionGroup: "accounting",
     reviewNoun: { one: "risk alert", many: "risk alerts" },
   },
 };
+
+/** The department a Sydekyk belongs to, for grouping the roster (falls back to Sales-less "other"). */
+export function functionGroupForSlug(slug: string | undefined): FunctionGroup | undefined {
+  return slug ? BY_SLUG[slug]?.functionGroup : undefined;
+}
 
 const BY_PLAYBOOK: Record<string, SydekykRegistryEntry> = {
   "ledger.vendor_bill_ingest": { missionSummary: LedgerMissionSummary, missionRowLabel: ledgerRowLabel },
@@ -203,6 +253,7 @@ const BY_PLAYBOOK: Record<string, SydekykRegistryEntry> = {
   "scout.resume_score": { missionSummary: ScoutMissionSummary, domain: "hr", missionRowLabel: scoutRowLabel },
   "mirror.duplicate_check": { missionSummary: MirrorMissionSummary, missionRowLabel: mirrorRowLabel },
   "shield.risk_assess": { missionSummary: ShieldMissionSummary, missionRowLabel: shieldRowLabel },
+  "nudge.followup": { missionSummary: NudgeMissionSummary, missionRowLabel: nudgeRowLabel },
 };
 
 export function registryForSlug(slug: string | undefined): SydekykRegistryEntry | undefined {
