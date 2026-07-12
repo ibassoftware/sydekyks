@@ -757,6 +757,14 @@ export interface NudgeStage {
   name: string | null;
   is_won: boolean;
 }
+export interface NudgeOpportunity {
+  id: number;
+  name: string | null;
+  partner_name: string | null;
+  stage_name: string | null;
+  salesperson: string | null;
+  expected_revenue: number | null;
+}
 export interface NudgeReadiness {
   items: ReadinessItem[];
   can_upload: boolean;

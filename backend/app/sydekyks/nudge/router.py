@@ -11,6 +11,7 @@ from app.db.session import get_db
 from app.models.sydekyk import Sydekyk
 from app.models.user import User
 from app.services import gadget_links, lead_poll, odoo, odoo_crm, permissions
+from app.services.missions import create_mission
 
 from app.sydekyks.nudge import insights as insights_svc
 from app.sydekyks.nudge import readiness as readiness_svc
@@ -24,6 +25,7 @@ from app.sydekyks.nudge.schemas import (
     NudgeReadiness,
     NudgeSettingsOut,
     NudgeSettingsUpdate,
+    OpportunityOut,
     RunNowOut,
     SnoozeIn,
     SnoozeOut,
@@ -121,6 +123,28 @@ def get_stages(user: User = Depends(require_tenant_member), db: Session = Depend
     return [StageOut(id=s["id"], name=s.get("name"), is_won=bool(s.get("is_won"))) for s in stages]
 
 
+@router.get("/opportunities", response_model=list[OpportunityOut])
+def search_opportunities(q: str = "", user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+    """Search open Odoo opportunities so the 'pause a deal' picker chooses from real records."""
+    client = _connect(db, user.tenant_id, _nudge(db, user).id)
+
+    def _rel(v):
+        return v[1] if isinstance(v, list) and len(v) > 1 else None
+
+    try:
+        rows = odoo_crm.search_opportunities(client, query=q.strip() or None, won_ids=odoo_crm.won_stage_ids(client))
+    except odoo.OdooError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+    return [
+        OpportunityOut(
+            id=r["id"], name=r.get("name"), partner_name=_rel(r.get("partner_id")),
+            stage_name=_rel(r.get("stage_id")), salesperson=_rel(r.get("user_id")),
+            expected_revenue=r.get("expected_revenue"),
+        )
+        for r in rows
+    ]
+
+
 @router.get("/readiness", response_model=NudgeReadiness)
 def get_readiness(user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
     sydekyk = _nudge(db, user)
@@ -161,6 +185,17 @@ async def run_now(user: User = Depends(require_tenant_member), db: Session = Dep
     if open_total is not None:
         s.last_open_total = open_total
     s.cron_last_checked_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    db.commit()
+
+    # Always leave a visible "sweep" Mission — the run's receipt — so a check that found nothing stale
+    # still shows in the mission log ("checked N open · all tended"), not silence.
+    sweep = create_mission(
+        db, tenant_id=user.tenant_id, sydekyk=sydekyk, user_id=user.id,
+        source="manual", signal_type="manual", trigger_context={"mode": "nudge_sweep"},
+    )
+    sweep.status = "succeeded"
+    sweep.result_summary = {"mode": "nudge_sweep", "open_total": open_total or 0, "stale_enqueued": queued}
+    sweep.completed_at = datetime.now(timezone.utc)
     db.commit()
     return RunNowOut(queued=queued)
 

@@ -188,6 +188,42 @@ async def poll_nudge(ctx: dict) -> int:
         db.close()
 
 
+async def audit_nudge_stages(ctx: dict) -> int:
+    """Daily: reconcile each tenant's Nudge per-stage silence thresholds against the live CRM stages;
+    prune dead overrides and raise a Command-Center issue if a stage they configured is gone."""
+    from app.core.crypto import decrypt_secret
+    from app.services import gadget_links, odoo, odoo_crm
+    from app.sydekyks.nudge import maintenance
+    from app.sydekyks.nudge.models import NudgeTenantSettings
+
+    db = SessionLocal()
+    try:
+        sydekyk = db.query(Sydekyk).filter(Sydekyk.slug == "nudge").first()
+        if sydekyk is None:
+            return 0
+        flagged = 0
+        # Only tenants that actually set a per-stage override have anything to reconcile.
+        for st in db.query(NudgeTenantSettings).filter(NudgeTenantSettings.stage_thresholds.isnot(None)).all():
+            link = gadget_links.find_assigned_link(db, tenant_id=st.tenant_id, sydekyk_id=sydekyk.id, role_key="erp")
+            if link is None:
+                continue
+            ok, _msg, client = await asyncio.to_thread(
+                odoo.connect, link.url, link.database, link.username, decrypt_secret(link.encrypted_secret)
+            )
+            if not ok or client is None:
+                continue
+            stages = await asyncio.to_thread(odoo_crm.list_stages, client)
+            dropped = maintenance.reconcile_stage_thresholds(
+                db, tenant_id=st.tenant_id, sydekyk_id=sydekyk.id,
+                real_stage_ids={s["id"] for s in stages},
+            )
+            if dropped:
+                flagged += 1
+        return flagged
+    finally:
+        db.close()
+
+
 async def audit_review_assignees(ctx: dict) -> int:
     """Daily: check that each agent's assigned Odoo reviewers still exist + are active; raise a
     Command-Center issue for the admin if any were removed or deactivated."""
@@ -223,6 +259,7 @@ class WorkerSettings:
         cron(poll_mirror, minute={5, 20, 35, 50}),
         cron(poll_shield, minute={10, 25, 40, 55}),
         cron(poll_nudge, minute={12, 42}),
+        cron(audit_nudge_stages, hour={3}, minute={0}),
         cron(audit_review_assignees, hour={2}, minute={0}),
         cron(snapshot_daily_usage, hour={0}, minute={5}),
     ]

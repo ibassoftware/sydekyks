@@ -70,6 +70,43 @@ def test_thread_formatting_strips_html_and_limits():
     assert extraction._fmt_thread([]) == "(no prior messages on record)"
 
 
+def test_reconcile_stage_thresholds_prunes_dead_overrides(db):
+    from app.models.sydekyk import Sydekyk
+    from app.models.tenant import Tenant
+    from app.sydekyks.nudge import maintenance
+    from app.sydekyks.nudge.models import NudgeTenantSettings
+
+    tenant = Tenant(name="Acme", slug="acme")
+    db.add(tenant)
+    db.flush()
+    nudge = Sydekyk(tenant_id=None, name="Nudge", slug="nudge", tagline="t", description="d",
+                    avatar_url="/x.png", system_prompt="p", model="gpt-4o-mini", temperature=0.3,
+                    is_exclusive=False, is_published=True, workflow_enabled=True, playbook_key="nudge.followup")
+    db.add(nudge)
+    db.flush()
+
+    s = NudgeTenantSettings(tenant_id=tenant.id, stage_thresholds={"1": 7, "2": 14, "99": 30})
+    db.add(s)
+    db.commit()
+
+    # Stage 99 no longer exists in Odoo → dropped; 1 and 2 kept.
+    dropped = maintenance.reconcile_stage_thresholds(
+        db, tenant_id=tenant.id, sydekyk_id=nudge.id, real_stage_ids={1, 2, 3}
+    )
+    assert dropped == [99]
+    db.refresh(s)
+    assert set(s.stage_thresholds.keys()) == {"1", "2"}
+
+    # A failed stage read (empty set) must never prune.
+    s.stage_thresholds = {"1": 7}
+    db.commit()
+    assert maintenance.reconcile_stage_thresholds(
+        db, tenant_id=tenant.id, sydekyk_id=nudge.id, real_stage_ids=set()
+    ) == []
+    db.refresh(s)
+    assert s.stage_thresholds == {"1": 7}
+
+
 def test_playbook_steps_metadata_matches_expected_keys():
     """Guards the read-only Playbook panel against drifting from what run() records."""
     keys = [s["key"] for s in PLAYBOOK_STEPS]

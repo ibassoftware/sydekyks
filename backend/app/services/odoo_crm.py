@@ -72,15 +72,33 @@ def list_open_opportunities(client: OdooClient, *, cutoff: str, limit: int, won_
         ["type", "=", "opportunity"],
         ["active", "=", True],
         ["probability", "<", 100],
-        ["write_date", "<", cutoff],
+        # Coarse pre-filter on genuine engagement (last stage movement), not write_date. The playbook
+        # then applies the precise per-stage test that also accounts for chatter/email recency.
+        ["date_last_stage_update", "<", cutoff],
         "|", ["activity_date_deadline", "=", False], ["activity_date_deadline", "<", today],
     ]
     if won_ids:
         domain.append(["stage_id", "not in", won_ids])
     return client.execute_kw(
         "crm.lead", "search_read", [domain],
-        {"fields": _opp_fields(client), "order": "write_date asc, id asc", "limit": limit},
+        {"fields": _opp_fields(client), "order": "date_last_stage_update asc, id asc", "limit": limit},
     )
+
+
+def search_opportunities(client: OdooClient, *, query: str | None, won_ids: list[int], limit: int = 20) -> list[dict]:
+    """Open opportunities matching a name/partner search — powers the 'pick a deal to pause' picker so
+    users choose from real Odoo records instead of typing an id. Newest first."""
+    domain: list = [["type", "=", "opportunity"], ["active", "=", True]]
+    if won_ids:
+        domain.append(["stage_id", "not in", won_ids])
+    if query:
+        domain += ["|", ["name", "ilike", query], ["partner_id", "ilike", query]]
+    rows = client.execute_kw(
+        "crm.lead", "search_read", [domain],
+        {"fields": ["id", "name", "partner_id", "stage_id", "expected_revenue", "user_id"],
+         "order": "write_date desc", "limit": max(1, min(limit, 50))},
+    )
+    return rows
 
 
 def count_open_opportunities(client: OdooClient, *, won_ids: list[int]) -> int:
@@ -100,16 +118,17 @@ def _msgs(client: OdooClient, lead_id: int, *, fields: list[str], limit: int) ->
 
 
 def last_touch_date(client: OdooClient, lead: dict) -> date | None:
-    """The most recent real touch on the opp: the latest chatter/email message, falling back to the
-    last stage change / write. Drives 'days silent'."""
+    """The most recent GENUINE engagement on the opp — the latest customer/rep chatter or email, or
+    the last time the deal moved stage. Deliberately excludes `write_date`: it bumps on any field edit
+    or automation, so it isn't a signal that anyone actually worked the deal, and a stale opportunity
+    that got a trivial edit would otherwise be wrongly treated as fresh. Drives 'days silent'."""
     rows = _msgs(client, lead["id"], fields=["date"], limit=1)
     candidates = []
     if rows and rows[0].get("date"):
         candidates.append(_parse(rows[0]["date"]))
-    for key in ("date_last_stage_update", "write_date"):
-        d = _parse(lead.get(key))
-        if d:
-            candidates.append(d)
+    d = _parse(lead.get("date_last_stage_update"))
+    if d:
+        candidates.append(d)
     return max(candidates) if candidates else None
 
 

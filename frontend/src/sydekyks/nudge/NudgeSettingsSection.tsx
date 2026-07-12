@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   api,
   type LedgerReadiness,
+  type NudgeOpportunity,
   type NudgeReadiness,
   type NudgeSettings,
   type NudgeSnoozeEntry,
@@ -16,7 +17,17 @@ export function NudgeSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
   const [readiness, setReadiness] = useState<NudgeReadiness | null>(null);
   const [settings, setSettings] = useState<NudgeSettings | null>(null);
   const [stages, setStages] = useState<NudgeStage[] | null>(null);
+  const [stagesLoading, setStagesLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const loadStages = useCallback(() => {
+    // Live CRM stages — best-effort; only available once Odoo is connected (hence the refresh button).
+    setStagesLoading(true);
+    api.get<NudgeStage[]>("/tenant/nudge/stages")
+      .then((r) => setStages(r.data))
+      .catch(() => setStages([]))
+      .finally(() => setStagesLoading(false));
+  }, []);
 
   useEffect(() => {
     api.get<NudgeReadiness>("/tenant/nudge/readiness").then((r) => {
@@ -24,9 +35,8 @@ export function NudgeSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
       onReadiness?.({ ...r.data, last_inbound_email: null } as LedgerReadiness);
     });
     api.get<NudgeSettings>("/tenant/nudge/settings").then((r) => setSettings(r.data));
-    // Live CRM stages — best-effort; only available once Odoo is connected.
-    api.get<NudgeStage[]>("/tenant/nudge/stages").then((r) => setStages(r.data)).catch(() => setStages([]));
-  }, [sydekyk.id, onReadiness]);
+    loadStages();
+  }, [sydekyk.id, onReadiness, loadStages]);
 
   async function save(next: NudgeSettings) {
     setSaving(true);
@@ -98,9 +108,21 @@ export function NudgeSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
             </div>
           </div>
 
-          {stages && stages.filter((s) => !s.is_won).length > 0 && (
-            <div className="mt-2">
+          <div className="mt-2">
+            <div className="flex items-center justify-between">
               <Label>Per-stage overrides</Label>
+              <button
+                type="button"
+                onClick={loadStages}
+                disabled={stagesLoading}
+                className="text-[11px] font-semibold text-gold-400 hover:text-gold-300 disabled:opacity-50"
+              >
+                {stagesLoading ? "Refreshing…" : "↻ Refresh stages"}
+              </button>
+            </div>
+            {stages === null || stagesLoading ? (
+              <p className="mt-2 text-xs text-[#8a7f6d]">Loading stages…</p>
+            ) : stages.filter((s) => !s.is_won).length > 0 ? (
               <div className="mt-2 grid gap-2">
                 {stages.filter((s) => !s.is_won).map((s) => (
                   <div key={s.id} className="flex items-center gap-3">
@@ -117,11 +139,12 @@ export function NudgeSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-          {stages && stages.length === 0 && (
-            <p className="text-xs text-amber-400/90">Connect Odoo to configure per-stage thresholds.</p>
-          )}
+            ) : (
+              <p className="mt-2 text-xs text-amber-400/90">
+                No CRM stages found. Connect &amp; test the Odoo instance above, then hit Refresh.
+              </p>
+            )}
+          </div>
         </div>
       )}
 
@@ -197,10 +220,11 @@ export function NudgeSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
   );
 }
 
-/** Paused-deal memory: the "don't nag a deal that's legitimately quiet" trap-guard, editable here. */
+/** Paused-deal memory: the "don't nag a deal that's legitimately quiet" trap-guard. Deals are picked
+ * from real Odoo opportunities (searchable), never by typing an id. */
 function SnoozeManager({ canManage }: { canManage: boolean }) {
   const [rows, setRows] = useState<NudgeSnoozeEntry[] | null>(null);
-  const [leadId, setLeadId] = useState("");
+  const [picked, setPicked] = useState<NudgeOpportunity | null>(null);
   const [until, setUntil] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -211,16 +235,15 @@ function SnoozeManager({ canManage }: { canManage: boolean }) {
   useEffect(() => load(), [load]);
 
   async function add() {
-    const id = Number(leadId);
-    if (!Number.isFinite(id) || id <= 0) return;
+    if (!picked) return;
     setBusy(true);
     try {
       await api.post("/tenant/nudge/snoozes", {
-        odoo_lead_id: id,
+        odoo_lead_id: picked.id,
         snooze_until: until || null,
         note: note || null,
       });
-      setLeadId("");
+      setPicked(null);
       setUntil("");
       setNote("");
       load();
@@ -238,27 +261,28 @@ function SnoozeManager({ canManage }: { canManage: boolean }) {
     <div className="grid gap-3 border-t border-ink-700 pt-6">
       <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Paused deals</p>
       <p className="-mt-1 text-xs text-[#8a7f6d]">
-        Legitimately-quiet deals Nudge should leave alone. Set a date to pause until then, or leave it blank to
-        never nudge (whitelist).
+        Legitimately-quiet deals Nudge should leave alone. Search your Odoo pipeline to pick one, set a date to
+        pause until then, or leave it blank to never nudge (whitelist).
       </p>
 
       {canManage && (
-        <div className="grid grid-cols-[1fr_1fr_2fr_auto] items-end gap-2">
-          <div>
-            <Label>Opportunity ID</Label>
-            <Input type="number" min={1} value={leadId} onChange={(e) => setLeadId(e.target.value)} placeholder="e.g. 42" />
-          </div>
-          <div>
-            <Label>Pause until</Label>
-            <Input type="date" value={until} onChange={(e) => setUntil(e.target.value)} />
-          </div>
-          <div>
-            <Label>Note</Label>
-            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Circle back in Q3" />
-          </div>
-          <Button className="px-3 py-2 text-xs" disabled={busy || !leadId} onClick={add}>
-            {busy ? "…" : "Add"}
-          </Button>
+        <div className="grid gap-2">
+          <OpportunityPicker value={picked} onPick={setPicked} />
+          {picked && (
+            <div className="grid grid-cols-[1fr_2fr_auto] items-end gap-2">
+              <div>
+                <Label>Pause until</Label>
+                <Input type="date" value={until} onChange={(e) => setUntil(e.target.value)} />
+              </div>
+              <div>
+                <Label>Note</Label>
+                <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Circle back in Q3" />
+              </div>
+              <Button className="px-3 py-2 text-xs" disabled={busy} onClick={add}>
+                {busy ? "…" : "Pause deal"}
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
@@ -282,6 +306,62 @@ function SnoozeManager({ canManage }: { canManage: boolean }) {
       ) : (
         <p className="text-xs text-[#8a7f6d]">No paused deals — Nudge is watching the whole open pipeline.</p>
       )}
+    </div>
+  );
+}
+
+/** Debounced search over open Odoo opportunities; pick one to act on (never type an id). */
+function OpportunityPicker({ value, onPick }: { value: NudgeOpportunity | null; onPick: (o: NudgeOpportunity | null) => void }) {
+  const [q, setQ] = useState("");
+  const [results, setResults] = useState<NudgeOpportunity[] | null>(null);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    if (value) return; // a deal is chosen — don't keep searching
+    const t = setTimeout(() => {
+      setSearching(true);
+      api.get<NudgeOpportunity[]>("/tenant/nudge/opportunities", { params: { q } })
+        .then((r) => setResults(r.data))
+        .catch(() => setResults([]))
+        .finally(() => setSearching(false));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [q, value]);
+
+  if (value) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg border border-gold-700/40 bg-gold-500/[0.05] px-3 py-2">
+        <span className="text-sm text-[#ede6da]">{value.name ?? `Opportunity #${value.id}`}</span>
+        {value.partner_name && <span className="text-xs text-[#8a7f6d]">· {value.partner_name}</span>}
+        {value.stage_name && <span className="rounded-full border border-ink-600 bg-ink-800/60 px-2 py-0.5 text-[11px] text-[#b9ad98]">{value.stage_name}</span>}
+        <button onClick={() => onPick(null)} className="ml-auto text-xs font-semibold text-gold-400 hover:text-gold-300">Change</button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <Label>Find an opportunity</Label>
+      <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by deal or customer name…" />
+      {searching ? (
+        <p className="mt-1 text-xs text-[#8a7f6d]">Searching…</p>
+      ) : results && results.length > 0 ? (
+        <div className="mt-2 grid max-h-56 gap-1 overflow-y-auto">
+          {results.map((o) => (
+            <button
+              key={o.id}
+              onClick={() => onPick(o)}
+              className="flex items-center gap-2 rounded-md border border-ink-700 px-3 py-1.5 text-left hover:border-gold-500/50 hover:bg-ink-800/60"
+            >
+              <span className="text-sm text-[#ede6da]">{o.name ?? `Opportunity #${o.id}`}</span>
+              {o.partner_name && <span className="text-xs text-[#8a7f6d]">· {o.partner_name}</span>}
+              {o.stage_name && <span className="ml-auto rounded-full border border-ink-600 bg-ink-800/60 px-2 py-0.5 text-[11px] text-[#b9ad98]">{o.stage_name}</span>}
+            </button>
+          ))}
+        </div>
+      ) : results ? (
+        <p className="mt-1 text-xs text-amber-400/90">No matching opportunities (connect Odoo if this seems wrong).</p>
+      ) : null}
     </div>
   );
 }

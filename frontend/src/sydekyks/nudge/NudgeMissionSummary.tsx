@@ -1,10 +1,16 @@
+import { useState } from "react";
+import { api } from "../../lib/api";
 import { Badge } from "../../components/ui";
 import { formatMoney } from "../../lib/format";
 
-/** Renders a Nudge follow-up Mission result. A Mission may end in a "skipped" (guarded) or "not
- * stale" state — those read as calm, non-action outcomes; an acted-on opp shows the drafted nudge. */
+/** Renders a Nudge Mission result. Three shapes: a pipeline "sweep" (the run receipt), a follow-up
+ * on one opp (drafted / skipped / still-fresh), and — on any opp-scoped result — a quick "pause this
+ * deal" action so a rep can whitelist a legitimately-quiet deal without leaving the mission. */
 export function NudgeMissionSummary({ summary }: { summary: Record<string, unknown> }) {
+  if (summary.mode === "nudge_sweep") return <SweepSummary summary={summary} />;
+
   const opp = (summary.opp_name as string) ?? "Opportunity";
+  const leadId = summary.odoo_lead_id as number | undefined;
   const partner = summary.partner_name as string | null;
   const salesperson = summary.salesperson as string | null;
   const stage = summary.stage_name as string | null;
@@ -58,6 +64,46 @@ export function NudgeMissionSummary({ summary }: { summary: Record<string, unkno
           <p className="mt-1 text-[11px] text-[#8a7f6d]">Draft only — the rep edits and sends from Odoo.</p>
         </div>
       )}
+
+      {leadId !== undefined && skipped !== "snoozed" && <PauseDeal leadId={leadId} oppName={opp} />}
     </div>
+  );
+}
+
+function SweepSummary({ summary }: { summary: Record<string, unknown> }) {
+  const open = (summary.open_total as number) ?? 0;
+  const stale = (summary.stale_enqueued as number) ?? 0;
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      <Badge tone={stale > 0 ? "gold" : "neutral"}>Pipeline checked</Badge>
+      <span className="text-sm text-[#ede6da]">{open} open opportunit{open === 1 ? "y" : "ies"}</span>
+      <span className="text-xs text-[#8a7f6d]">
+        · {stale > 0 ? `${stale} stale — drafting follow-ups` : "all tended, nothing stale"}
+      </span>
+    </div>
+  );
+}
+
+/** Quick "leave this deal alone" — whitelists the opp via the snooze endpoint (no date = never). */
+function PauseDeal({ leadId, oppName }: { leadId: number; oppName: string }) {
+  const [state, setState] = useState<"idle" | "busy" | "done">("idle");
+  async function pause() {
+    setState("busy");
+    try {
+      await api.post("/tenant/nudge/snoozes", { odoo_lead_id: leadId, snooze_until: null, note: `Paused from mission: ${oppName}` });
+      setState("done");
+    } catch {
+      setState("idle");
+    }
+  }
+  if (state === "done") return <p className="text-[11px] font-semibold text-gold-400">Paused — Nudge will leave this deal alone.</p>;
+  return (
+    <button
+      onClick={pause}
+      disabled={state === "busy"}
+      className="w-fit rounded-md border border-ink-600 bg-ink-800/60 px-2.5 py-1 text-[11px] font-semibold text-[#b9ad98] hover:bg-ink-700 disabled:opacity-50"
+    >
+      {state === "busy" ? "Pausing…" : "Pause this deal"}
+    </button>
   );
 }

@@ -38,6 +38,15 @@ class StageOut(BaseModel):
     is_won: bool = False
 
 
+class OpportunityOut(BaseModel):
+    id: int
+    name: str | None = None
+    partner_name: str | None = None
+    stage_name: str | None = None
+    salesperson: str | None = None
+    expected_revenue: float | None = None
+
+
 class ReadinessItem(BaseModel):
     key: str
     label: str

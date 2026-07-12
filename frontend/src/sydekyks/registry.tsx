@@ -173,6 +173,12 @@ function shieldRowLabel(m: RowLabelInput): MissionRowLabel {
 
 function nudgeRowLabel(m: RowLabelInput): MissionRowLabel {
   const s = m.result_summary ?? {};
+  if (s.mode === "nudge_sweep") {
+    const open = (s.open_total as number) ?? 0;
+    const stale = (s.stale_enqueued as number) ?? 0;
+    const tail = stale > 0 ? `${stale} stale · drafting follow-ups` : "all tended, nothing stale";
+    return { title: `Checked the pipeline · ${open} open · ${tail}`, muted: stale === 0 };
+  }
   const opp = s.opp_name as string | undefined;
   if (!opp) return fallbackRowLabel(m);
   const skipped = s.skipped as string | undefined;
