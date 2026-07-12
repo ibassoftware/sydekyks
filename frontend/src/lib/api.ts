@@ -1,4 +1,5 @@
 import axios from "axios";
+import { toast } from "./toast";
 
 export const api = axios.create({
   baseURL: "/api",
@@ -10,6 +11,23 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
+});
+
+// Global "Saved" feedback for settings changes (DRY — one place, every settings form). A settings
+// save is a PUT (or a gadget-assignment DELETE/unassign). Changing the AI engine or the Odoo
+// connection gates the agent's readiness, so we reload afterwards to re-fetch it.
+api.interceptors.response.use((response) => {
+  const method = (response.config.method || "").toLowerCase();
+  const url = response.config.url || "";
+  const isSettingsSave = method === "put" || (method === "delete" && /gadget-requirements|reviewers|recurring/.test(url));
+  if (isSettingsSave) {
+    const affectsReadiness = /llm-config|gadget-requirements/.test(url);
+    toast.success(affectsReadiness ? "Saved — refreshing…" : "Saved");
+    if (affectsReadiness) {
+      setTimeout(() => window.location.reload(), 750);
+    }
+  }
+  return response;
 });
 
 export type Role = "super_admin" | "commander" | "hero";

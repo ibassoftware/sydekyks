@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./lib/auth";
 import { ActivityProvider } from "./lib/activity";
+import { Toaster } from "./lib/toast";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
@@ -21,6 +22,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <ActivityProvider>
+        <Toaster />
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
