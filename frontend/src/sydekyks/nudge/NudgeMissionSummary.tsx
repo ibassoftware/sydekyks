@@ -72,14 +72,38 @@ export function NudgeMissionSummary({ summary }: { summary: Record<string, unkno
 
 function SweepSummary({ summary }: { summary: Record<string, unknown> }) {
   const open = (summary.open_total as number) ?? 0;
-  const stale = (summary.stale_enqueued as number) ?? 0;
+  const scheduled = (summary.scheduled as number) ?? 0;
+  const snoozed = (summary.snoozed as number) ?? 0;
+  const recent = (summary.recently_nudged as number) ?? 0;
+  const queued = (summary.enqueued as number) ?? (summary.stale_enqueued as number) ?? 0;
+
+  // Every open opportunity is accounted for: handled elsewhere, paused, recently nudged, or queued
+  // for a closer look this run (the per-opp missions show each queued one's outcome).
+  const rows: { label: string; n: number; hint: string }[] = [
+    { label: "Have an upcoming activity", n: scheduled, hint: "a next touch is already planned — left alone" },
+    { label: "Recently nudged", n: recent, hint: "inside the cadence window — not nagged again" },
+    { label: "Paused / whitelisted", n: snoozed, hint: "you told Nudge to leave these alone" },
+    { label: "Queued for a closer look", n: queued, hint: "checked below — some may turn out still fresh" },
+  ].filter((r) => r.n > 0);
+
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-2">
-      <Badge tone={stale > 0 ? "gold" : "neutral"}>Pipeline checked</Badge>
-      <span className="text-sm text-[#ede6da]">{open} open opportunit{open === 1 ? "y" : "ies"}</span>
-      <span className="text-xs text-[#8a7f6d]">
-        · {stale > 0 ? `${stale} stale — drafting follow-ups` : "all tended, nothing stale"}
-      </span>
+    <div className="mt-2 grid gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge tone={queued > 0 ? "gold" : "neutral"}>Pipeline checked</Badge>
+        <span className="text-sm font-semibold text-[#ede6da]">{open} open opportunit{open === 1 ? "y" : "ies"}</span>
+        {queued === 0 && <span className="text-xs text-[#8a7f6d]">· all tended, nothing to chase</span>}
+      </div>
+      {rows.length > 0 && (
+        <ul className="grid gap-1">
+          {rows.map((r) => (
+            <li key={r.label} className="flex items-baseline gap-2 text-xs">
+              <span className="w-6 shrink-0 text-right font-semibold text-[#ede6da]">{r.n}</span>
+              <span className="text-[#b9ad98]">{r.label}</span>
+              <span className="text-[#8a7f6d]">— {r.hint}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

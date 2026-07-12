@@ -175,9 +175,11 @@ function nudgeRowLabel(m: RowLabelInput): MissionRowLabel {
   const s = m.result_summary ?? {};
   if (s.mode === "nudge_sweep") {
     const open = (s.open_total as number) ?? 0;
-    const stale = (s.stale_enqueued as number) ?? 0;
-    const tail = stale > 0 ? `${stale} stale · drafting follow-ups` : "all tended, nothing stale";
-    return { title: `Checked the pipeline · ${open} open · ${tail}`, muted: stale === 0 };
+    // enqueued = opps sent to the playbook for a closer look (not yet confirmed stale). Fall back to
+    // the old key for missions logged before the breakdown existed.
+    const queued = (s.enqueued as number) ?? (s.stale_enqueued as number) ?? 0;
+    const tail = queued > 0 ? `${queued} queued for review` : "all tended, nothing to chase";
+    return { title: `Checked the pipeline · ${open} open · ${tail}`, muted: queued === 0 };
   }
   const opp = s.opp_name as string | undefined;
   if (!opp) return fallbackRowLabel(m);

@@ -24,10 +24,17 @@ MAX_LIMIT = 30
 async def enqueue_stale_opportunities(
     db: Session, *, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID, store_model, snooze_model,
     cadence_days: int, min_stale_days: int, limit: int = 30,
-) -> tuple[int, int | None]:
-    """Enqueue a Mission per candidate stale opp (≤30). `store_model`/`snooze_model` are Nudge's
-    finding + snooze tables — used to skip recently-nudged and snoozed opps. Returns
-    (enqueued_count, open_opportunity_total) — the total feeds the dashboard's coverage metric."""
+) -> tuple[int, dict | None]:
+    """Enqueue a Mission per candidate opp that needs a closer look (≤30). `store_model`/`snooze_model`
+    are Nudge's finding + snooze tables — used to skip recently-nudged and snoozed opps.
+
+    Returns (enqueued_count, breakdown) where breakdown is a disposition of the WHOLE open pipeline so
+    the run's 'sweep' receipt can honestly account for every opportunity, not just the ones it queued:
+        {open_total, scheduled (has a future touch), snoozed, recently_nudged, enqueued}.
+    Note: `enqueued` are opps that pass the coarse filter and go to the playbook for the precise
+    per-stage staleness test — some will turn out 'still fresh' (recent chatter), so this is 'queued
+    for review', not 'confirmed stale'.
+    """
     limit = min(limit or MAX_LIMIT, MAX_LIMIT)
     link = gadget_links.find_assigned_link(db, tenant_id=tenant_id, sydekyk_id=sydekyk_id, role_key="erp")
     if link is None:
@@ -44,12 +51,15 @@ async def enqueue_stale_opportunities(
 
     won_ids = await asyncio.to_thread(odoo_crm.won_stage_ids, client)
     open_total = await asyncio.to_thread(odoo_crm.count_open_opportunities, client, won_ids=won_ids)
+    scheduled = await asyncio.to_thread(odoo_crm.count_scheduled_opportunities, client, won_ids=won_ids)
+    breakdown = {"open_total": open_total, "scheduled": scheduled, "snoozed": 0, "recently_nudged": 0, "enqueued": 0}
+
     cutoff = (datetime.now(timezone.utc) - timedelta(days=max(1, min_stale_days))).strftime("%Y-%m-%d %H:%M:%S")
     candidates = await asyncio.to_thread(
         odoo_crm.list_open_opportunities, client, cutoff=cutoff, limit=limit * 2, won_ids=won_ids
     )
     if not candidates:
-        return 0, open_total
+        return 0, breakdown
 
     # Snoozed / whitelisted (snooze_until null = forever, else still in the future).
     today = date.today()
@@ -72,8 +82,14 @@ async def enqueue_stale_opportunities(
 
     count = 0
     for opp in candidates:
-        if opp["id"] in snoozed or opp["id"] in recent:
+        if opp["id"] in snoozed:
+            breakdown["snoozed"] += 1
             continue
+        if opp["id"] in recent:
+            breakdown["recently_nudged"] += 1
+            continue
+        if count >= limit:
+            continue  # over the per-run cap — leave for the next run (scan-forward)
         mission = create_mission(
             db, tenant_id=tenant_id, sydekyk=sydekyk, user_id=None,
             source="odoo", signal_type="scheduled",
@@ -81,6 +97,5 @@ async def enqueue_stale_opportunities(
         )
         await enqueue_mission(mission.id)
         count += 1
-        if count >= limit:
-            break
-    return count, open_total
+    breakdown["enqueued"] = count
+    return count, breakdown

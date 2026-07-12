@@ -177,24 +177,26 @@ async def run_now(user: User = Depends(require_tenant_member), db: Session = Dep
     sydekyk = _nudge(db, user)
     permissions.assert_can_use(db, user, sydekyk.id)
     s = _settings(db, user.tenant_id)
-    queued, open_total = await lead_poll.enqueue_stale_opportunities(
+    queued, breakdown = await lead_poll.enqueue_stale_opportunities(
         db, tenant_id=user.tenant_id, sydekyk_id=sydekyk.id, store_model=NudgeFinding,
         snooze_model=NudgeSnooze, cadence_days=s.cadence_days, min_stale_days=s.default_stale_days,
         limit=s.cron_poll_limit,
     )
-    if open_total is not None:
-        s.last_open_total = open_total
+    if breakdown is not None:
+        s.last_open_total = breakdown["open_total"]
     s.cron_last_checked_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     db.commit()
 
-    # Always leave a visible "sweep" Mission — the run's receipt — so a check that found nothing stale
-    # still shows in the mission log ("checked N open · all tended"), not silence.
+    # Always leave a visible "sweep" Mission — the run's receipt — carrying the full disposition of the
+    # pipeline so a check accounts for EVERY open opp (handled / recently-nudged / queued), not silence.
     sweep = create_mission(
         db, tenant_id=user.tenant_id, sydekyk=sydekyk, user_id=user.id,
         source="manual", signal_type="manual", trigger_context={"mode": "nudge_sweep"},
     )
     sweep.status = "succeeded"
-    sweep.result_summary = {"mode": "nudge_sweep", "open_total": open_total or 0, "stale_enqueued": queued}
+    sweep.result_summary = {"mode": "nudge_sweep", **(breakdown or {"open_total": 0, "scheduled": 0,
+                                                                     "snoozed": 0, "recently_nudged": 0,
+                                                                     "enqueued": queued})}
     sweep.completed_at = datetime.now(timezone.utc)
     db.commit()
     return RunNowOut(queued=queued)

@@ -109,6 +109,19 @@ def count_open_opportunities(client: OdooClient, *, won_ids: list[int]) -> int:
     return client.execute_kw("crm.lead", "search_count", [domain])
 
 
+def count_scheduled_opportunities(client: OdooClient, *, won_ids: list[int]) -> int:
+    """Open opportunities that already have a FUTURE-dated activity — a planned next touch, so Nudge
+    treats them as handled. The 'already tended' slice of the pipeline for the sweep breakdown."""
+    today = date.today().isoformat()
+    domain: list = [
+        ["type", "=", "opportunity"], ["active", "=", True], ["probability", "<", 100],
+        ["activity_date_deadline", ">=", today],
+    ]
+    if won_ids:
+        domain.append(["stage_id", "not in", won_ids])
+    return client.execute_kw("crm.lead", "search_count", [domain])
+
+
 def _msgs(client: OdooClient, lead_id: int, *, fields: list[str], limit: int) -> list[dict]:
     return client.execute_kw(
         "mail.message", "search_read",

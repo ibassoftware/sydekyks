@@ -173,13 +173,13 @@ async def poll_nudge(ctx: dict) -> int:
             )
             if installed is None:
                 continue
-            count, open_total = await lead_poll.enqueue_stale_opportunities(
+            count, breakdown = await lead_poll.enqueue_stale_opportunities(
                 db, tenant_id=st.tenant_id, sydekyk_id=sydekyk.id, store_model=NudgeFinding,
                 snooze_model=NudgeSnooze, cadence_days=st.cadence_days,
                 min_stale_days=st.default_stale_days, limit=st.cron_poll_limit,
             )
-            if open_total is not None:
-                st.last_open_total = open_total
+            if breakdown is not None:
+                st.last_open_total = breakdown["open_total"]
             st.cron_last_checked_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
             db.commit()
             total += count
