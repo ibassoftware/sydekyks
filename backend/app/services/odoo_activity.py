@@ -11,10 +11,12 @@ from app.services.odoo import OdooClient
 _TODO_XMLID = ("mail", "mail_activity_data_todo")
 
 
-def list_internal_users(client: OdooClient, limit: int = 200) -> list[dict]:
-    """Active internal (non-portal) Odoo users, for the reviewer picker in settings."""
-    return client.search_read(
-        "res.users", [["share", "=", False], ["active", "=", True]], ["id", "name", "login"], limit=limit
+def list_internal_users(client: OdooClient, limit: int = 500) -> list[dict]:
+    """Active internal (non-portal) Odoo users, for the reviewer picker in settings. Ordered by name;
+    the picker filters client-side (fine up to a few hundred; bump the limit for larger instances)."""
+    return client.execute_kw(
+        "res.users", "search_read", [[["share", "=", False], ["active", "=", True]]],
+        {"fields": ["id", "name", "login"], "order": "name asc", "limit": limit},
     )
 
 
