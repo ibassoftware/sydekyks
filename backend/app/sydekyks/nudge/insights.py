@@ -62,7 +62,15 @@ def compute_insights(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -
     drafted = sum(1 for r in rows if r.activity_created)
     # Distinct stale opps caught (a given opp may be nudged more than once across cycles).
     stale_caught = len({r.odoo_lead_id for r in rows})
-    at_risk_total = round(sum(float(r.value_at_risk or 0.0) for r in rows if r.human_decision is None), 2)
+    # Headline "revenue at risk" is the REAL pipeline value still exposed — the expected_revenue of the
+    # undecided stale deals, de-duplicated per opp so a deal nudged twice isn't counted twice. (The
+    # weighted `value_at_risk` = revenue × urgency stays purely as the queue's sort key; showing it as
+    # dollars would overstate exposure, e.g. a $22.5k deal 20× past tolerance reading as $450k.)
+    exposed_rev: dict[int, float] = {}
+    for r in rows:
+        if r.human_decision is None:
+            exposed_rev[r.odoo_lead_id] = float(r.expected_revenue or 0.0)
+    at_risk_total = round(sum(exposed_rev.values()), 2)
     cur_counter: Counter = Counter(r.currency for r in rows if r.currency)
     currency = cur_counter.most_common(1)[0][0] if cur_counter else None
 

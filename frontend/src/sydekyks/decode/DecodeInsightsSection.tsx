@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api, type DecodeInsights } from "../../lib/api";
 import { formatWorkTime, formatFastTime } from "../../lib/format";
 import { Card } from "../../components/ui";
-import { AgentThumb } from "../../components/AgentThumb";
+import { AgentCardHeader } from "../../components/AgentCardHeader";
 
 const money = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
 
@@ -19,13 +19,7 @@ export function DecodeInsightsSection() {
 
   return (
     <Card className="relative mt-6 overflow-hidden p-6">
-      <div className="relative flex items-center gap-3">
-        <AgentThumb slug="decode" alt="Decode" />
-        <div>
-          <p className="text-sm font-bold text-[#f5eee0]">Decode</p>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-gold-500">Résumés parsed · Live</p>
-        </div>
-      </div>
+      <AgentCardHeader slug="decode" name="Decode" kicker="Résumés parsed · Live" />
 
       <div className="mt-4">
         <p className="text-xs font-semibold uppercase tracking-wider text-[#8a7f6d]">Estimated $ saved</p>

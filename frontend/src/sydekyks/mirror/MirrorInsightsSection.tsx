@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { api, type MirrorFlag, type MirrorFlagPage, type MirrorInsights } from "../../lib/api";
 import { formatWorkTime, formatFastTime, formatMoney } from "../../lib/format";
 import { Card } from "../../components/ui";
-import { AgentThumb } from "../../components/AgentThumb";
+import { AgentCardHeader } from "../../components/AgentCardHeader";
 
 const money = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
 const PAGE = 3;
@@ -44,13 +44,7 @@ export function MirrorInsightsSection() {
 
   return (
     <Card className="relative mt-6 overflow-hidden p-6">
-      <div className="relative flex items-center gap-3">
-        <AgentThumb slug="mirror" alt="Mirror" />
-        <div>
-          <p className="text-sm font-bold text-[#f5eee0]">Mirror</p>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-gold-500">Duplicate bills · Live</p>
-        </div>
-      </div>
+      <AgentCardHeader slug="mirror" name="Mirror" kicker="Duplicate bills · Live" />
 
       <div className="mt-4">
         <p className="text-xs font-semibold uppercase tracking-wider text-[#8a7f6d]">Double-payments prevented</p>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { api, type ShieldAlert, type ShieldInsights, type ShieldQueuePage } from "../../lib/api";
 import { formatWorkTime, formatFastTime, formatMoney } from "../../lib/format";
 import { Card } from "../../components/ui";
-import { AgentThumb } from "../../components/AgentThumb";
+import { AgentCardHeader } from "../../components/AgentCardHeader";
 
 const money = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
 
@@ -54,13 +54,7 @@ export function ShieldInsightsSection() {
 
   return (
     <Card className="relative mt-6 overflow-hidden p-6">
-      <div className="relative flex items-center gap-3">
-        <AgentThumb slug="shield" alt="Shield" />
-        <div>
-          <p className="text-sm font-bold text-[#f5eee0]">Shield</p>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-gold-500">Fraud risk · Live</p>
-        </div>
-      </div>
+      <AgentCardHeader slug="shield" name="Shield" kicker="Fraud risk · Live" />
 
       <div className="mt-4">
         <p className="text-xs font-semibold uppercase tracking-wider text-[#8a7f6d]">Exposure under review</p>

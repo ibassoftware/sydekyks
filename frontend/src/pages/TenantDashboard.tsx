@@ -6,7 +6,7 @@ import { formatWorkTime, formatFastTime } from "../lib/format";
 import { Button, Card } from "../components/ui";
 import { HQShell } from "../components/HQShell";
 import { MissionList } from "../components/MissionList";
-import { AgentThumb } from "../components/AgentThumb";
+import { AgentCardHeader } from "../components/AgentCardHeader";
 import { LedgerTrendChart } from "../sydekyks/ledger/LedgerTrendChart";
 import { DecodeInsightsSection } from "../sydekyks/decode/DecodeInsightsSection";
 import { ScoutInsightsSection } from "../sydekyks/scout/ScoutInsightsSection";
@@ -182,13 +182,7 @@ function LedgerInsightsSection({ insights }: { insights: LedgerInsights }) {
   return (
     <Card className="relative mt-6 overflow-hidden p-6">
       <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-gold-500/10 blur-3xl" />
-      <div className="relative flex items-center gap-3">
-        <AgentThumb slug="ledger" alt="Ledger" />
-        <div>
-          <p className="text-sm font-bold text-[#f5eee0]">Ledger</p>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-gold-500">Bills encoded · Live</p>
-        </div>
-      </div>
+      <AgentCardHeader slug="ledger" name="Ledger" kicker="Bills encoded · Live" />
 
       <div className="relative mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
         <div>

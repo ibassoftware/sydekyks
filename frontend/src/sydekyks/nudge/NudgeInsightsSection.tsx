@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { api, type NudgeInsights, type NudgeItem, type NudgeQueuePage } from "../../lib/api";
 import { formatWorkTime, formatFastTime, formatMoney } from "../../lib/format";
 import { Card } from "../../components/ui";
-import { AgentThumb } from "../../components/AgentThumb";
+import { AgentCardHeader } from "../../components/AgentCardHeader";
 
 const money = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
 
@@ -44,13 +44,7 @@ export function NudgeInsightsSection() {
 
   return (
     <Card className="relative mt-6 overflow-hidden p-6">
-      <div className="relative flex items-center gap-3">
-        <AgentThumb slug="nudge" alt="Nudge" />
-        <div>
-          <p className="text-sm font-bold text-[#f5eee0]">Nudge</p>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-gold-500">Sales follow-up · Live</p>
-        </div>
-      </div>
+      <AgentCardHeader slug="nudge" name="Nudge" kicker="Sales follow-up · Live" />
 
       <div className="mt-4">
         <p className="text-xs font-semibold uppercase tracking-wider text-[#8a7f6d]">Revenue at risk from silence</p>
@@ -91,8 +85,8 @@ export function NudgeInsightsSection() {
                   {it.stage_name && <span className="rounded-full border border-ink-600 bg-ink-800/60 px-2 py-0.5 text-[11px] text-[#b9ad98]">{it.stage_name}</span>}
                   <span className="text-sm font-medium text-[#ede6da]">{it.opp_name ?? "Opportunity"}</span>
                   {it.partner_name && <span className="text-xs text-[#8a7f6d]">· {it.partner_name}</span>}
-                  {it.value_at_risk != null && it.value_at_risk > 0 && (
-                    <span className="text-sm text-gold-300">{formatMoney(it.value_at_risk, it.currency)} at risk</span>
+                  {it.expected_revenue != null && it.expected_revenue > 0 && (
+                    <span className="text-sm text-gold-300">{formatMoney(it.expected_revenue, it.currency)} at risk</span>
                   )}
                   {it.odoo_url && (
                     <a href={it.odoo_url} target="_blank" rel="noopener noreferrer" className="ml-auto shrink-0 text-xs font-semibold text-gold-400 hover:text-gold-300">
