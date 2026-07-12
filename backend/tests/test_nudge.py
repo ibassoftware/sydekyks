@@ -107,6 +107,17 @@ def test_reconcile_stage_thresholds_prunes_dead_overrides(db):
     assert s.stage_thresholds == {"1": 7}
 
 
+def test_mission_generic_record_links_opportunity():
+    """A Nudge mission's 'Open in Odoo' deep link resolves to the crm.lead; a sweep gets none."""
+    from app.services.gadget_links import mission_generic_record
+
+    assert mission_generic_record({"odoo_lead_id": 32}) == ("crm.lead", 32, "Open opportunity in Odoo")
+    assert mission_generic_record({"mode": "nudge_sweep", "open_total": 5}) is None
+    # Other agents unaffected.
+    assert mission_generic_record({"applicant_id": 9})[0] == "hr.applicant"
+    assert mission_generic_record({"odoo_move_id": 7}) is None
+
+
 def test_playbook_steps_metadata_matches_expected_keys():
     """Guards the read-only Playbook panel against drifting from what run() records."""
     keys = [s["key"] for s in PLAYBOOK_STEPS]

@@ -73,13 +73,16 @@ def build_odoo_bill_url(
 
 def mission_generic_record(summary: dict | None) -> tuple[str, int, str] | None:
     """The (model, res_id, button label) for whatever Odoo record a Mission touched BEYOND a bill —
-    currently the Decode/Scout applicant. Bills keep their own dedicated `odoo_bill_url` (with
-    bill-specific review copy), so this deliberately ignores odoo_move_id. Single source of truth
+    the Decode/Scout applicant or the Nudge opportunity. Bills keep their own dedicated `odoo_bill_url`
+    (with bill-specific review copy), so this deliberately ignores odoo_move_id. Single source of truth
     reused by both the mission-detail endpoints and the list-row link attachment."""
     summary = summary or {}
     applicant_id = summary.get("applicant_id")
     if applicant_id:
         return "hr.applicant", int(applicant_id), "Open applicant in Odoo"
+    lead_id = summary.get("odoo_lead_id")
+    if lead_id:
+        return "crm.lead", int(lead_id), "Open opportunity in Odoo"
     return None
 
 
