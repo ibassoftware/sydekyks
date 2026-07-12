@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { api, type TenantSettings } from "./api";
 
 /** The tenant's reporting currency, loaded once and shared across every card (module-level cache +
- * in-flight dedupe). Used as the currency for figures that have no intrinsic one — chiefly the
- * labor-cost savings on the dashboard and the wage inputs in agent settings. Defaults to "USD". */
+ * in-flight dedupe). It's the display currency for the whole dashboard and the wage inputs in agent
+ * settings. Amounts are NOT FX-converted — a tenant's Odoo is single-currency and should match this.
+ * Defaults to "USD". */
 let cache: string | null = null;
 let inflight: Promise<string> | null = null;
+const subscribers = new Set<(c: string) => void>();
 
 function load(): Promise<string> {
   if (cache) return Promise.resolve(cache);
@@ -24,20 +26,19 @@ function load(): Promise<string> {
   return inflight;
 }
 
-/** Let a settings screen push the freshly-saved value so every card updates without a reload. */
+/** Push a freshly-saved value so every mounted card re-renders immediately — no page reload. */
 export function setTenantCurrency(code: string) {
   cache = code;
+  subscribers.forEach((fn) => fn(code));
 }
 
 export function useTenantCurrency(): string {
   const [currency, setCurrency] = useState<string>(cache ?? "USD");
   useEffect(() => {
-    let alive = true;
-    load().then((c) => {
-      if (alive) setCurrency(c);
-    });
+    subscribers.add(setCurrency);
+    load().then(setCurrency);
     return () => {
-      alive = false;
+      subscribers.delete(setCurrency);
     };
   }, []);
   return currency;

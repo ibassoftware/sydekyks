@@ -48,7 +48,7 @@ export function NudgeInsightsSection() {
 
       <div className="mt-4">
         <p className="text-xs font-semibold uppercase tracking-wider text-[#8a7f6d]">Revenue at risk from silence</p>
-        <p className="mt-1 text-4xl font-bold text-[#f5eee0]">{formatMoney(data.value_at_risk_total, data.currency)}</p>
+        <p className="mt-1 text-4xl font-bold text-[#f5eee0]">{formatMoney(data.value_at_risk_total, currency)}</p>
         <p className="mt-2 text-sm font-medium text-gold-300">
           {data.followups_drafted.toLocaleString()} follow-ups drafted in {formatFastTime(data.processing_seconds)}
           <span className="font-normal text-[#8a7f6d]">
@@ -86,7 +86,7 @@ export function NudgeInsightsSection() {
                   <span className="text-sm font-medium text-[#ede6da]">{it.opp_name ?? "Opportunity"}</span>
                   {it.partner_name && <span className="text-xs text-[#8a7f6d]">· {it.partner_name}</span>}
                   {it.expected_revenue != null && it.expected_revenue > 0 && (
-                    <span className="text-sm text-gold-300">{formatMoney(it.expected_revenue, it.currency)} at risk</span>
+                    <span className="text-sm text-gold-300">{formatMoney(it.expected_revenue, currency)} at risk</span>
                   )}
                   {it.odoo_url && (
                     <a href={it.odoo_url} target="_blank" rel="noopener noreferrer" className="ml-auto shrink-0 text-xs font-semibold text-gold-400 hover:text-gold-300">

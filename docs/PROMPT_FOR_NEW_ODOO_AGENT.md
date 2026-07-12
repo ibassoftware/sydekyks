@@ -352,11 +352,15 @@ act (Mirror/Shield on bills; **Nudge** on `crm.lead` opportunities). The shape:
   risk" (a $22.5k deal 20× over a 1-day threshold would read as $450k). "Exposure/at-risk" headlines
   sum the **actual** amount of the still-open (undecided) items, de-duplicated per record.
 - **Tenant reporting currency is one setting, applied everywhere.** `Tenant.currency` (ISO-4217,
-  default USD; set on the HQ Settings page) is the currency for figures with **no intrinsic** one —
-  labor-cost savings, wage inputs. Record-derived amounts (a bill's/opp's own currency) still win.
-  The frontend reads it through one shared `useTenantCurrency()` hook (module-cached, one fetch for
-  all cards) + `formatMoneyCompact(amount, currency)`; wage labels render `({currency})`. Don't
-  scatter hard-coded `$`.
+  default USD; set on the HQ Settings page) is the dashboard's display currency. The frontend reads it
+  through one shared `useTenantCurrency()` hook (module-cached, one fetch for all cards, **notifies
+  subscribers** so a save updates mounted cards without a reload) + `formatMoneyCompact`/`formatMoney`;
+  wage labels render `({currency})`. Don't scatter hard-coded `$`. The rule for WHICH currency to
+  show: **rollup headlines and labor-cost savings → the tenant reporting currency** (a sum across
+  records is only meaningful in one currency, and figures like wage-based savings have no intrinsic
+  one); **an individual record's amount in a review/decision queue → that record's own currency** (a
+  reviewer approving a specific bill must see its true currency). Amounts are **not FX-converted** — a
+  tenant's Odoo is single-currency and should match this setting; don't fake a conversion by relabeling.
 - **Dashboard cards link straight to the agent.** Each insight card header is the shared
   `AgentCardHeader` (thumb + name + kicker + an "Open agent →" smart button via `useSydekykLink`),
   so a manager jumps to the agent's page without detouring through the Roster. One fetch of

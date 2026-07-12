@@ -58,7 +58,7 @@ export function ShieldInsightsSection() {
 
       <div className="mt-4">
         <p className="text-xs font-semibold uppercase tracking-wider text-[#8a7f6d]">Exposure under review</p>
-        <p className="mt-1 text-4xl font-bold text-[#f5eee0]">{formatMoney(data.exposure_amount, data.currency)}</p>
+        <p className="mt-1 text-4xl font-bold text-[#f5eee0]">{formatMoney(data.exposure_amount, currency)}</p>
         <p className="mt-2 text-sm font-medium text-gold-300">
           {data.total_assessed.toLocaleString()} bills assessed in {formatFastTime(data.processing_seconds)}
           <span className="font-normal text-[#8a7f6d]">
