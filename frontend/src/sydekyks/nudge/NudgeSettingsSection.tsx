@@ -310,23 +310,26 @@ function SnoozeManager({ canManage }: { canManage: boolean }) {
   );
 }
 
-/** Debounced search over open Odoo opportunities; pick one to act on (never type an id). */
+/** Debounced search over open Odoo OPPORTUNITIES (never leads); pick one to act on (never type an
+ * id). A refresh button re-runs the search — useful right after connecting Odoo or adding a deal. */
 function OpportunityPicker({ value, onPick }: { value: NudgeOpportunity | null; onPick: (o: NudgeOpportunity | null) => void }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<NudgeOpportunity[] | null>(null);
   const [searching, setSearching] = useState(false);
 
+  const search = useCallback((query: string) => {
+    setSearching(true);
+    api.get<NudgeOpportunity[]>("/tenant/nudge/opportunities", { params: { q: query } })
+      .then((r) => setResults(r.data))
+      .catch(() => setResults([]))
+      .finally(() => setSearching(false));
+  }, []);
+
   useEffect(() => {
     if (value) return; // a deal is chosen — don't keep searching
-    const t = setTimeout(() => {
-      setSearching(true);
-      api.get<NudgeOpportunity[]>("/tenant/nudge/opportunities", { params: { q } })
-        .then((r) => setResults(r.data))
-        .catch(() => setResults([]))
-        .finally(() => setSearching(false));
-    }, 300);
+    const t = setTimeout(() => search(q), 300);
     return () => clearTimeout(t);
-  }, [q, value]);
+  }, [q, value, search]);
 
   if (value) {
     return (
@@ -341,7 +344,17 @@ function OpportunityPicker({ value, onPick }: { value: NudgeOpportunity | null; 
 
   return (
     <div>
-      <Label>Find an opportunity</Label>
+      <div className="flex items-center justify-between">
+        <Label>Find an opportunity</Label>
+        <button
+          type="button"
+          onClick={() => search(q)}
+          disabled={searching}
+          className="text-[11px] font-semibold text-gold-400 hover:text-gold-300 disabled:opacity-50"
+        >
+          {searching ? "Refreshing…" : "↻ Refresh"}
+        </button>
+      </div>
       <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by deal or customer name…" />
       {searching ? (
         <p className="mt-1 text-xs text-[#8a7f6d]">Searching…</p>
