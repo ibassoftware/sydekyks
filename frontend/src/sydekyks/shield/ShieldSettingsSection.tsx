@@ -3,9 +3,11 @@ import { api, type LedgerReadiness, type ShieldReadiness, type ShieldSettings } 
 import { Input, Label } from "../../components/ui";
 import { GadgetRequirementList } from "../../components/GadgetRequirementList";
 import { ReadinessList } from "../ReadinessList";
+import { useTenantCurrency } from "../../lib/useTenantCurrency";
 import type { SydekykSetupProps } from "../registry";
 
 export function ShieldSettingsSection({ sydekyk, canManage, onReadiness }: SydekykSetupProps) {
+  const currency = useTenantCurrency();
   const [readiness, setReadiness] = useState<ShieldReadiness | null>(null);
   const [settings, setSettings] = useState<ShieldSettings | null>(null);
   const [saving, setSaving] = useState(false);
@@ -58,7 +60,7 @@ export function ShieldSettingsSection({ sydekyk, canManage, onReadiness }: Sydek
               />
             </div>
             <div>
-              <Label>New-vendor high-amount ($)</Label>
+              <Label>New-vendor high-amount ({currency})</Label>
               <Input
                 type="number" min={0} step={100}
                 disabled={!canManage || saving}
@@ -109,7 +111,7 @@ export function ShieldSettingsSection({ sydekyk, canManage, onReadiness }: Sydek
           <p className="-mt-1 text-xs text-[#8a7f6d]">Powers the “time saved” metric on your Dashboard.</p>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Hourly wage ($)</Label>
+              <Label>Hourly wage ({currency})</Label>
               <Input
                 type="number" min={0} step={0.5}
                 disabled={!canManage || saving}

@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { api, type DecodeInsights } from "../../lib/api";
-import { formatWorkTime, formatFastTime } from "../../lib/format";
+import { formatWorkTime, formatFastTime, formatMoneyCompact } from "../../lib/format";
 import { Card } from "../../components/ui";
 import { AgentCardHeader } from "../../components/AgentCardHeader";
-
-const money = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+import { useTenantCurrency } from "../../lib/useTenantCurrency";
 
 /** Recruitment (parsing) dashboard card — an intake monitor: where applicants are landing, how
  * clean the captured data is, the seniority mix, and the skills the pool brings. */
 export function DecodeInsightsSection() {
+  const currency = useTenantCurrency();
   const [data, setData] = useState<DecodeInsights | null>(null);
 
   useEffect(() => {
@@ -23,9 +23,9 @@ export function DecodeInsightsSection() {
 
       <div className="mt-4">
         <p className="text-xs font-semibold uppercase tracking-wider text-[#8a7f6d]">Estimated $ saved</p>
-        <p className="mt-1 text-4xl font-bold text-[#f5eee0]">${money(data.estimated_net_savings)}</p>
+        <p className="mt-1 text-4xl font-bold text-[#f5eee0]">{formatMoneyCompact(data.estimated_net_savings, currency)}</p>
         <p className="mt-1 text-xs text-[#8a7f6d]">
-          ${money(data.estimated_manual_cost)} manual data entry avoided − ${money(data.ai_cost)} AI cost
+          {formatMoneyCompact(data.estimated_manual_cost, currency)} manual data entry avoided − {formatMoneyCompact(data.ai_cost, currency)} AI cost
         </p>
         <p className="mt-2 text-sm font-medium text-gold-300">
           {data.total_applicants.toLocaleString()} résumés parsed in {formatFastTime(data.processing_seconds)}

@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { api, type ShieldAlert, type ShieldInsights, type ShieldQueuePage } from "../../lib/api";
-import { formatWorkTime, formatFastTime, formatMoney } from "../../lib/format";
+import { formatWorkTime, formatFastTime, formatMoney, formatMoneyCompact } from "../../lib/format";
+import { useTenantCurrency } from "../../lib/useTenantCurrency";
 import { Card } from "../../components/ui";
 import { AgentCardHeader } from "../../components/AgentCardHeader";
-
-const money = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
 
 function riskPill(score: number): string {
   return score >= 70
@@ -19,6 +18,7 @@ function riskPill(score: number): string {
 const PAGE = 3;
 
 export function ShieldInsightsSection() {
+  const currency = useTenantCurrency();
   const [data, setData] = useState<ShieldInsights | null>(null);
   const [queue, setQueue] = useState<ShieldQueuePage | null>(null);
   const [offset, setOffset] = useState(0);
@@ -66,8 +66,8 @@ export function ShieldInsightsSection() {
           </span>
         </p>
         <p className="mt-1 text-xs text-[#8a7f6d]">
-          Plus <span className="font-semibold text-gold-300">${money(data.estimated_net_savings)}</span> in review time saved
-          <span className="text-[#665c4c]"> (${money(data.estimated_manual_cost)} manual − ${money(data.ai_cost)} AI)</span>
+          Plus <span className="font-semibold text-gold-300">{formatMoneyCompact(data.estimated_net_savings, currency)}</span> in review time saved
+          <span className="text-[#665c4c]"> ({formatMoneyCompact(data.estimated_manual_cost, currency)} manual − {formatMoneyCompact(data.ai_cost, currency)} AI)</span>
         </p>
       </div>
 

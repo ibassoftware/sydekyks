@@ -3,9 +3,11 @@ import { api, type LedgerReadiness, type MirrorReadiness, type MirrorSettings, t
 import { Button, Input, Label } from "../../components/ui";
 import { GadgetRequirementList } from "../../components/GadgetRequirementList";
 import { ReadinessList } from "../ReadinessList";
+import { useTenantCurrency } from "../../lib/useTenantCurrency";
 import type { SydekykSetupProps } from "../registry";
 
 export function MirrorSettingsSection({ sydekyk, canManage, onReadiness }: SydekykSetupProps) {
+  const currency = useTenantCurrency();
   const [readiness, setReadiness] = useState<MirrorReadiness | null>(null);
   const [settings, setSettings] = useState<MirrorSettings | null>(null);
   const [recurring, setRecurring] = useState<RecurringPattern[]>([]);
@@ -115,7 +117,7 @@ export function MirrorSettingsSection({ sydekyk, canManage, onReadiness }: Sydek
           <p className="-mt-1 text-xs text-[#8a7f6d]">Powers the “time saved” metric on your Dashboard (double-payments prevented is tracked separately).</p>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Hourly wage ($)</Label>
+              <Label>Hourly wage ({currency})</Label>
               <Input
                 type="number" min={0} step={0.5}
                 disabled={!canManage || saving}

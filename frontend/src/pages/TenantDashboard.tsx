@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type Dashboard, type LedgerInsights, type Mission } from "../lib/api";
 import { useActivity } from "../lib/activity";
-import { formatWorkTime, formatFastTime } from "../lib/format";
+import { formatWorkTime, formatFastTime, formatMoneyCompact } from "../lib/format";
+import { useTenantCurrency } from "../lib/useTenantCurrency";
 import { Button, Card } from "../components/ui";
 import { HQShell } from "../components/HQShell";
 import { MissionList } from "../components/MissionList";
@@ -179,6 +180,7 @@ function DashboardRecentMissions() {
 }
 
 function LedgerInsightsSection({ insights }: { insights: LedgerInsights }) {
+  const currency = useTenantCurrency();
   return (
     <Card className="relative mt-6 overflow-hidden p-6">
       <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-gold-500/10 blur-3xl" />
@@ -188,10 +190,10 @@ function LedgerInsightsSection({ insights }: { insights: LedgerInsights }) {
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-[#8a7f6d]">Estimated $ saved</p>
           <p className="mt-1 text-4xl font-bold text-[#f5eee0]">
-            ${compactNumber(insights.estimated_net_savings)}
+            {formatMoneyCompact(insights.estimated_net_savings, currency)}
           </p>
           <p className="mt-1 text-xs text-[#8a7f6d]">
-            ${compactNumber(insights.estimated_manual_cost)} manual entry avoided − ${compactNumber(insights.ai_cost)} AI cost
+            {formatMoneyCompact(insights.estimated_manual_cost, currency)} manual entry avoided − {formatMoneyCompact(insights.ai_cost, currency)} AI cost
           </p>
           <p className="mt-2 text-sm font-medium text-gold-300">
             {compactNumber(insights.succeeded_missions)} bills encoded in {formatFastTime(insights.processing_seconds)}

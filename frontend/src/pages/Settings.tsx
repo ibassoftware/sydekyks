@@ -1,8 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react";
 import axios from "axios";
-import { api, type BYOKProvider, type ProviderCredential } from "../lib/api";
+import { api, type BYOKProvider, type ProviderCredential, type TenantSettings } from "../lib/api";
 import { Badge, Button, Card, Input, Label, Modal } from "../components/ui";
 import { HQShell } from "../components/HQShell";
+import { useAuth } from "../lib/auth";
+import { setTenantCurrency } from "../lib/useTenantCurrency";
 
 const PROVIDER_INFO: Record<BYOKProvider, { name: string; description: string }> = {
   openai: {
@@ -106,6 +108,8 @@ export default function Settings() {
             )}
           </div>
         </section>
+
+        <CurrencySection />
       </main>
 
       <Modal open={!!editingProvider} onClose={() => setEditingProvider(null)}>
@@ -119,6 +123,63 @@ export default function Settings() {
         )}
       </Modal>
     </HQShell>
+  );
+}
+
+/** Tenant reporting currency — the default currency for money shown on the dashboard and in agent
+ * settings (labor-cost savings, wage inputs). Record-derived amounts keep their own currency. */
+function CurrencySection() {
+  const { user } = useAuth();
+  const canManage = user?.role === "commander";
+  const [settings, setSettings] = useState<TenantSettings | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    api.get<TenantSettings>("/tenant/settings").then((r) => setSettings(r.data));
+  }, []);
+
+  async function save(currency: string) {
+    if (!settings) return;
+    setSaving(true);
+    try {
+      const r = await api.put<TenantSettings>("/tenant/settings", { currency });
+      setSettings(r.data);
+      setTenantCurrency(r.data.currency); // update every card without a reload
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="mt-12">
+      <h2 className="text-lg font-bold text-[#f5eee0]">Reporting Currency</h2>
+      <p className="mt-1 max-w-2xl text-sm text-[#8a7f6d]">
+        The currency shown on your Dashboard and in each agent's savings settings. Amounts that carry their own
+        currency in Odoo (a bill, an opportunity) always keep it — this sets the default for everything else.
+      </p>
+      <Card className="mt-4 max-w-md p-6">
+        {!settings ? (
+          <p className="text-sm text-[#b9ad98]">Loading…</p>
+        ) : (
+          <div>
+            <Label>Currency</Label>
+            <select
+              className="mt-1 w-full rounded-lg border border-ink-600 bg-ink-900 px-3 py-2 text-sm text-[#ede6da] focus:border-gold-500/60 focus:outline-none disabled:opacity-50"
+              value={settings.currency}
+              disabled={!canManage || saving}
+              onChange={(e) => save(e.target.value)}
+            >
+              {settings.supported_currencies.map((c) => (
+                <option key={c} value={c}>
+                  {c} — {new Intl.NumberFormat(undefined, { style: "currency", currency: c }).format(1000)}
+                </option>
+              ))}
+            </select>
+            {!canManage && <p className="mt-2 text-xs text-[#8a7f6d]">Only a commander can change this.</p>}
+          </div>
+        )}
+      </Card>
+    </section>
   );
 }
 

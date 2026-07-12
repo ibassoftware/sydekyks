@@ -3,9 +3,11 @@ import { api, type DecodeReadiness, type DecodeSettings, type EmailInboxOut, typ
 import { Button, Input, Label } from "../../components/ui";
 import { GadgetRequirementList } from "../../components/GadgetRequirementList";
 import { ReadinessList } from "../ReadinessList";
+import { useTenantCurrency } from "../../lib/useTenantCurrency";
 import type { SydekykSetupProps } from "../registry";
 
 export function DecodeSettingsSection({ sydekyk, canManage, onReadiness }: SydekykSetupProps) {
+  const currency = useTenantCurrency();
   const [readiness, setReadiness] = useState<DecodeReadiness | null>(null);
   const [settings, setSettings] = useState<DecodeSettings | null>(null);
   const [saving, setSaving] = useState(false);
@@ -137,7 +139,7 @@ export function DecodeSettingsSection({ sydekyk, canManage, onReadiness }: Sydek
           <p className="-mt-1 text-xs text-[#8a7f6d]">Powers the “$ saved” metric on your Dashboard.</p>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Hourly wage ($)</Label>
+              <Label>Hourly wage ({currency})</Label>
               <Input
                 type="number"
                 min={0}

@@ -21,6 +21,24 @@ export function formatMoney(amount: number, currency?: string | null): string {
   return `$${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+/** Money without decimals, in the given ISO currency ("$4", "₱1,200", "€980"); falls back to "$".
+ * Used for the labor-cost savings figures, which have no intrinsic currency (they come from a wage),
+ * so they render in the tenant's chosen reporting currency. */
+export function formatMoneyCompact(amount: number, currency?: string | null): string {
+  if (currency && /^[A-Za-z]{3}$/.test(currency)) {
+    try {
+      return new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: currency.toUpperCase(),
+        maximumFractionDigits: 0,
+      }).format(amount);
+    } catch {
+      /* fall through */
+    }
+  }
+  return `$${amount.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+}
+
 /** Human-friendly actual AI run time, from seconds: "under 1s", "12s", "3 min", "1.4 h". Used to
  * show how FAST the agent actually was (contrast against the manual-hours equivalent). */
 export function formatFastTime(seconds: number): string {

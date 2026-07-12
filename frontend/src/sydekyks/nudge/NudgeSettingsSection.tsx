@@ -11,9 +11,11 @@ import {
 import { Button, Input, Label } from "../../components/ui";
 import { GadgetRequirementList } from "../../components/GadgetRequirementList";
 import { ReadinessList } from "../ReadinessList";
+import { useTenantCurrency } from "../../lib/useTenantCurrency";
 import type { SydekykSetupProps } from "../registry";
 
 export function NudgeSettingsSection({ sydekyk, canManage, onReadiness }: SydekykSetupProps) {
+  const currency = useTenantCurrency();
   const [readiness, setReadiness] = useState<NudgeReadiness | null>(null);
   const [settings, setSettings] = useState<NudgeSettings | null>(null);
   const [stages, setStages] = useState<NudgeStage[] | null>(null);
@@ -192,7 +194,7 @@ export function NudgeSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
           <p className="-mt-1 text-xs text-[#8a7f6d]">Powers the “time saved” metric on your Dashboard.</p>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Hourly wage ($)</Label>
+              <Label>Hourly wage ({currency})</Label>
               <Input
                 type="number" min={0} step={0.5}
                 disabled={!canManage || saving}

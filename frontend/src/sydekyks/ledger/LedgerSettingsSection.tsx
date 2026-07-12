@@ -13,6 +13,7 @@ import {
 import { Badge, Button, Label } from "../../components/ui";
 import { GadgetRequirementList } from "../../components/GadgetRequirementList";
 import { LedgerReadinessCard } from "./LedgerReadinessCard";
+import { useTenantCurrency } from "../../lib/useTenantCurrency";
 
 /** VS-9 registry setup section for Ledger. Composes the readiness checklist (VS-1), gadget
  * assignment, the email-inbox experience (VS-2), business settings, and the vision test (VS-12). */
@@ -25,6 +26,7 @@ export function LedgerSettingsSection({
   canManage: boolean;
   onReadiness?: (r: LedgerReadiness) => void;
 }) {
+  const currency = useTenantCurrency();
   const [settings, setSettings] = useState<LedgerSettings | null>(null);
   const [saving, setSaving] = useState(false);
   const [readinessKey, setReadinessKey] = useState(0); // bump to force the readiness card to re-fetch
@@ -135,7 +137,7 @@ export function LedgerSettingsSection({
           </p>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Hourly wage ($)</Label>
+              <Label>Hourly wage ({currency})</Label>
               <input
                 type="number"
                 min={0}

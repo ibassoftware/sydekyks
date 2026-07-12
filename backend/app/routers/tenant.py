@@ -1,6 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, field_validator
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -15,6 +16,27 @@ from app.schemas.sydekyk import SydekykOut
 from app.services import metering, permissions
 
 router = APIRouter(prefix="/api/tenant", tags=["tenant"], dependencies=[Depends(require_tenant_member)])
+
+# A curated set of ISO-4217 codes offered in the currency picker (formatting works for any valid ISO
+# code; this just bounds the UI to common ones).
+SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "PHP", "AUD", "CAD", "SGD", "JPY", "INR", "AED", "CNY", "HKD"]
+
+
+class TenantSettingsOut(BaseModel):
+    currency: str
+    supported_currencies: list[str]
+
+
+class TenantSettingsUpdate(BaseModel):
+    currency: str
+
+    @field_validator("currency")
+    @classmethod
+    def _valid_currency(cls, v: str) -> str:
+        v = (v or "").upper()
+        if len(v) != 3 or not v.isalpha():
+            raise ValueError("currency must be a 3-letter ISO 4217 code")
+        return v
 
 
 def _visible_sydekyks(db: Session, tenant_id: uuid.UUID) -> list[Sydekyk]:
@@ -74,6 +96,7 @@ def dashboard(user: User = Depends(require_tenant_member), db: Session = Depends
         tenant_slug=tenant.slug,
         plan=tenant.plan,
         plan_display_name=tier.display_name if tier else tenant.plan.title(),
+        currency=tenant.currency or "USD",
         roster_sydekyk_count=roster_count,
         exclusive_sydekyk_count=exclusive_count,
         tokens_used_this_month=usage["tokens_used_this_month"],
@@ -83,6 +106,26 @@ def dashboard(user: User = Depends(require_tenant_member), db: Session = Depends
         gpu_seconds_per_hour_cap=usage["gpu_seconds_per_hour_cap"],
         gpu_throttled=usage["gpu_throttled"],
     )
+
+
+@router.get("/settings", response_model=TenantSettingsOut)
+def get_tenant_settings(user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+    tenant = db.get(Tenant, user.tenant_id)
+    if tenant is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found")
+    return TenantSettingsOut(currency=tenant.currency or "USD", supported_currencies=SUPPORTED_CURRENCIES)
+
+
+@router.put("/settings", response_model=TenantSettingsOut)
+def update_tenant_settings(
+    payload: TenantSettingsUpdate, user: User = Depends(require_commander), db: Session = Depends(get_db)
+):
+    tenant = db.get(Tenant, user.tenant_id)
+    if tenant is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found")
+    tenant.currency = payload.currency
+    db.commit()
+    return TenantSettingsOut(currency=tenant.currency, supported_currencies=SUPPORTED_CURRENCIES)
 
 
 @router.get("/sydekyks", response_model=list[SydekykOut])

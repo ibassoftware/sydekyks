@@ -9,6 +9,7 @@ class DashboardOut(BaseModel):
     tenant_slug: str
     plan: str
     plan_display_name: str
+    currency: str
     roster_sydekyk_count: int
     exclusive_sydekyk_count: int
     # AI usage vs plan caps — monthly token budget + rolling-hour GPU-second capacity.

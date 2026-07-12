@@ -53,6 +53,7 @@ export interface Dashboard {
   tenant_slug: string;
   plan: string;
   plan_display_name: string;
+  currency: string;
   roster_sydekyk_count: number;
   exclusive_sydekyk_count: number;
   tokens_used_this_month: number;
@@ -61,6 +62,11 @@ export interface Dashboard {
   gpu_seconds_used_last_hour: number;
   gpu_seconds_per_hour_cap: number;
   gpu_throttled: boolean;
+}
+
+export interface TenantSettings {
+  currency: string;
+  supported_currencies: string[];
 }
 
 export interface LedgerDailyTrend {

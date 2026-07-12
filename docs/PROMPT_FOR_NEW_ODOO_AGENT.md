@@ -322,3 +322,46 @@ act (Mirror/Shield on bills; **Nudge** on `crm.lead` opportunities). The shape:
 - **Group the roster by business function.** Each registry entry declares a `functionGroup`
   (`sales | accounting | hr`); the Roster page and Dashboard render Sydekyks grouped Sales ·
   Accounting · HR in one place. Shared pages still never branch on slug.
+
+## 11. Hard-won details (verified live against a CRM-enabled Odoo)
+
+- **Version-safe fields are not optional.** `crm.lead` has **no `currency_id`** on modern Odoo — it's
+  `company_currency`; leads and opportunities share one table split by `type` (`lead` vs
+  `opportunity` — only ever act on opportunities). Filter every read to the fields the instance
+  actually exposes (`fields_get`, cached per client) and resolve model-specific fields (currency,
+  etc.) from whichever name exists. A hard-coded field name **will** 500 on some instance.
+- **Some Odoo datetime fields are ORM-managed; you cannot backdate them.** `write_date` and
+  `create_date` are overwritten on every write — never trust `write_date` as an "engagement" signal
+  (a trivial edit or automation bumps it, masking a truly-neglected record). Base staleness on real
+  engagement — the latest **chatter/email message** (`mail.message` where `message_type in
+  ('comment','email')`) and the last **stage movement** (`date_last_stage_update`, which *is*
+  writable, so it's also how you age records for testing). Exclude the agent's own posted notes
+  (`notification`/subtype "Note") so it never resets its own clock or feeds itself into the AI thread.
+- **The coarse poll filter and the precise playbook check are different on purpose.** The poller uses
+  a cheap DB-domain pre-filter; the playbook re-derives the exact condition (including messages the
+  domain can't express). Expect some "queued but turned out fine" — surface that honestly.
+- **Leave a run receipt even when nothing happened, and account for the WHOLE population.** A "sweep"
+  Mission per run carries a disposition of every record (handled / snoozed / recently-acted / queued),
+  not just the count it queued — otherwise the user asks "where did the other N go?". Never label
+  queued-for-review as "done/drafted": the playbook, running async, decides the real outcome.
+- **Pick real records, don't type ids.** Any "choose a record" UI (snooze/whitelist a deal) searches
+  live Odoo (`name`/`partner` `ilike`) and returns typed rows; a Refresh button re-runs it after the
+  Odoo connection comes up or data changes. Same pattern as the reviewer picker.
+- **Money honesty.** A metric labelled in dollars must be real dollars. Keep any urgency-weighted
+  score (e.g. `revenue × overdue_ratio`) as an internal **sort key only** — never render it as "$ at
+  risk" (a $22.5k deal 20× over a 1-day threshold would read as $450k). "Exposure/at-risk" headlines
+  sum the **actual** amount of the still-open (undecided) items, de-duplicated per record.
+- **Tenant reporting currency is one setting, applied everywhere.** `Tenant.currency` (ISO-4217,
+  default USD; set on the HQ Settings page) is the currency for figures with **no intrinsic** one —
+  labor-cost savings, wage inputs. Record-derived amounts (a bill's/opp's own currency) still win.
+  The frontend reads it through one shared `useTenantCurrency()` hook (module-cached, one fetch for
+  all cards) + `formatMoneyCompact(amount, currency)`; wage labels render `({currency})`. Don't
+  scatter hard-coded `$`.
+- **Dashboard cards link straight to the agent.** Each insight card header is the shared
+  `AgentCardHeader` (thumb + name + kicker + an "Open agent →" smart button via `useSydekykLink`),
+  so a manager jumps to the agent's page without detouring through the Roster. One fetch of
+  `/tenant/sydekyks` (slug→id) shared across all cards.
+- **Deep-link the record from the Mission.** Teach the single shared resolver
+  (`gadget_links.mission_generic_record`) about your record model (`crm.lead` → "Open opportunity in
+  Odoo") so the "Open in Odoo" link shows on the mission card, its detail, and the Issues review view
+  — all three surfaces at once, no per-view wiring.

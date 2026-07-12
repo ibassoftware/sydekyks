@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { api, type NudgeInsights, type NudgeItem, type NudgeQueuePage } from "../../lib/api";
-import { formatWorkTime, formatFastTime, formatMoney } from "../../lib/format";
+import { formatWorkTime, formatFastTime, formatMoney, formatMoneyCompact } from "../../lib/format";
 import { Card } from "../../components/ui";
 import { AgentCardHeader } from "../../components/AgentCardHeader";
-
-const money = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+import { useTenantCurrency } from "../../lib/useTenantCurrency";
 
 /** Nudge dashboard card — the ranked "value-at-risk" follow-up queue is the product. Each row carries
  * the AI's draft for the rep to lift; sent / dismiss feeds the learning loop. */
 const PAGE = 3;
 
 export function NudgeInsightsSection() {
+  const currency = useTenantCurrency();
   const [data, setData] = useState<NudgeInsights | null>(null);
   const [queue, setQueue] = useState<NudgeQueuePage | null>(null);
   const [offset, setOffset] = useState(0);
@@ -56,8 +56,8 @@ export function NudgeInsightsSection() {
           </span>
         </p>
         <p className="mt-1 text-xs text-[#8a7f6d]">
-          Plus <span className="font-semibold text-gold-300">${money(data.estimated_net_savings)}</span> in follow-up time saved
-          <span className="text-[#665c4c]"> (${money(data.estimated_manual_cost)} manual − ${money(data.ai_cost)} AI)</span>
+          Plus <span className="font-semibold text-gold-300">{formatMoneyCompact(data.estimated_net_savings, currency)}</span> in follow-up time saved
+          <span className="text-[#665c4c]"> ({formatMoneyCompact(data.estimated_manual_cost, currency)} manual − {formatMoneyCompact(data.ai_cost, currency)} AI)</span>
         </p>
       </div>
 

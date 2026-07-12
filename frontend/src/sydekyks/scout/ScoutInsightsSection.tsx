@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { api, type RoleHealth, type ScoutInsights } from "../../lib/api";
-import { formatWorkTime, formatFastTime } from "../../lib/format";
+import { formatWorkTime, formatFastTime, formatMoneyCompact } from "../../lib/format";
 import { Card } from "../../components/ui";
 import { AgentCardHeader } from "../../components/AgentCardHeader";
+import { useTenantCurrency } from "../../lib/useTenantCurrency";
 
-const money = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
 
 function scoreTone(score: number): string {
   return score >= 85 ? "bg-gold-400" : score >= 70 ? "bg-amber-500" : "bg-red-500";
@@ -13,6 +13,7 @@ function scoreTone(score: number): string {
 /** Recruitment (scoring) dashboard card — a triage cockpit: pipeline health by role with an
  * expandable shortlist, the common gaps/strengths themes, and the score distribution. */
 export function ScoutInsightsSection() {
+  const currency = useTenantCurrency();
   const [data, setData] = useState<ScoutInsights | null>(null);
   const [open, setOpen] = useState<Set<string>>(new Set());
 
@@ -36,9 +37,9 @@ export function ScoutInsightsSection() {
 
       <div className="mt-4">
         <p className="text-xs font-semibold uppercase tracking-wider text-[#8a7f6d]">Estimated $ saved</p>
-        <p className="mt-1 text-4xl font-bold text-[#f5eee0]">${money(data.estimated_net_savings)}</p>
+        <p className="mt-1 text-4xl font-bold text-[#f5eee0]">{formatMoneyCompact(data.estimated_net_savings, currency)}</p>
         <p className="mt-1 text-xs text-[#8a7f6d]">
-          ${money(data.estimated_manual_cost)} manual screening avoided − ${money(data.ai_cost)} AI cost
+          {formatMoneyCompact(data.estimated_manual_cost, currency)} manual screening avoided − {formatMoneyCompact(data.ai_cost, currency)} AI cost
         </p>
         <p className="mt-2 text-sm font-medium text-gold-300">
           {data.total_scored.toLocaleString()} candidates scored in {formatFastTime(data.processing_seconds)}
