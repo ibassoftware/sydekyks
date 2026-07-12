@@ -8,11 +8,46 @@ from datetime import date, datetime
 from app.services import odoo
 from app.services.odoo import OdooClient
 
+# Superset of the fields we'd like on an opportunity. Some are version-specific (e.g. the currency
+# many2one is `company_currency` on modern crm.lead, `currency_id` on older ones), so every read is
+# filtered to what the instance actually exposes via `_opp_fields` — never request an unknown field.
 OPP_FIELDS = [
-    "id", "name", "type", "stage_id", "probability", "active", "expected_revenue", "currency_id",
-    "user_id", "partner_id", "partner_name", "contact_name", "email_from", "write_date", "create_date",
-    "date_last_stage_update", "activity_date_deadline", "tag_ids", "date_deadline",
+    "id", "name", "type", "stage_id", "probability", "active", "expected_revenue",
+    "company_currency", "currency_id", "user_id", "partner_id", "partner_name", "contact_name",
+    "email_from", "write_date", "create_date", "date_last_stage_update", "activity_date_deadline",
+    "tag_ids", "date_deadline",
 ]
+
+_FIELD_CACHE: dict[int, set[str]] = {}
+
+
+def _available_fields(client: OdooClient) -> set[str]:
+    """crm.lead's real field names on this instance (cached per client) — the basis for version-safe
+    reads. Falls back to assuming everything exists if fields_get can't be read."""
+    key = id(client)
+    cached = _FIELD_CACHE.get(key)
+    if cached is None:
+        try:
+            cached = set(client.execute_kw("crm.lead", "fields_get", [], {"attributes": []}).keys())
+        except Exception:  # noqa: BLE001 — degrade to no filtering rather than fail the read
+            cached = set(OPP_FIELDS)
+        _FIELD_CACHE[key] = cached
+    return cached
+
+
+def _opp_fields(client: OdooClient) -> list[str]:
+    avail = _available_fields(client)
+    return [f for f in OPP_FIELDS if f in avail]
+
+
+def currency_name(lead: dict) -> str | None:
+    """Version-safe currency label off an opportunity (either the modern `company_currency` or the
+    legacy `currency_id` many2one)."""
+    for key in ("company_currency", "currency_id"):
+        v = lead.get(key)
+        if isinstance(v, list) and len(v) > 1:
+            return v[1]
+    return None
 
 
 def list_stages(client: OdooClient) -> list[dict]:
@@ -24,7 +59,7 @@ def won_stage_ids(client: OdooClient) -> list[int]:
 
 
 def read_lead(client: OdooClient, lead_id: int, fields: list[str] | None = None) -> dict | None:
-    rows = client.execute_kw("crm.lead", "read", [[lead_id]], {"fields": fields or OPP_FIELDS})
+    rows = client.execute_kw("crm.lead", "read", [[lead_id]], {"fields": fields or _opp_fields(client)})
     return rows[0] if rows else None
 
 
@@ -44,7 +79,7 @@ def list_open_opportunities(client: OdooClient, *, cutoff: str, limit: int, won_
         domain.append(["stage_id", "not in", won_ids])
     return client.execute_kw(
         "crm.lead", "search_read", [domain],
-        {"fields": OPP_FIELDS, "order": "write_date asc, id asc", "limit": limit},
+        {"fields": _opp_fields(client), "order": "write_date asc, id asc", "limit": limit},
     )
 
 

@@ -155,7 +155,7 @@ def run(db: Session, mission: Mission) -> None:
         sp_id, sp_name = _rel(lead.get("user_id"))
         _pid, partner_name = _rel(lead.get("partner_id"))
         partner_name = partner_name or lead.get("partner_name") or lead.get("contact_name")
-        currency = _rel(lead.get("currency_id"))[1] if lead.get("currency_id") else None
+        currency = odoo_crm.currency_name(lead)
         expected_revenue = round(float(lead.get("expected_revenue") or 0.0), 2)
         record_step(db, mission, idx, "load_opp", "gadget_call", "succeeded",
                     output={"name": lead.get("name"), "stage": stage_name, "salesperson": sp_name})
