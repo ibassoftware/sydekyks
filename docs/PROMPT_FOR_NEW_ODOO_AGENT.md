@@ -3,15 +3,18 @@
 A working brief for designing and building a new **Sydekyk** — an AI agent that turns documents or
 Odoo records into finished ERP work. Hand this to a developer (or an AI coding agent) as the spec.
 It captures the architecture and the hard-won lessons from building **Ledger** (vendor-bill encoder),
-**Decode** (résumé parser), **Scout** (résumé scorer), **Mirror** (duplicate-bill detector), and
-**Shield** (fraud-risk detector).
+**Decode** (résumé parser), **Scout** (résumé scorer), **Mirror** (duplicate-bill detector),
+**Shield** (fraud-risk detector), and **Nudge** (stale-opportunity follow-up drafter).
 
-**Two agent shapes.** Some agents turn an inbound *document* into a record (Ledger, Decode). Others
+**Agent shapes.** Some agents turn an inbound *document* into a record (Ledger, Decode). Others
 *analyse existing Odoo records* in batches and flag/score them (Scout, Mirror, Shield) — no upload, a
-"Run now" + cron trigger, and a Mission that carries just the record id in `trigger_context`. For the
-record-analysis shape reuse `missions.create_mission` (no-doc), and for bill auditors the shared
-`odoo_finance` (bill/partner reads, reference normalization, employee cross-refs) + `bill_poll`
-(scan-forward watermark poller, ≤5 days, ≤30/run, skips already-analysed via the finding store).
+"Run now" + cron trigger, and a Mission that carries just the record id in `trigger_context`. A third
+shape *monitors records for a condition and drafts an action* (Nudge — see §10). Two further shapes
+are specified in §12–§13: agents that **draft customer-facing text for human review** (Reply) and
+agents that **learn their own config/rubric from won/lost history** (Spark). For the record-analysis
+shape reuse `missions.create_mission` (no-doc), and for bill auditors the shared `odoo_finance`
+(bill/partner reads, reference normalization, employee cross-refs) + `bill_poll` (scan-forward
+watermark poller, ≤5 days, ≤30/run, skips already-analysed via the finding store).
 **Ground the facts deterministically; let AI do the judgment.** This is an AI platform — bake real
 intelligence into every agent. The pattern for audit-style agents: deterministic checks surface
 *grounded candidates/signals* (same reference, shared VAT/bank, a bank change on an unpaid bill — no
@@ -369,3 +372,86 @@ act (Mirror/Shield on bills; **Nudge** on `crm.lead` opportunities). The shape:
   (`gadget_links.mission_generic_record`) about your record model (`crm.lead` → "Open opportunity in
   Odoo") so the "Open in Odoo" link shows on the mission card, its detail, and the Issues review view
   — all three surfaces at once, no per-view wiring.
+
+## 12. Draft-and-review agents — customer-facing text (the Reply design)
+
+When the agent's output is **prose a customer will read** (an email reply, a proposal), drafting is
+LLM home turf — but the discipline is everything: **answer only from retrieved Odoo facts, never
+invent, and draft-only — never auto-send.** This is §10's "draft, don't send" taken to its strictest.
+
+- **⚠️ Odoo has NO native email-draft store — decide the draft home deliberately.** `mail.compose.message`
+  is a *transient* wizard (its records get vacuumed); `mail.mail` states are `outgoing/sent/exception/
+  cancel` — a cancelled mail is not a reviewable draft, and parking real `mail.mail` records pre-send
+  is dangerous (one bad cron and you've emailed customers). Third-party "save as draft" apps exist
+  precisely because core Odoo lacks this. **So the Command Center is the draft store:** the mandated
+  `<agent>_records` table *is* it — `subject, body, intent, confidence, facts_sourced, status
+  (pending/edited/sent/discarded)`. The rep reviews and edits in our UI (richer than Odoo's composer),
+  and **edit-vs-send-as-is is captured for free — that's the learning loop.**
+- **Send on approve = one `post_message`.** On approve, `post_message` on the thread with the partner
+  as recipient → Odoo emits the outbound email and logs it to chatter as the audit trail. One call,
+  works over XML-RPC, and it's the same HTML-safe `post_message` helper (§3). Never write `mail.mail`
+  rows yourself.
+- **Meet reps where they live (hybrid delivery).** The Command Center is the workbench, **plus a
+  `mail.activity` on the Odoo record that deep-links back to the draft** (mirror `build_odoo_record_url`).
+  Reps who live in Odoo all day won't check a second app — the activity is the notification, the
+  Command Center is where the work happens.
+- **Ship the cheap v1 first, prove adoption, then build the workbench.** A near-free v1 is just the
+  `mail.activity` + suggested text in the note (rep copy-pastes). Measure adoption, *then* invest in
+  the in-app editor. General rule: validate demand before building the richer surface.
+- **Answerability tiers, so it never bluffs.** (1) **Classify intent first** (quote / order-status /
+  pricing / complaint / general) and route by it; anything out of scope is flagged with a reason, not
+  answered. (2) **Grounded retrieval** — pull the exact facts the reply needs (order status from
+  `sale.order`, invoice/payment from `account.move`, delivery from `stock.picking`); **every factual
+  claim must trace to a read field**, and if the fact isn't in Odoo the draft says "let me confirm"
+  rather than inventing. (3) **Confidence tiers**: High (all facts, one clear intent) → full draft
+  ready to send; Medium (partial) → draft with the gaps flagged for the rep; Low (out of scope, angry
+  customer, refund/legal) → short holding draft + **escalate**, never a substantive answer.
+  (4) **Tone-match** the prior thread and the partner's language.
+- **The trap: a confident wrong answer or an over-promise.** The failure mode isn't a clumsy sentence
+  — it's "your order shipped" when it hasn't, or a commitment the business can't honor. **Hard rule:
+  no claim that isn't grounded in a read Odoo field; anything touching money / refunds / discounts /
+  legal auto-escalates instead of drafting** (Reply's version of Shield's "flag, never accuse").
+- **Done / metric.** Done = a draft in `<agent>_records` + a `mail.activity`, and the inbound message
+  tagged handled so cron doesn't re-draft it. Metric "faster replies" = median inbound-to-draft time;
+  savings = replies drafted × minutes-per-manual-reply × wage.
+
+## 13. Config-learning agents — learn the rubric from history (the Spark design)
+
+Some agents shouldn't be *told* their rubric — they should **derive it from the tenant's own outcome
+history** (won/lost deals, resolved tickets). This is §4's "the Odoo record is the rubric; don't add a
+redundant manual one" applied to the agent's *configuration itself*.
+
+- **Defer to native features; add only the AI-only layer.** Check what Odoo already computes (e.g. it
+  ships predictive lead scoring) and **don't re-implement the number-cruncher.** The differentiation is
+  LLM **reasoning over free text** the native scorer can't read (buying signals, decision-maker
+  language, competitor mentions) plus the learning loop below.
+- **Split the hot path from the learning path — it's what preserves "one agent, one thing."** Per-record
+  scoring runs every poll (fast, cheap, reads config). Deriving the config runs as a **separate
+  periodic cron** (monthly/quarterly). The learning step produces a **proposal a human approves**
+  before it writes to tenant settings; the hot path only ever reads approved config.
+- **Learn from won AND lost — never won-only** (survivorship bias: you'd learn "who we sold to," not
+  "who's worth pursuing"). `lost_reason_id` is gold you already have — "no budget" vs "price" vs "chose
+  competitor" are different rules. **Weight by deal quality, not just win/loss** (`expected_revenue`,
+  cycle length from `create_date → date_closed`, and downstream payment/churn if you can reach
+  `account.move`), and use channel (`source_id / medium_id / campaign_id`) — often the single most
+  predictive feature.
+- **⚠️ The self-reinforcement trap (applies to ANY agent whose output shapes the data it later learns
+  from).** Score → reps work only the hot ones → only those close → config derives from those closes →
+  the profile narrows forever, *looking great on every metric* while quietly blinding you to a whole
+  segment. Three cheap mitigations: **(1)** seed the initial profile from the **pre-agent historical
+  baseline**; **(2)** track the **false-negative that succeeded anyway** (a lead scored cold that won)
+  as a **first-class bias-alarm metric**; **(3)** optionally route a small **random control sample**
+  regardless of score.
+- **Cold start.** Below a minimum sample (~20–30 outcomes) don't trust the derived config — fall back
+  to the configured default and **say so in the UI.**
+- **Don't hard-gate on a single field; score holistically and always attach the reason.** A free-email
+  address isn't disqualifying (solo founders buy); a polished form can be spam. The reason is what lets
+  a human override — and feeds the learning loop.
+- **⚠️ Field safety / degrade gracefully.** Don't assume enrichment fields exist — stock Odoo has
+  `industry_id` and `country_id`, but headcount/revenue only exist with Partner Autocomplete.
+  `fields_get` first and skip cleanly what's absent.
+- **The killer dashboard is "stated vs actual".** The AI-only insight that changes a decision on
+  Monday: *"You say you target enterprise manufacturing. You actually win mid-market logistics, from
+  referrals, in 6 weeks — enterprise takes 5 months and you lose 80% on price."* Pair it with the
+  false-cold bias alarm and the ranked list deep-linked into Odoo. This is §9's "dashboards drive a
+  decision, not a scoreboard" at its peak — often more valuable than the per-record scores themselves.
