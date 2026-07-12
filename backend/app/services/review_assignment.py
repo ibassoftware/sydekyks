@@ -34,21 +34,35 @@ def get_or_create(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -> R
     return ra
 
 
+def _compose_note(note: str | None, steps: list[str] | None) -> str | None:
+    """Build the activity body: the context (why it was flagged) followed by an actionable
+    'What to do' checklist so the reviewer can fix it without guessing. Steps are optional — only
+    included when the agent can suggest concrete next actions."""
+    parts: list[str] = []
+    if note:
+        parts.append(note if note.lstrip().startswith("<") else f"<p>{note}</p>")
+    if steps:
+        parts.append("<p><b>What to do:</b></p><ol>" + "".join(f"<li>{s}</li>" for s in steps) + "</ol>")
+    return "".join(parts) or None
+
+
 def assign_on_flag(
     db: Session, client, *, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID, model: str, res_id: int,
-    summary: str, note: str | None = None,
+    summary: str, note: str | None = None, steps: list[str] | None = None,
 ) -> int:
-    """Create a To-Do activity on the flagged record for each configured reviewer. No-op unless the
-    agent has activity assignment turned on with at least one user. Best-effort — never fails the
-    Mission. `client` is the already-open Odoo session from the playbook. Returns activities created."""
+    """Create a To-Do activity on the flagged record for each configured reviewer, with the context
+    plus an actionable 'What to do' list (`steps`). No-op unless the agent has activity assignment
+    turned on with at least one user. Best-effort — never fails the Mission. `client` is the
+    already-open Odoo session from the playbook. Returns activities created."""
     ra = get(db, tenant_id, sydekyk_id)
     if ra is None or not ra.create_activity or not ra.odoo_user_ids:
         return 0
+    body = _compose_note(note, steps)
     made = 0
     for uid in ra.odoo_user_ids:
         try:
             if odoo_activity.create_activity(
-                client, model=model, res_id=res_id, user_id=int(uid), summary=summary, note=note, days=ra.activity_days
+                client, model=model, res_id=res_id, user_id=int(uid), summary=summary, note=body, days=ra.activity_days
             ):
                 made += 1
         except odoo.OdooError:

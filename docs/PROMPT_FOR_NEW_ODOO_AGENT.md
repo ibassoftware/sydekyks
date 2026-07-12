@@ -105,6 +105,10 @@ mission)` drives the Mission to a terminal status and records a `MissionStep` pe
 - **Classify before you act.** First AI step confirms the document is what the agent expects
   ("is this a résumé?"). Reject non-matches with a clear reason — that reason becomes the Mission's
   error and the row's fallback label.
+- **⚠️ pdfium is not thread-safe.** Missions run concurrently; two of them opening or rasterizing a
+  PDF at the same time crash the whole **process** with a native "access violation". Serialize every
+  pdfium call behind one process-wide lock (`app/services/pdfium_lock`). PDF work is milliseconds, so
+  this barely dents throughput — the slow LLM call stays outside the lock and fully concurrent.
 - **Ground every AI output in real Odoo config.** Never trust an id the model returns. Offer the
   model the actual options (from `fields_get` selections / relation option lists) and **validate the
   reply against the offered set**; drop anything not offered. For mapping that LLMs are bad at
@@ -187,7 +191,18 @@ Build these components (mirror an existing agent):
     phone / skills / experience — trust in the Odoo data), **seniority mix**, and the top skills in
     the pool.
 - **Mission summary** — reads `result_summary` and shows the business object (applicant · position ·
-  score), not raw JSON.
+  score), not raw JSON. Put the AI's "why it needs review" narrative on the Mission's `result_summary`
+  (not only the Odoo chatter) so the reviewer reads it in-app without opening Odoo.
+- **Feedback + readiness (DRY).** One axios response interceptor toasts "Saved" on every settings
+  `PUT` — no per-form wiring (`lib/toast`). Changing the AI engine (`llm-config`) or the Odoo
+  connection (gadget assignment) gates the agent's readiness, so those also **reload** to re-fetch it.
+  And a readiness checklist fetched once must **re-fetch when an in-settings action** (a vision or
+  connection test) flips its state — pass a `refreshKey`; don't leave it stale until a manual refresh.
+- **Dashboard metrics: money + honesty.** Format value figures as money in the record's currency
+  (`formatMoney`), show BOTH what was *caught* (value / exposure) and what was *saved* (time + $), and
+  never double-count — e.g. Mirror flags both halves of a duplicate pair, so cluster them and count
+  only the avoidable extra copies. **Paginate** action queues (approve/clear) server-side via a keyed
+  endpoint (`GET /tenant/<slug>/<queue>?limit=&offset=`) — never render a capped list.
 
 **Progress feedback (popup).** A batch of concurrent Missions surfaces automatically in the global
 `ActivityProvider` toast — **one aggregated popup with a progress bar** ("X of N complete · Y
@@ -266,3 +281,9 @@ run-now/upload create Missions the normal way; nothing agent-specific to build.
   Odoo users and raises a Command-Center issue if one was removed/deactivated. When a capability is
   common to all agents, resist per-agent copies — add a shared table/service/router/component keyed
   by `sydekyk_id` and wire agents in with one call.
+- **Make review activities ACTIONABLE.** The Odoo activity an agent creates should carry the *why*
+  **plus a "What to do" checklist** (`assign_on_flag(..., steps=[...])`) — concrete next steps to fix
+  the issue (open both bills and cancel the duplicate; set the missing tax and post; assign the job
+  position), not just the reason. A reviewer should be able to resolve it without guessing. Note:
+  `mail.activity.note` is an html field, so the steps render as real HTML (unlike chatter's
+  `message_post`, which needs the plaintext2html workaround).

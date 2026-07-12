@@ -199,10 +199,19 @@ def run(db: Session, mission: Mission) -> None:
                 db, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id, kind="shield_risk",
                 title=title, detail=(summary or "") + " — advisory; auditor review recommended.", mission_id=mission.id,
             )
+            steps = []
+            if hold:
+                steps.append("Hold payment until this is reviewed — do not release funds yet.")
+            steps += [
+                "Review each risk signal listed on this bill and its evidence.",
+                "Verify the vendor's bank details are correct and any recent change was requested through a trusted channel.",
+                "Confirm the bill was approved/paid by someone other than whoever entered it.",
+                "If it checks out, clear it on Shield's dashboard; if not, escalate per your controls. Advisory only — this is not an accusation.",
+            ]
             review_assignment.assign_on_flag(
                 db, client, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id,
                 model="account.move", res_id=int(move_id), summary=title,
-                note="<p>" + (summary or "") + " — advisory only; review recommended.</p>",
+                note="<p>" + (summary or "Risk signals fired on this bill.") + "</p>", steps=steps,
             )
         record_step(db, mission, idx, "record", "gadget_call", "succeeded", output={"flagged": flagged})
         idx += 1

@@ -457,7 +457,13 @@ def run(db: Session, mission: Mission) -> None:
                 db, client, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id,
                 model="account.move", res_id=move_id,
                 summary=f"Review vendor bill — {bill.vendor_name or 'vendor'} {bill.invoice_number or ''}".strip(),
-                note=f"<p>{tax_review_reason or 'Ledger flagged this bill for review.'}</p>",
+                note=f"<p>Why: {tax_review_reason or 'Ledger flagged this bill for review.'} It was left as an unposted draft.</p>",
+                steps=[
+                    "Open this draft vendor bill.",
+                    "Set the correct tax on the line(s) — the AI couldn't match one to your active Odoo purchase taxes.",
+                    "Check the line amounts and total match the attached original document.",
+                    "Post the bill once it's correct.",
+                ],
             )
 
         bill_row = odoo_bills.read_bill(client, move_id)

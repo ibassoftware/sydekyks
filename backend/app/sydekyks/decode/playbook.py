@@ -305,11 +305,17 @@ def run(db: Session, mission: Mission) -> None:
             review_reason = "No matching job — added to the pool."
 
         if needs_review:
+            steps = []
+            if is_pooling:
+                steps.append("Set this applicant's Job Position in Odoo (they matched no open role and are in the pool), or leave them pooled if that's intended.")
+            if flagged and not settings.auto_create_skills:
+                steps.append("Add the missing skills under Recruitment → Configuration → Skills, or enable 'Auto-create missing skills' in Decode's settings.")
+            steps.append("Check the parsed contact details, degree and experience on the applicant and correct anything that looks off.")
             review_assignment.assign_on_flag(
                 db, client, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id,
                 model="hr.applicant", res_id=applicant_id,
                 summary=f"Review applicant — {resume.full_name}",
-                note=f"<p>{review_reason or 'Flagged by Decode for review.'}</p>",
+                note=f"<p>Why: {review_reason or 'Flagged by Decode for review.'}</p>", steps=steps,
             )
 
         source = "odoo" if existing_applicant_id else (document.source or "web_upload")

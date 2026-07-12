@@ -234,7 +234,13 @@ def run(db: Session, mission: Mission) -> None:
                 db, client, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id,
                 model="account.move", res_id=int(move_id),
                 summary=f"Possible duplicate ({confidence}%) — {vendor_name or 'vendor'} {bill.get('ref') or ''}".strip(),
-                note="<p>" + "; ".join(reasons) + "</p>" if reasons else None,
+                note="<p>Why: " + "; ".join(reasons) + ".</p>" if reasons else None,
+                steps=[
+                    "Open this bill and the matched bill(s) side by side to compare vendor, reference, amount and lines.",
+                    "If it's the same purchase billed twice, cancel or delete the duplicate before it gets paid.",
+                    "If it's legitimately recurring (rent, a subscription, a retainer), mark the vendor 'Recurring' in Mirror so it stops flagging.",
+                    "If it's not a duplicate at all, dismiss it on Mirror's dashboard.",
+                ],
             )
         record_step(db, mission, idx, "record", "gadget_call", "succeeded", output={"flagged": is_duplicate})
         idx += 1
