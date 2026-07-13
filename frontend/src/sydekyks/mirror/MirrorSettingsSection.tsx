@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type LedgerReadiness, type MirrorReadiness, type MirrorSettings, type RecurringPattern } from "../../lib/api";
-import { Button, Input, Label } from "../../components/ui";
+import { Input, Label } from "../../components/ui";
 import { GadgetRequirementList } from "../../components/GadgetRequirementList";
 import { ReadinessList } from "../ReadinessList";
 import { useTenantCurrency } from "../../lib/useTenantCurrency";

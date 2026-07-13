@@ -85,7 +85,9 @@ function groupByFunction(sydekyks: Sydekyk[]): { key: string; label: string; ite
     if (g) buckets.set(g, [...(buckets.get(g) ?? []), s]);
     else other.push(s);
   }
-  const groups = FUNCTION_GROUPS.filter((g) => buckets.get(g.key)?.length).map((g) => ({
+  const groups: { key: string; label: string; items: Sydekyk[] }[] = FUNCTION_GROUPS.filter(
+    (g) => buckets.get(g.key)?.length
+  ).map((g) => ({
     key: g.key,
     label: g.label,
     items: buckets.get(g.key)!,

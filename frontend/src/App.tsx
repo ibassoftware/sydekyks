@@ -4,6 +4,7 @@ import { ActivityProvider } from "./lib/activity";
 import { Toaster } from "./lib/toast";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Landing from "./pages/Landing";
+import SydekykShowcase from "./pages/SydekykShowcase";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
 import AdminMissions from "./pages/AdminMissions";
@@ -25,6 +26,7 @@ export default function App() {
         <Toaster />
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/sydekyks/:slug" element={<SydekykShowcase />} />
           <Route path="/login" element={<Login />} />
           <Route
             path="/admin"
