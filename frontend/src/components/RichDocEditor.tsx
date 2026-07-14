@@ -2,10 +2,26 @@ import { useEffect, useRef } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
+import Heading from "@tiptap/extension-heading";
 import TextAlign from "@tiptap/extension-text-align";
 import { TextStyleKit } from "@tiptap/extension-text-style";
 import Highlight from "@tiptap/extension-highlight";
 import { TableKit } from "@tiptap/extension-table";
+
+/** Heading that keeps an explicit text colour, so a colour set on the whole title (by the AI's HTML
+ * or the toolbar picker) survives TipTap's parse instead of being stripped. */
+const ColorHeading = Heading.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      color: {
+        default: null,
+        parseHTML: (el) => (el as HTMLElement).style.color || null,
+        renderHTML: (attrs) => (attrs.color ? { style: `color: ${attrs.color}` } : {}),
+      },
+    };
+  },
+});
 
 /** Image extension that carries a `width` attribute (rendered as an inline style), so the toolbar can
  * resize an embedded image to a few sensible presets. */
@@ -42,19 +58,22 @@ export function RichDocEditor({
   onInsertImage,
   editable = true,
   busy = false,
+  accent,
 }: {
   value: string;
   onChange: (html: string) => void;
   onInsertImage?: (file: File) => Promise<string | null>;
   editable?: boolean;
   busy?: boolean;
+  accent?: string | null;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
     editable,
     extensions: [
-      StarterKit.configure({ link: { openOnClick: false } }),
+      StarterKit.configure({ heading: false, link: { openOnClick: false } }),
+      ColorHeading.configure({ levels: [1, 2, 3] }),
       SizedImage.configure({ inline: false, allowBase64: true }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       TextStyleKit,
@@ -120,7 +139,10 @@ export function RichDocEditor({
   const selectCls = "rounded border border-ink-600 bg-ink-900 px-1.5 py-1 text-xs text-[#ede6da] outline-none focus:border-gold-500";
 
   return (
-    <div className="flex h-full flex-col rounded-xl border border-ink-600 bg-[#fbfaf7]">
+    <div
+      className="flex h-full flex-col rounded-xl border border-ink-600 bg-[#fbfaf7]"
+      style={accent ? ({ "--quill-accent": accent } as React.CSSProperties) : undefined}
+    >
       {editable && (
         <div className="flex flex-wrap items-center gap-0.5 border-b border-ink-600 bg-ink-900 px-2 py-1.5">
           <Btn title="Undo" label="↺" on={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} />

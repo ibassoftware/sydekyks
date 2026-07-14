@@ -72,9 +72,11 @@ body {
   font-family: Georgia, "Times New Roman", serif;
   line-height: 1.6;
 }
-.quill-doc-content h1 { font-size: 1.9rem; font-weight: 700; margin: 0.6em 0 0.3em; color: #6b5410; }
-.quill-doc-content h2 { font-size: 1.45rem; font-weight: 700; margin: 0.7em 0 0.3em; color: #6b5410; }
-.quill-doc-content h3 { font-size: 1.15rem; font-weight: 700; margin: 0.7em 0 0.3em; color: #6b5410; }
+/* Headings default to the tenant's accent colour (set on the editor container); an explicit per-heading
+   colour (from the AI or the colour picker) overrides it via inline style. */
+.quill-doc-content h1 { font-size: 1.9rem; font-weight: 700; margin: 0.6em 0 0.3em; color: var(--quill-accent, #8a6d1a); }
+.quill-doc-content h2 { font-size: 1.45rem; font-weight: 700; margin: 0.7em 0 0.3em; color: var(--quill-accent, #8a6d1a); }
+.quill-doc-content h3 { font-size: 1.15rem; font-weight: 700; margin: 0.7em 0 0.3em; color: var(--quill-accent, #8a6d1a); }
 .quill-doc-content p { margin: 0 0 0.7em; }
 .quill-doc-content ul { list-style: disc; margin: 0 0 0.7em 1.4em; }
 .quill-doc-content ol { list-style: decimal; margin: 0 0 0.7em 1.4em; }

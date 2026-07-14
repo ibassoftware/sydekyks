@@ -35,7 +35,15 @@ export default function QuillEditor() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
+  const [accent, setAccent] = useState<string | null>(null);
   const undoRef = useRef<string | null>(null);
+
+  // The tenant's accent colour drives heading colour in the editor (matching the exported PDF).
+  useEffect(() => {
+    api.get<{ accent_color: string | null }>("/tenant/quill/settings")
+      .then((r) => setAccent(r.data.accent_color))
+      .catch(() => {});
+  }, []);
 
   // Resolve the Quill agent page so the editor can jump back to its settings/operations.
   useEffect(() => {
@@ -193,7 +201,7 @@ export default function QuillEditor() {
         <div className="flex min-h-0 flex-1">
           {/* Editor */}
           <div className="min-w-0 flex-1 overflow-hidden p-5">
-            <RichDocEditor value={html} onChange={(h) => { setHtml(h); dirtyRef.current = true; }} onInsertImage={onInsertImage} busy={aiBusy} />
+            <RichDocEditor value={html} onChange={(h) => { setHtml(h); dirtyRef.current = true; }} onInsertImage={onInsertImage} busy={aiBusy} accent={accent} />
           </div>
 
           {/* Right rail */}
