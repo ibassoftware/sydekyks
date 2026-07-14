@@ -34,6 +34,7 @@ export default function QuillEditor() {
   const [quillHref, setQuillHref] = useState("/hq/roster");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
   const undoRef = useRef<string | null>(null);
 
   // Resolve the Quill agent page so the editor can jump back to its settings/operations.
@@ -192,14 +193,20 @@ export default function QuillEditor() {
         <div className="flex min-h-0 flex-1">
           {/* Editor */}
           <div className="min-w-0 flex-1 overflow-hidden p-5">
-            <RichDocEditor value={html} onChange={(h) => { setHtml(h); dirtyRef.current = true; }} onInsertImage={onInsertImage} />
+            <RichDocEditor value={html} onChange={(h) => { setHtml(h); dirtyRef.current = true; }} onInsertImage={onInsertImage} busy={aiBusy} />
           </div>
 
           {/* Right rail */}
           <div className="flex w-[380px] shrink-0 flex-col gap-4 overflow-y-auto border-l border-ink-700 bg-ink-900/40 p-4">
-            <GeneratePanel proposalId={proposalId!} onGenerated={(p) => { setHtml(p.content_html); setTitle(p.title); setTokenTotal(p.token_total); setCost(p.cost_usd); dirtyRef.current = false; }} />
+            <GeneratePanel
+              proposalId={proposalId!}
+              hasContent={!!html.trim()}
+              onBusy={setAiBusy}
+              onGenerated={(p) => { setHtml(p.content_html); setTitle(p.title); setTokenTotal(p.token_total); setCost(p.cost_usd); dirtyRef.current = false; }}
+            />
             <ChatPanel
               proposalId={proposalId!}
+              onBusy={setAiBusy}
               onRewrite={(res) => applyRewrite(res.proposal.content_html, res.proposal_token_total, res.proposal_cost_usd)}
               canUndo={undoRef.current !== null}
               onUndo={undoRevision}
@@ -232,12 +239,20 @@ function errMsg(e: unknown, fallback: string): string {
 
 // --- Generate panel --------------------------------------------------------------------------------
 
-function GeneratePanel({ proposalId, onGenerated }: { proposalId: string; onGenerated: (p: QuillProposal) => void }) {
+function GeneratePanel({ proposalId, hasContent, onBusy, onGenerated }: {
+  proposalId: string;
+  hasContent: boolean;
+  onBusy: (b: boolean) => void;
+  onGenerated: (p: QuillProposal) => void;
+}) {
   const [templates, setTemplates] = useState<QuillTemplateSummary[]>([]);
   const [templateId, setTemplateId] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [opp, setOpp] = useState<QuillOpportunity | null>(null);
   const [busy, setBusy] = useState(false);
+  // Show the full form only before the first generation; afterwards collapse to a "Regenerate" button
+  // (expandable) so the panel isn't in the way while editing.
+  const [expanded, setExpanded] = useState(!hasContent);
 
   useEffect(() => {
     api.get<QuillTemplateSummary[]>("/tenant/quill/templates").then((r) => setTemplates(r.data)).catch(() => setTemplates([]));
@@ -245,6 +260,7 @@ function GeneratePanel({ proposalId, onGenerated }: { proposalId: string; onGene
 
   async function generate() {
     setBusy(true);
+    onBusy(true);
     try {
       const r = await api.post<QuillProposal>(`/tenant/quill/proposals/${proposalId}/generate`, {
         template_id: templateId || null,
@@ -253,16 +269,35 @@ function GeneratePanel({ proposalId, onGenerated }: { proposalId: string; onGene
       });
       onGenerated(r.data);
       toast.success("Draft generated");
+      setExpanded(false);
     } catch (e) {
       toast.error(errMsg(e, "Generation failed. Is an AI engine configured?"));
     } finally {
       setBusy(false);
+      onBusy(false);
     }
+  }
+
+  if (!expanded) {
+    return (
+      <section className="rounded-xl border border-ink-700 bg-ink-900/60 p-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Generate with AI</p>
+          <Button className="px-3 py-1.5 text-xs" variant="ghost" disabled={busy} onClick={() => setExpanded(true)}>
+            {busy ? "Writing…" : "↻ Regenerate"}
+          </Button>
+        </div>
+        <p className="mt-1 text-[11px] text-[#8a7f6d]">Regenerate replaces the document. Refine instead with “Ask Quill” below to keep your edits.</p>
+      </section>
+    );
   }
 
   return (
     <section className="rounded-xl border border-ink-700 bg-ink-900/60 p-3">
-      <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Generate with AI</p>
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Generate with AI</p>
+        {hasContent && <button onClick={() => setExpanded(false)} className="text-[11px] text-[#8a7f6d] hover:text-gold-300">Collapse</button>}
+      </div>
       <div className="mt-3 grid gap-2">
         <div>
           <Label>Template</Label>
@@ -299,8 +334,9 @@ function GeneratePanel({ proposalId, onGenerated }: { proposalId: string; onGene
 
 // --- Ask Quill chat panel --------------------------------------------------------------------------
 
-function ChatPanel({ proposalId, onRewrite, canUndo, onUndo }: {
+function ChatPanel({ proposalId, onBusy, onRewrite, canUndo, onUndo }: {
   proposalId: string;
+  onBusy: (b: boolean) => void;
   onRewrite: (res: QuillChatResult) => void;
   canUndo: boolean;
   onUndo: () => void;
@@ -319,6 +355,7 @@ function ChatPanel({ proposalId, onRewrite, canUndo, onUndo }: {
     const msg = input.trim();
     if (!msg || busy) return;
     setBusy(true);
+    onBusy(true);
     setInput("");
     // optimistic user bubble
     setMessages((m) => [...m, { id: `tmp-${m.length}`, seq: m.length, role: "user", content: msg, total_tokens: 0, created_at: "" }]);
@@ -333,6 +370,7 @@ function ChatPanel({ proposalId, onRewrite, canUndo, onUndo }: {
       setInput(msg);
     } finally {
       setBusy(false);
+      onBusy(false);
     }
   }
 

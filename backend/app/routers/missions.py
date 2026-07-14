@@ -23,6 +23,10 @@ from app.services.queue import enqueue_mission
 
 router = APIRouter(prefix="/api/tenant", tags=["missions"], dependencies=[Depends(require_tenant_member)])
 
+# Playbooks that run synchronously inside a user-facing request (the agent's UI shows its own progress),
+# so they're excluded from the global "active missions" activity popup.
+INTERACTIVE_PLAYBOOKS = ["quill.draft", "quill.refine"]
+
 
 def _filename(db: Session, mission_id: uuid.UUID) -> str | None:
     doc = db.query(MissionDocument.filename).filter(MissionDocument.mission_id == mission_id).first()
@@ -165,7 +169,14 @@ def list_active_missions(user: User = Depends(require_tenant_member), db: Sessio
         db.query(Mission, MissionDocument.filename, MissionDocument.source, Sydekyk.name)
         .outerjoin(MissionDocument, MissionDocument.mission_id == Mission.id)
         .outerjoin(Sydekyk, Sydekyk.id == Mission.sydekyk_id)
-        .filter(Mission.tenant_id == user.tenant_id, Mission.status.in_(["queued", "running"]))
+        .filter(
+            Mission.tenant_id == user.tenant_id,
+            Mission.status.in_(["queued", "running"]),
+            # Interactive, synchronous UI missions (Quill's generate/refine) give their own in-editor
+            # feedback — keep them out of the global activity popup so the workbench doesn't flash a
+            # toast on every keystroke-driven edit.
+            Mission.playbook_key.notin_(INTERACTIVE_PLAYBOOKS),
+        )
         .order_by(Mission.created_at.desc())
         .all()
     )

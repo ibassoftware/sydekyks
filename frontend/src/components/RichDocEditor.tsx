@@ -3,6 +3,9 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import TextAlign from "@tiptap/extension-text-align";
+import { TextStyleKit } from "@tiptap/extension-text-style";
+import Highlight from "@tiptap/extension-highlight";
+import { TableKit } from "@tiptap/extension-table";
 
 /** Image extension that carries a `width` attribute (rendered as an inline style), so the toolbar can
  * resize an embedded image to a few sensible presets. */
@@ -19,19 +22,32 @@ const SizedImage = Image.extend({
   },
 });
 
+const FONTS = [
+  { label: "Default", value: "" },
+  { label: "Georgia", value: "Georgia, serif" },
+  { label: "Garamond", value: "Garamond, serif" },
+  { label: "Times", value: "'Times New Roman', serif" },
+  { label: "Arial", value: "Arial, sans-serif" },
+  { label: "Helvetica", value: "Helvetica, Arial, sans-serif" },
+  { label: "Verdana", value: "Verdana, sans-serif" },
+  { label: "Courier", value: "'Courier New', monospace" },
+];
+const SIZES = ["", "12px", "14px", "16px", "18px", "20px", "24px", "30px", "36px"];
+
 /** A reusable rich-text (HTML) editor built on TipTap. Value in/out is HTML. `onInsertImage` uploads
- * a picked file and returns a URL to embed. Quill is the only consumer today, but this is deliberately
- * generic so a future document-generation Sydekyk can reuse it. */
+ * a picked file and returns a URL to embed. `busy` overlays an "AI is editing" state. */
 export function RichDocEditor({
   value,
   onChange,
   onInsertImage,
   editable = true,
+  busy = false,
 }: {
   value: string;
   onChange: (html: string) => void;
   onInsertImage?: (file: File) => Promise<string | null>;
   editable?: boolean;
+  busy?: boolean;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -41,29 +57,28 @@ export function RichDocEditor({
       StarterKit.configure({ link: { openOnClick: false } }),
       SizedImage.configure({ inline: false, allowBase64: true }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
+      TextStyleKit,
+      Highlight.configure({ multicolor: true }),
+      TableKit.configure({ table: { resizable: true } }),
     ],
     content: value || "",
     editorProps: {
-      attributes: {
-        class: "quill-doc-content min-h-[60vh] max-w-none px-8 py-6 outline-none",
-      },
+      attributes: { class: "quill-doc-content min-h-[60vh] max-w-none px-8 py-6 outline-none" },
     },
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
   });
 
-  // Sync external content changes (AI generate / chat rewrite) into the editor without clobbering
-  // the user's caret while they type (only reset when the incoming value truly differs).
+  // Sync external content changes (AI generate / chat rewrite) into the editor without clobbering the
+  // caret while typing (only reset when the incoming value truly differs).
   useEffect(() => {
     if (!editor) return;
-    if (value !== editor.getHTML()) {
-      editor.commands.setContent(value || "", { emitUpdate: false });
-    }
+    if (value !== editor.getHTML()) editor.commands.setContent(value || "", { emitUpdate: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, editor]);
 
   useEffect(() => {
-    editor?.setEditable(editable);
-  }, [editable, editor]);
+    editor?.setEditable(editable && !busy);
+  }, [editable, busy, editor]);
 
   if (!editor) return null;
 
@@ -75,30 +90,60 @@ export function RichDocEditor({
     if (url) editor?.chain().focus().setImage({ src: url }).run();
   }
 
-  const imageSelected = editor.isActive("image");
+  function setLink() {
+    const prev = editor!.getAttributes("link").href as string | undefined;
+    const url = window.prompt("Link URL", prev ?? "https://");
+    if (url === null) return;
+    if (url === "") editor!.chain().focus().extendMarkRange("link").unsetLink().run();
+    else editor!.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+  }
 
-  const Btn = ({ on, active, label, title }: { on: () => void; active?: boolean; label: string; title: string }) => (
+  const inTable = editor.isActive("table");
+  const imageSelected = editor.isActive("image");
+  const curFont = (editor.getAttributes("textStyle").fontFamily as string) ?? "";
+  const curSize = (editor.getAttributes("textStyle").fontSize as string) ?? "";
+  const curColor = (editor.getAttributes("textStyle").color as string) ?? "#1a1a1a";
+
+  const Btn = ({ on, active, label, title, disabled }: { on: () => void; active?: boolean; label: string; title: string; disabled?: boolean }) => (
     <button
-      type="button"
-      title={title}
+      type="button" title={title} disabled={disabled}
       onMouseDown={(e) => e.preventDefault()}
       onClick={on}
-      className={`rounded px-2 py-1 text-sm font-medium transition-colors ${
+      className={`rounded px-2 py-1 text-sm font-medium transition-colors disabled:opacity-30 ${
         active ? "bg-gold-500/20 text-gold-200" : "text-[#b9ad98] hover:bg-ink-800 hover:text-[#ede6da]"
       }`}
     >
       {label}
     </button>
   );
-
   const Sep = () => <span className="mx-1 h-5 w-px bg-ink-600" />;
+  const selectCls = "rounded border border-ink-600 bg-ink-900 px-1.5 py-1 text-xs text-[#ede6da] outline-none focus:border-gold-500";
 
   return (
     <div className="flex h-full flex-col rounded-xl border border-ink-600 bg-[#fbfaf7]">
       {editable && (
         <div className="flex flex-wrap items-center gap-0.5 border-b border-ink-600 bg-ink-900 px-2 py-1.5">
+          <Btn title="Undo" label="↺" on={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} />
+          <Btn title="Redo" label="↻" on={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} />
+          <Sep />
+          <select title="Font" className={selectCls} value={curFont}
+            onChange={(e) => { const v = e.target.value; if (v) editor.chain().focus().setFontFamily(v).run(); else editor.chain().focus().unsetFontFamily().run(); }}>
+            {FONTS.map((f) => <option key={f.label} value={f.value}>{f.label}</option>)}
+          </select>
+          <select title="Font size" className={`${selectCls} ml-1`} value={curSize}
+            onChange={(e) => { const v = e.target.value; if (v) editor.chain().focus().setFontSize(v).run(); else editor.chain().focus().unsetFontSize().run(); }}>
+            {SIZES.map((s) => <option key={s || "def"} value={s}>{s ? s.replace("px", "") : "Size"}</option>)}
+          </select>
+          <Sep />
           <Btn title="Bold" label="B" active={editor.isActive("bold")} on={() => editor.chain().focus().toggleBold().run()} />
           <Btn title="Italic" label="I" active={editor.isActive("italic")} on={() => editor.chain().focus().toggleItalic().run()} />
+          <Btn title="Underline" label="U" active={editor.isActive("underline")} on={() => editor.chain().focus().toggleUnderline().run()} />
+          <Btn title="Strikethrough" label="S" active={editor.isActive("strike")} on={() => editor.chain().focus().toggleStrike().run()} />
+          <label title="Text colour" className="relative ml-1 inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded border border-ink-600" style={{ color: curColor }}>
+            <span className="text-sm font-bold">A</span>
+            <input type="color" value={/^#/.test(curColor) ? curColor : "#1a1a1a"} onChange={(e) => editor.chain().focus().setColor(e.target.value).run()} className="absolute inset-0 cursor-pointer opacity-0" />
+          </label>
+          <Btn title="Highlight" label="🖊" active={editor.isActive("highlight")} on={() => editor.chain().focus().toggleHighlight({ color: "#fff3a3" }).run()} />
           <Sep />
           <Btn title="Heading 1" label="H1" active={editor.isActive("heading", { level: 1 })} on={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} />
           <Btn title="Heading 2" label="H2" active={editor.isActive("heading", { level: 2 })} on={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} />
@@ -109,31 +154,55 @@ export function RichDocEditor({
           <Btn title="Align right" label="⯈" active={editor.isActive({ textAlign: "right" })} on={() => editor.chain().focus().setTextAlign("right").run()} />
           <Btn title="Justify" label="☰" active={editor.isActive({ textAlign: "justify" })} on={() => editor.chain().focus().setTextAlign("justify").run()} />
           <Sep />
-          <Btn title="Bullet list" label="• List" active={editor.isActive("bulletList")} on={() => editor.chain().focus().toggleBulletList().run()} />
-          <Btn title="Numbered list" label="1. List" active={editor.isActive("orderedList")} on={() => editor.chain().focus().toggleOrderedList().run()} />
+          <Btn title="Bullet list" label="•" active={editor.isActive("bulletList")} on={() => editor.chain().focus().toggleBulletList().run()} />
+          <Btn title="Numbered list" label="1." active={editor.isActive("orderedList")} on={() => editor.chain().focus().toggleOrderedList().run()} />
           <Btn title="Quote" label="❝" active={editor.isActive("blockquote")} on={() => editor.chain().focus().toggleBlockquote().run()} />
+          <Btn title="Link" label="🔗" active={editor.isActive("link")} on={setLink} />
           <Btn title="Divider" label="―" on={() => editor.chain().focus().setHorizontalRule().run()} />
+          <Btn title="Insert table" label="▦" on={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} />
           {onInsertImage && (
             <>
-              <Sep />
-              <Btn title="Insert image" label="🖼 Image" on={() => fileRef.current?.click()} />
+              <Btn title="Insert image" label="🖼" on={() => fileRef.current?.click()} />
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={pickImage} />
             </>
           )}
+
+          {inTable && (
+            <div className="mt-1 flex w-full flex-wrap items-center gap-0.5 border-t border-ink-700 pt-1">
+              <span className="px-1 text-[11px] uppercase tracking-wider text-[#8a7f6d]">Table</span>
+              <Btn title="Add column" label="+Col" on={() => editor.chain().focus().addColumnAfter().run()} />
+              <Btn title="Delete column" label="−Col" on={() => editor.chain().focus().deleteColumn().run()} />
+              <Btn title="Add row" label="+Row" on={() => editor.chain().focus().addRowAfter().run()} />
+              <Btn title="Delete row" label="−Row" on={() => editor.chain().focus().deleteRow().run()} />
+              <Btn title="Toggle header row" label="Header" on={() => editor.chain().focus().toggleHeaderRow().run()} />
+              <Btn title="Merge/split cells" label="Merge" on={() => editor.chain().focus().mergeOrSplit().run()} />
+              <Btn title="Delete table" label="Delete table" on={() => editor.chain().focus().deleteTable().run()} />
+            </div>
+          )}
           {imageSelected && (
-            <>
-              <Sep />
+            <div className="mt-1 flex w-full flex-wrap items-center gap-0.5 border-t border-ink-700 pt-1">
               <span className="px-1 text-[11px] uppercase tracking-wider text-[#8a7f6d]">Image</span>
-              <Btn title="Small (25%)" label="25%" on={() => editor.chain().focus().updateAttributes("image", { width: "25%" }).run()} />
-              <Btn title="Medium (50%)" label="50%" on={() => editor.chain().focus().updateAttributes("image", { width: "50%" }).run()} />
-              <Btn title="Large (75%)" label="75%" on={() => editor.chain().focus().updateAttributes("image", { width: "75%" }).run()} />
-              <Btn title="Full width" label="Full" on={() => editor.chain().focus().updateAttributes("image", { width: "100%" }).run()} />
-            </>
+              {["25%", "50%", "75%", "100%"].map((w) => (
+                <Btn key={w} title={`Width ${w}`} label={w} on={() => editor.chain().focus().updateAttributes("image", { width: w }).run()} />
+              ))}
+            </div>
           )}
         </div>
       )}
-      <div className="flex-1 overflow-y-auto text-ink-950">
+      <div className="relative flex-1 overflow-y-auto text-ink-950">
         <EditorContent editor={editor} />
+        {busy && (
+          <div className="pointer-events-auto absolute inset-0 flex items-start justify-center bg-white/40 backdrop-blur-[1px]">
+            <div className="mt-16 flex items-center gap-3 rounded-full border border-gold-600/50 bg-ink-900/95 px-4 py-2 shadow-xl">
+              <span className="flex gap-1">
+                <span className="h-2 w-2 animate-bounce rounded-full bg-gold-400 [animation-delay:-0.3s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-gold-400 [animation-delay:-0.15s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-gold-400" />
+              </span>
+              <span className="text-sm font-medium text-gold-200">Quill is writing…</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
