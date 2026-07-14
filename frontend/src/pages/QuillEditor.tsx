@@ -31,7 +31,18 @@ export default function QuillEditor() {
   const [notFound, setNotFound] = useState(false);
   const [tokenTotal, setTokenTotal] = useState(0);
   const [cost, setCost] = useState(0);
+  const [quillHref, setQuillHref] = useState("/hq/roster");
   const undoRef = useRef<string | null>(null);
+
+  // Resolve the Quill agent page so the editor can jump back to its settings/operations.
+  useEffect(() => {
+    api.get<{ id: string; slug: string }[]>("/tenant/sydekyks")
+      .then((r) => {
+        const q = r.data.find((s) => s.slug === "quill");
+        if (q) setQuillHref(`/hq/roster/${q.id}`);
+      })
+      .catch(() => {});
+  }, []);
 
   const load = useCallback(() => {
     if (!proposalId) return;
@@ -140,7 +151,7 @@ export default function QuillEditor() {
       <div className="flex h-screen flex-col">
         {/* Top bar */}
         <div className="flex flex-wrap items-center gap-3 border-b border-ink-700 bg-ink-900/60 px-6 py-3">
-          <button onClick={() => navigate("/hq/roster")} className="text-sm text-[#8a7f6d] hover:text-gold-300">← Roster</button>
+          <button onClick={() => navigate(quillHref)} className="text-sm text-[#8a7f6d] hover:text-gold-300" title="Back to Quill (settings & proposals)">← Quill</button>
           <input
             value={title}
             onChange={(e) => { setTitle(e.target.value); dirtyRef.current = true; }}

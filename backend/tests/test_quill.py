@@ -148,3 +148,61 @@ def test_refine_run_writes_chat_and_token_ledger(db, monkeypatch):
     assert [r.role for r in rows] == ["user", "assistant"]
     assert rows[0].content == "shorten the intro"
     assert rows[1].total_tokens == 30 and rows[1].completion_tokens == 10 and rows[1].cost_usd == 0.002
+
+
+# --- DB-backed: proposal access scoping + tenant isolation -----------------------------------------
+
+def _mk_tenant_user(db, tenant_name, tenant_slug, email, role, quill_id=None, can_use=False, can_configure=False):
+    from app.models.tenant import Tenant
+    from app.models.user import User
+    from app.models.user_permission import UserSydekykPermission
+
+    t = db.query(Tenant).filter(Tenant.slug == tenant_slug).first()
+    if t is None:
+        t = Tenant(name=tenant_name, slug=tenant_slug)
+        db.add(t)
+        db.flush()
+    u = User(tenant_id=t.id, email=email, hashed_password="x", role=role)
+    db.add(u)
+    db.flush()
+    if role == "hero" and quill_id is not None:
+        db.add(UserSydekykPermission(user_id=u.id, sydekyk_id=quill_id, can_use=can_use, can_configure=can_configure))
+        db.flush()
+    return t, u
+
+
+def test_proposal_access_scoping_and_tenant_isolation(db):
+    from fastapi import HTTPException
+    from app.models.sydekyk import Sydekyk
+    from app.sydekyks.quill.models import QuillProposal
+    from app.sydekyks.quill.router import _proposal_or_404
+
+    quill = Sydekyk(tenant_id=None, name="Quill", slug="quill", tagline="t", description="d",
+                    avatar_url="/x.png", system_prompt="p", model="gpt-4o-mini", temperature=0.4,
+                    is_exclusive=False, is_published=True, workflow_enabled=True, playbook_key="quill.draft")
+    db.add(quill)
+    db.flush()
+
+    tA, owner = _mk_tenant_user(db, "HQ A", "hq-a", "owner@a.test", "hero", quill.id, can_use=True)
+    _, other = _mk_tenant_user(db, "HQ A", "hq-a", "other@a.test", "hero", quill.id, can_use=True)
+    _, manager = _mk_tenant_user(db, "HQ A", "hq-a", "manager@a.test", "hero", quill.id, can_use=True, can_configure=True)
+    _, cmdrA = _mk_tenant_user(db, "HQ A", "hq-a", "cmdr@a.test", "commander")
+    _, cmdrB = _mk_tenant_user(db, "HQ B", "hq-b", "cmdr@b.test", "commander")
+
+    p = QuillProposal(tenant_id=tA.id, sydekyk_id=quill.id, title="A deal",
+                      content_html="<p>x</p>", created_by="owner@a.test")
+    db.add(p)
+    db.commit()
+
+    # Owner (use-only) sees their own.
+    assert _proposal_or_404(db, owner, quill.id, p.id).id == p.id
+    # A manager (can_configure) and a commander see all proposals in the HQ.
+    assert _proposal_or_404(db, manager, quill.id, p.id).id == p.id
+    assert _proposal_or_404(db, cmdrA, quill.id, p.id).id == p.id
+    # A different salesperson in the SAME HQ cannot touch someone else's proposal.
+    for offender in (other, cmdrB):
+        try:
+            _proposal_or_404(db, offender, quill.id, p.id)
+            raise AssertionError(f"{offender.email} should not access the proposal")
+        except HTTPException as exc:
+            assert exc.status_code == 404

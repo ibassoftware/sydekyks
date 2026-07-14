@@ -69,24 +69,16 @@ export function QuillSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
               />
             </div>
           </div>
-        </div>
-      )}
-
-      {settings && (
-        <div className="grid gap-3 border-t border-ink-700 pt-6">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Odoo quotation defaults (optional)</p>
-          <label className="flex items-center gap-2 text-sm text-[#ede6da]">
-            <input type="checkbox" className="h-4 w-4 accent-gold-500" disabled={!canManage || saving}
-              checked={settings.merge_quotation_pdf}
-              onChange={(e) => save({ ...settings, merge_quotation_pdf: e.target.checked })} />
-            Merge the official quotation PDF into the exported proposal by default
-          </label>
-          <label className="flex items-center gap-2 text-sm text-[#ede6da]">
-            <input type="checkbox" className="h-4 w-4 accent-gold-500" disabled={!canManage || saving}
-              checked={settings.upload_to_quotation}
-              onChange={(e) => save({ ...settings, upload_to_quotation: e.target.checked })} />
-            Attach the proposal PDF back to the Odoo quotation by default
-          </label>
+          <div>
+            <Label>PDF footer line (optional)</Label>
+            <Input
+              type="text" maxLength={300} placeholder="Acme Corp · 123 Main St · sales@acme.com"
+              disabled={!canManage || saving}
+              defaultValue={settings.footer_text ?? ""}
+              onBlur={(e) => save({ ...settings, footer_text: e.target.value || null })}
+            />
+            <p className="mt-1 text-[11px] text-[#8a7f6d]">Appears at the bottom-left of every exported page; page numbers sit at the bottom-right.</p>
+          </div>
         </div>
       )}
 

@@ -90,9 +90,18 @@ def _connect(db: Session, tenant_id, sydekyk_id):
     return client
 
 
-def _proposal_or_404(db: Session, tenant_id, proposal_id: uuid.UUID) -> QuillProposal:
+def _sees_all_proposals(db: Session, user: User, sydekyk_id: uuid.UUID) -> bool:
+    """A manager (Commander, or a hero granted 'configure') sees/edits every proposal in the HQ; a
+    plain 'use' salesperson is scoped to the proposals they created."""
+    return permissions.can_configure(db, user, sydekyk_id)
+
+
+def _proposal_or_404(db: Session, user: User, sydekyk_id: uuid.UUID, proposal_id: uuid.UUID) -> QuillProposal:
     row = db.get(QuillProposal, proposal_id)
-    if row is None or row.tenant_id != tenant_id:
+    if row is None or row.tenant_id != user.tenant_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proposal not found")
+    # Ownership scoping: a salesperson can only touch their own proposals.
+    if not _sees_all_proposals(db, user, sydekyk_id) and row.created_by != user.email:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proposal not found")
     return row
 
@@ -158,9 +167,8 @@ def get_settings(user: User = Depends(require_tenant_member), db: Session = Depe
     s = _settings(db, user.tenant_id)
     return QuillSettingsOut(
         default_template_id=s.default_template_id, page_size=s.page_size, accent_color=s.accent_color,
-        estimated_hourly_wage=s.estimated_hourly_wage, estimated_minutes_per_proposal=s.estimated_minutes_per_proposal,
-        auto_create_quotation=s.auto_create_quotation, merge_quotation_pdf=s.merge_quotation_pdf,
-        upload_to_quotation=s.upload_to_quotation,
+        footer_text=s.footer_text, estimated_hourly_wage=s.estimated_hourly_wage,
+        estimated_minutes_per_proposal=s.estimated_minutes_per_proposal,
     )
 
 
@@ -171,11 +179,9 @@ def update_settings(payload: QuillSettingsUpdate, user: User = Depends(require_t
     s.default_template_id = payload.default_template_id
     s.page_size = payload.page_size
     s.accent_color = payload.accent_color
+    s.footer_text = payload.footer_text
     s.estimated_hourly_wage = payload.estimated_hourly_wage
     s.estimated_minutes_per_proposal = payload.estimated_minutes_per_proposal
-    s.auto_create_quotation = payload.auto_create_quotation
-    s.merge_quotation_pdf = payload.merge_quotation_pdf
-    s.upload_to_quotation = payload.upload_to_quotation
     db.commit()
     db.refresh(s)
     return get_settings(user, db)
@@ -266,13 +272,17 @@ def delete_template(template_id: uuid.UUID, user: User = Depends(require_tenant_
 def list_proposals(limit: int = 20, offset: int = 0, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
     limit = max(1, min(limit, 100))
     offset = max(0, offset)
+    sees_all = _sees_all_proposals(db, user, _quill(db, user).id)
     base = db.query(QuillProposal).filter(QuillProposal.tenant_id == user.tenant_id)
+    if not sees_all:
+        base = base.filter(QuillProposal.created_by == user.email)  # a salesperson sees only their own
     total = base.count()
     rows = base.order_by(QuillProposal.updated_at.desc()).limit(limit).offset(offset).all()
     return ProposalPage(
         items=[ProposalSummary(id=r.id, title=r.title, status=r.status, customer_name=r.customer_name,
-                               odoo_sale_order_name=r.odoo_sale_order_name, updated_at=r.updated_at) for r in rows],
-        total=total, limit=limit, offset=offset,
+                               owned_by=r.created_by, odoo_sale_order_name=r.odoo_sale_order_name,
+                               updated_at=r.updated_at) for r in rows],
+        total=total, limit=limit, offset=offset, sees_all=sees_all,
     )
 
 
@@ -298,13 +308,13 @@ def create_proposal(payload: ProposalCreate, user: User = Depends(require_tenant
 
 @router.get("/proposals/{proposal_id}", response_model=ProposalOut)
 def get_proposal(proposal_id: uuid.UUID, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
-    return _proposal_out(db, _proposal_or_404(db, user.tenant_id, proposal_id))
+    return _proposal_out(db, _proposal_or_404(db, user, _quill(db, user).id, proposal_id))
 
 
 @router.put("/proposals/{proposal_id}", response_model=ProposalOut)
 def update_proposal(proposal_id: uuid.UUID, payload: ProposalUpdate, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
     permissions.assert_can_use(db, user, _quill(db, user).id)
-    r = _proposal_or_404(db, user.tenant_id, proposal_id)
+    r = _proposal_or_404(db, user, _quill(db, user).id, proposal_id)
     if payload.title is not None:
         r.title = payload.title
     if payload.content_html is not None:
@@ -319,7 +329,7 @@ def update_proposal(proposal_id: uuid.UUID, payload: ProposalUpdate, user: User 
 @router.delete("/proposals/{proposal_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_proposal(proposal_id: uuid.UUID, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
     permissions.assert_can_use(db, user, _quill(db, user).id)
-    r = _proposal_or_404(db, user.tenant_id, proposal_id)
+    r = _proposal_or_404(db, user, _quill(db, user).id, proposal_id)
     db.delete(r)
     db.commit()
 
@@ -330,14 +340,14 @@ def delete_proposal(proposal_id: uuid.UUID, user: User = Depends(require_tenant_
 def generate_proposal(proposal_id: uuid.UUID, payload: GenerateIn, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
     sydekyk = _quill(db, user)
     permissions.assert_can_use(db, user, sydekyk.id)
-    proposal = _proposal_or_404(db, user.tenant_id, proposal_id)
+    proposal = _proposal_or_404(db, user, _quill(db, user).id, proposal_id)
     ctx = {"proposal_id": str(proposal.id), "notes": payload.notes}
     if payload.template_id:
         ctx["template_id"] = str(payload.template_id)
     if payload.odoo_lead_id:
         ctx["odoo_lead_id"] = payload.odoo_lead_id
     mid = _run_inline(db, sydekyk, user, PLAYBOOK_KEY, ctx)
-    proposal = _proposal_or_404(db, user.tenant_id, proposal_id)
+    proposal = _proposal_or_404(db, user, _quill(db, user).id, proposal_id)
     _raise_if_mission_failed(db, mid)
     return _proposal_out(db, proposal)
 
@@ -346,11 +356,11 @@ def generate_proposal(proposal_id: uuid.UUID, payload: GenerateIn, user: User = 
 def chat(proposal_id: uuid.UUID, payload: ChatIn, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
     sydekyk = _quill(db, user)
     permissions.assert_can_use(db, user, sydekyk.id)
-    proposal = _proposal_or_404(db, user.tenant_id, proposal_id)
+    proposal = _proposal_or_404(db, user, _quill(db, user).id, proposal_id)
     ctx = {"proposal_id": str(proposal.id), "message": payload.message}
     mid = _run_inline(db, sydekyk, user, PLAYBOOK_KEY_REFINE, ctx)
     _raise_if_mission_failed(db, mid)
-    proposal = _proposal_or_404(db, user.tenant_id, proposal_id)
+    proposal = _proposal_or_404(db, user, _quill(db, user).id, proposal_id)
 
     # The assistant turn we just wrote carries this turn's token counts.
     assistant = (
@@ -379,7 +389,7 @@ def chat(proposal_id: uuid.UUID, payload: ChatIn, user: User = Depends(require_t
 
 @router.get("/proposals/{proposal_id}/chat", response_model=ChatHistoryOut)
 def get_chat(proposal_id: uuid.UUID, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
-    proposal = _proposal_or_404(db, user.tenant_id, proposal_id)
+    proposal = _proposal_or_404(db, user, _quill(db, user).id, proposal_id)
     rows = (
         db.query(QuillChatMessage)
         .filter(QuillChatMessage.proposal_id == proposal.id)
@@ -417,7 +427,7 @@ def _raise_if_mission_failed(db: Session, mission_id: uuid.UUID) -> None:
 @router.post("/proposals/{proposal_id}/assets", response_model=AssetOut, status_code=status.HTTP_201_CREATED)
 async def upload_asset(proposal_id: uuid.UUID, file: UploadFile, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
     permissions.assert_can_use(db, user, _quill(db, user).id)
-    proposal = _proposal_or_404(db, user.tenant_id, proposal_id)
+    proposal = _proposal_or_404(db, user, _quill(db, user).id, proposal_id)
     data = await file.read()
     ctype = file.content_type or "application/octet-stream"
     if ctype not in _ALLOWED_IMAGE_TYPES:
@@ -447,7 +457,7 @@ def get_asset(asset_id: uuid.UUID, user: User = Depends(require_tenant_member), 
 @router.post("/proposals/{proposal_id}/pdf")
 def export_pdf(proposal_id: uuid.UUID, merge_quotation: bool = False, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
     permissions.assert_can_use(db, user, _quill(db, user).id)
-    proposal = _proposal_or_404(db, user.tenant_id, proposal_id)
+    proposal = _proposal_or_404(db, user, _quill(db, user).id, proposal_id)
     s = _settings(db, user.tenant_id)
 
     logo_uri = None
@@ -459,6 +469,7 @@ def export_pdf(proposal_id: uuid.UUID, merge_quotation: bool = False, user: User
     html_doc = pdf_svc.build_document(
         _inline_asset_images(db, user.tenant_id, proposal.content_html),
         title=proposal.title, page_size=s.page_size, accent=s.accent_color, logo_data_uri=logo_uri,
+        footer_text=s.footer_text,
     )
     try:
         proposal_pdf = pdf_svc.render_html_to_pdf(html_doc)
@@ -528,7 +539,7 @@ def search_opportunities(q: str = "", user: User = Depends(require_tenant_member
 @router.post("/proposals/{proposal_id}/quotation", response_model=QuotationOut)
 def create_quotation(proposal_id: uuid.UUID, payload: QuotationCreateIn, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
     permissions.assert_can_use(db, user, _quill(db, user).id)
-    proposal = _proposal_or_404(db, user.tenant_id, proposal_id)
+    proposal = _proposal_or_404(db, user, _quill(db, user).id, proposal_id)
     client = _connect(db, user.tenant_id, _quill(db, user).id)
 
     partner_id = payload.partner_id
@@ -560,13 +571,13 @@ def create_quotation(proposal_id: uuid.UUID, payload: QuotationCreateIn, user: U
 def attach_to_quotation(proposal_id: uuid.UUID, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
     """Render the (merged) proposal PDF and attach it to the linked Odoo quotation."""
     permissions.assert_can_use(db, user, _quill(db, user).id)
-    proposal = _proposal_or_404(db, user.tenant_id, proposal_id)
+    proposal = _proposal_or_404(db, user, _quill(db, user).id, proposal_id)
     if not proposal.odoo_sale_order_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No quotation linked to this proposal")
     s = _settings(db, user.tenant_id)
     html_doc = pdf_svc.build_document(
         _inline_asset_images(db, user.tenant_id, proposal.content_html),
-        title=proposal.title, page_size=s.page_size, accent=s.accent_color,
+        title=proposal.title, page_size=s.page_size, accent=s.accent_color, footer_text=s.footer_text,
     )
     try:
         proposal_pdf = pdf_svc.render_html_to_pdf(html_doc)

@@ -504,3 +504,23 @@ agent (a contract/SOW writer, a report builder) reuses them:
   (`sale.order` → "Open quotation in Odoo").
 - **Draft, never send** still holds (§12): Quill produces a document and (optionally) a draft
   quotation + a PDF attached back to it; the human reviews and sends.
+- **Per-record ownership scoping rides on the existing RBAC — no new flag.** A workbench full of
+  user-authored documents needs "salespeople see their own, managers see all." Map it onto the two
+  grants you already have: `can_configure` (or Commander) = manager → sees/edits every proposal in the
+  HQ; plain `can_use` = author → scoped to `created_by == user.email`. Enforce it in ONE helper the
+  list query and the single-record fetch both call (`_proposal_or_404` checks tenant **and** ownership;
+  the list adds a `created_by` filter), and return a `sees_all` flag so the UI can label the list and
+  show the owner column. Resist adding a third permission flag unless a real "view-all-but-not-config"
+  role is needed — it's a cross-cutting schema + Team-UI change.
+- **The shared "Review Assignment" panel is for flag-based agents only.** `SydekykDetail` renders it
+  for every workflow agent; an authoring agent that never auto-flags opts out with a registry flag
+  (`hideReviewerAssignment: true`) rather than the shared page branching on slug.
+- **Keep settings for what's global; per-run choices live at the point of use.** PDF branding (page
+  size, accent, footer line) and savings assumptions belong in settings; per-proposal Odoo actions
+  (create quotation, merge, attach) are buttons in the editor, NOT global default toggles — a default
+  that silently mutates an external system on every export is a footgun.
+- **Editor niceties are TipTap extensions + inline styles that survive to PDF.** Text alignment
+  (`@tiptap/extension-text-align`) and image width (an `Image.extend` with a `width` attribute rendered
+  as an inline `style`) both serialize into the stored HTML as inline styles, so WeasyPrint honors them
+  on export with zero extra work. Page numbers + a footer line come from CSS `@page` margin boxes
+  (`@bottom-right { content: "Page " counter(page) ... }`).

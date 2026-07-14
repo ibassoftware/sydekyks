@@ -9,7 +9,11 @@ import html as _html
 import io
 
 _BASE_CSS = """
-@page {{ size: {page_size}; margin: 20mm 18mm; }}
+@page {{
+  size: {page_size}; margin: 20mm 18mm 24mm;
+  @bottom-left {{ content: {footer_left}; font-family: Georgia, serif; font-size: 8pt; color: #888; }}
+  @bottom-right {{ content: "Page " counter(page) " of " counter(pages); font-family: Georgia, serif; font-size: 8pt; color: #888; }}
+}}
 * {{ box-sizing: border-box; }}
 body {{ font-family: Georgia, 'Times New Roman', serif; color: #1a1a1a; font-size: 11pt; line-height: 1.5; }}
 h1, h2, h3 {{ font-family: Georgia, serif; color: {accent}; line-height: 1.2; margin: 0.6em 0 0.3em; }}
@@ -25,11 +29,20 @@ ul, ol {{ margin: 0 0 0.6em 1.2em; }}
 """
 
 
+def _css_string(value: str | None) -> str:
+    """A CSS `content` string literal (escaped), or the empty string literal when absent."""
+    if not value:
+        return '""'
+    return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
 def build_document(content_html: str, *, title: str | None = None, page_size: str = "A4",
-                   accent: str | None = None, logo_data_uri: str | None = None) -> str:
-    """Wrap a proposal HTML fragment in a full, print-styled HTML document."""
+                   accent: str | None = None, logo_data_uri: str | None = None,
+                   footer_text: str | None = None) -> str:
+    """Wrap a proposal HTML fragment in a full, print-styled HTML document with a running footer
+    (optional footer line on the left, page numbers on the right)."""
     accent = accent or "#8a6d1a"
-    css = _BASE_CSS.format(page_size=page_size or "A4", accent=accent)
+    css = _BASE_CSS.format(page_size=page_size or "A4", accent=accent, footer_left=_css_string(footer_text))
     header = ""
     if logo_data_uri:
         header += f'<img class="quill-logo" src="{logo_data_uri}" alt="logo"/>'

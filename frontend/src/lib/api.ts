@@ -839,11 +839,9 @@ export interface QuillSettings {
   default_template_id: string | null;
   page_size: string;
   accent_color: string | null;
+  footer_text: string | null;
   estimated_hourly_wage: number;
   estimated_minutes_per_proposal: number;
-  auto_create_quotation: boolean;
-  merge_quotation_pdf: boolean;
-  upload_to_quotation: boolean;
 }
 export interface QuillTemplateSummary {
   id: string;
@@ -861,6 +859,7 @@ export interface QuillProposalSummary {
   title: string;
   status: "draft" | "final";
   customer_name: string | null;
+  owned_by: string | null;
   odoo_sale_order_name: string | null;
   updated_at: string;
 }
@@ -883,6 +882,7 @@ export interface QuillProposalPage {
   total: number;
   limit: number;
   offset: number;
+  sees_all: boolean;
 }
 export interface QuillChatMessage {
   id: string;

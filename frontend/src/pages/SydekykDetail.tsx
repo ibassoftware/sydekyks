@@ -190,7 +190,7 @@ export default function SydekykDetail() {
                       <registryEntry.setupSection sydekyk={sydekyk} canManage={canConfigure} onReadiness={setReadiness} />
                     </Card>
                   )}
-                  {sydekyk.workflow_enabled && (
+                  {sydekyk.workflow_enabled && !registryEntry?.hideReviewerAssignment && (
                     <Card className="p-6">
                       <ReviewerAssignment sydekykId={sydekyk.id} canManage={canConfigure} />
                     </Card>

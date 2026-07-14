@@ -10,22 +10,18 @@ class QuillSettingsOut(BaseModel):
     default_template_id: uuid.UUID | None = None
     page_size: str
     accent_color: str | None = None
+    footer_text: str | None = None
     estimated_hourly_wage: float
     estimated_minutes_per_proposal: float
-    auto_create_quotation: bool
-    merge_quotation_pdf: bool
-    upload_to_quotation: bool
 
 
 class QuillSettingsUpdate(BaseModel):
     default_template_id: uuid.UUID | None = None
     page_size: str = Field(default="A4", pattern="^(A4|Letter)$")
     accent_color: str | None = Field(default=None, max_length=12)
+    footer_text: str | None = Field(default=None, max_length=300)
     estimated_hourly_wage: float = Field(default=45.0, ge=0)
     estimated_minutes_per_proposal: float = Field(default=45.0, ge=0)
-    auto_create_quotation: bool = False
-    merge_quotation_pdf: bool = False
-    upload_to_quotation: bool = False
 
 
 # --- Readiness / playbook --------------------------------------------------------------------------
@@ -94,6 +90,7 @@ class ProposalSummary(BaseModel):
     title: str
     status: str
     customer_name: str | None = None
+    owned_by: str | None = None  # shown to managers so they can tell whose proposal it is
     odoo_sale_order_name: str | None = None
     updated_at: datetime
 
@@ -118,6 +115,7 @@ class ProposalPage(BaseModel):
     total: int
     limit: int
     offset: int
+    sees_all: bool = False  # true when the viewer is a manager seeing every proposal in the HQ
 
 
 class ProposalCreate(BaseModel):

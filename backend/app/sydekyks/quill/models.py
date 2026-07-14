@@ -22,6 +22,7 @@ class QuillTenantSettings(Base):
     # Print setup + branding for the PDF export.
     page_size: Mapped[str] = mapped_column(String(12), nullable=False, default="A4")  # A4 | Letter
     accent_color: Mapped[str | None] = mapped_column(String(12), nullable=True)  # hex, e.g. #b8860b
+    footer_text: Mapped[str | None] = mapped_column(String(300), nullable=True)  # PDF footer (company/contact line)
     logo_asset_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     # Savings assumptions.
     estimated_hourly_wage: Mapped[float] = mapped_column(Float, nullable=False, default=45.0)

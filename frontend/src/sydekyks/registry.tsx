@@ -94,6 +94,9 @@ export interface SydekykRegistryEntry {
   operationsPanel?: ComponentType<OperationsProps>;
   /** What a needs-review item is called for this Sydekyk (Ledger: bill, Decode: applicant). */
   reviewNoun?: { one: string; many: string };
+  /** Hide the shared "Review Assignment" section — for Sydekyks that never auto-flag a record for
+   * review (e.g. Quill, which authors documents rather than triaging records). */
+  hideReviewerAssignment?: boolean;
 }
 
 /** Pick a stable-but-varied item from a pool, keyed off the mission id, so a row always reads the
@@ -218,6 +221,7 @@ const BY_SLUG: Record<string, SydekykRegistryEntry> = {
     missionRowLabel: quillRowLabel,
     functionGroup: "sales",
     reviewNoun: { one: "proposal", many: "proposals" },
+    hideReviewerAssignment: true,
   },
   nudge: {
     setupSection: NudgeSettingsSection,
