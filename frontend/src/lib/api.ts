@@ -839,6 +839,7 @@ export interface QuillSettings {
   default_template_id: string | null;
   page_size: string;
   accent_color: string | null;
+  header_text: string | null;
   footer_text: string | null;
   estimated_hourly_wage: number;
   estimated_minutes_per_proposal: number;

@@ -70,6 +70,16 @@ export function QuillSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
             </div>
           </div>
           <div>
+            <Label>PDF header line (optional)</Label>
+            <Input
+              type="text" maxLength={300} placeholder="Acme Corp"
+              disabled={!canManage || saving}
+              defaultValue={settings.header_text ?? ""}
+              onBlur={(e) => save({ ...settings, header_text: e.target.value || null })}
+            />
+            <p className="mt-1 text-[11px] text-[#8a7f6d]">Runs along the top of every exported page (with the proposal title on the right).</p>
+          </div>
+          <div>
             <Label>PDF footer line (optional)</Label>
             <Input
               type="text" maxLength={300} placeholder="Acme Corp · 123 Main St · sales@acme.com"

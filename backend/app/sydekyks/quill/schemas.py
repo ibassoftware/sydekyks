@@ -10,6 +10,7 @@ class QuillSettingsOut(BaseModel):
     default_template_id: uuid.UUID | None = None
     page_size: str
     accent_color: str | None = None
+    header_text: str | None = None
     footer_text: str | None = None
     estimated_hourly_wage: float
     estimated_minutes_per_proposal: float
@@ -19,6 +20,7 @@ class QuillSettingsUpdate(BaseModel):
     default_template_id: uuid.UUID | None = None
     page_size: str = Field(default="A4", pattern="^(A4|Letter)$")
     accent_color: str | None = Field(default=None, max_length=12)
+    header_text: str | None = Field(default=None, max_length=300)
     footer_text: str | None = Field(default=None, max_length=300)
     estimated_hourly_wage: float = Field(default=45.0, ge=0)
     estimated_minutes_per_proposal: float = Field(default=45.0, ge=0)

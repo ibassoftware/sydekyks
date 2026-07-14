@@ -167,7 +167,7 @@ def get_settings(user: User = Depends(require_tenant_member), db: Session = Depe
     s = _settings(db, user.tenant_id)
     return QuillSettingsOut(
         default_template_id=s.default_template_id, page_size=s.page_size, accent_color=s.accent_color,
-        footer_text=s.footer_text, estimated_hourly_wage=s.estimated_hourly_wage,
+        header_text=s.header_text, footer_text=s.footer_text, estimated_hourly_wage=s.estimated_hourly_wage,
         estimated_minutes_per_proposal=s.estimated_minutes_per_proposal,
     )
 
@@ -179,6 +179,7 @@ def update_settings(payload: QuillSettingsUpdate, user: User = Depends(require_t
     s.default_template_id = payload.default_template_id
     s.page_size = payload.page_size
     s.accent_color = payload.accent_color
+    s.header_text = payload.header_text
     s.footer_text = payload.footer_text
     s.estimated_hourly_wage = payload.estimated_hourly_wage
     s.estimated_minutes_per_proposal = payload.estimated_minutes_per_proposal
@@ -469,7 +470,7 @@ def export_pdf(proposal_id: uuid.UUID, merge_quotation: bool = False, user: User
     html_doc = pdf_svc.build_document(
         _inline_asset_images(db, user.tenant_id, proposal.content_html),
         title=proposal.title, page_size=s.page_size, accent=s.accent_color, logo_data_uri=logo_uri,
-        footer_text=s.footer_text,
+        header_text=s.header_text, footer_text=s.footer_text,
     )
     try:
         proposal_pdf = pdf_svc.render_html_to_pdf(html_doc)
@@ -577,7 +578,8 @@ def attach_to_quotation(proposal_id: uuid.UUID, user: User = Depends(require_ten
     s = _settings(db, user.tenant_id)
     html_doc = pdf_svc.build_document(
         _inline_asset_images(db, user.tenant_id, proposal.content_html),
-        title=proposal.title, page_size=s.page_size, accent=s.accent_color, footer_text=s.footer_text,
+        title=proposal.title, page_size=s.page_size, accent=s.accent_color,
+        header_text=s.header_text, footer_text=s.footer_text,
     )
     try:
         proposal_pdf = pdf_svc.render_html_to_pdf(html_doc)

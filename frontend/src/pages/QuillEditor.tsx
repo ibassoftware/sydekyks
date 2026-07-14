@@ -32,6 +32,8 @@ export default function QuillEditor() {
   const [tokenTotal, setTokenTotal] = useState(0);
   const [cost, setCost] = useState(0);
   const [quillHref, setQuillHref] = useState("/hq/roster");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewing, setPreviewing] = useState(false);
   const undoRef = useRef<string | null>(null);
 
   // Resolve the Quill agent page so the editor can jump back to its settings/operations.
@@ -107,6 +109,26 @@ export default function QuillEditor() {
     dirtyRef.current = true;
   }
 
+  async function preview() {
+    if (!proposalId) return;
+    setPreviewing(true);
+    try {
+      // Save the latest edits first so the preview matches what's on screen, then render the real PDF.
+      if (dirtyRef.current) await save();
+      const r = await api.post(`/tenant/quill/proposals/${proposalId}/pdf`, null, { responseType: "blob" });
+      const url = URL.createObjectURL(r.data as Blob);
+      setPreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return url; });
+    } catch (e) {
+      toast.error(errMsg(e, "Couldn't render the preview. Is WeasyPrint installed on the backend?"));
+    } finally {
+      setPreviewing(false);
+    }
+  }
+
+  function closePreview() {
+    setPreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
+  }
+
   async function exportPdf(merge: boolean) {
     if (!proposalId) return;
     try {
@@ -163,6 +185,7 @@ export default function QuillEditor() {
           </span>
           <span className="text-xs text-[#8a7f6d]">{saving ? "Saving…" : "Saved"}</span>
           <Button className="px-3 py-1.5 text-xs" variant="ghost" onClick={saveAsTemplate}>Save as template</Button>
+          <Button className="px-3 py-1.5 text-xs" variant="ghost" disabled={previewing} onClick={preview}>{previewing ? "Rendering…" : "Preview"}</Button>
           <Button className="px-3 py-1.5 text-xs" onClick={() => exportPdf(false)}>Export PDF</Button>
         </div>
 
@@ -185,6 +208,19 @@ export default function QuillEditor() {
           </div>
         </div>
       </div>
+
+      {previewUrl && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-sm">
+          <div className="flex items-center justify-between border-b border-ink-700 bg-ink-900 px-5 py-3">
+            <p className="font-display text-sm text-[#ede6da]">PDF preview — {title}</p>
+            <div className="flex items-center gap-2">
+              <Button className="px-3 py-1.5 text-xs" onClick={() => exportPdf(false)}>Download</Button>
+              <button onClick={closePreview} className="text-sm text-[#8a7f6d] hover:text-gold-300">Close ✕</button>
+            </div>
+          </div>
+          <iframe title="Proposal PDF preview" src={previewUrl} className="min-h-0 flex-1 bg-white" />
+        </div>
+      )}
     </HQShell>
   );
 }

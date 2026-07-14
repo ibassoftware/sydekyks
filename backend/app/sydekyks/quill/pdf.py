@@ -10,7 +10,9 @@ import io
 
 _BASE_CSS = """
 @page {{
-  size: {page_size}; margin: 20mm 18mm 24mm;
+  size: {page_size}; margin: 24mm 18mm 24mm;
+  @top-left {{ content: {header_left}; font-family: Georgia, serif; font-size: 8pt; color: #999; }}
+  @top-right {{ content: {header_right}; font-family: Georgia, serif; font-size: 8pt; color: #999; }}
   @bottom-left {{ content: {footer_left}; font-family: Georgia, serif; font-size: 8pt; color: #888; }}
   @bottom-right {{ content: "Page " counter(page) " of " counter(pages); font-family: Georgia, serif; font-size: 8pt; color: #888; }}
 }}
@@ -38,11 +40,16 @@ def _css_string(value: str | None) -> str:
 
 def build_document(content_html: str, *, title: str | None = None, page_size: str = "A4",
                    accent: str | None = None, logo_data_uri: str | None = None,
-                   footer_text: str | None = None) -> str:
-    """Wrap a proposal HTML fragment in a full, print-styled HTML document with a running footer
-    (optional footer line on the left, page numbers on the right)."""
+                   header_text: str | None = None, footer_text: str | None = None) -> str:
+    """Wrap a proposal HTML fragment in a full, print-styled HTML document with a running header/footer
+    (optional header line top-left + title top-right; footer line bottom-left + page numbers bottom-right)."""
     accent = accent or "#8a6d1a"
-    css = _BASE_CSS.format(page_size=page_size or "A4", accent=accent, footer_left=_css_string(footer_text))
+    css = _BASE_CSS.format(
+        page_size=page_size or "A4", accent=accent,
+        header_left=_css_string(header_text),
+        header_right=_css_string(title if header_text else None),  # echo the title in the running header
+        footer_left=_css_string(footer_text),
+    )
     header = ""
     if logo_data_uri:
         header += f'<img class="quill-logo" src="{logo_data_uri}" alt="logo"/>'
