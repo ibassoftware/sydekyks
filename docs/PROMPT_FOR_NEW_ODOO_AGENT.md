@@ -455,3 +455,52 @@ redundant manual one" applied to the agent's *configuration itself*.
   referrals, in 6 weeks — enterprise takes 5 months and you lose 80% on price."* Pair it with the
   false-cold bias alarm and the ranked list deep-linked into Odoo. This is §9's "dashboards drive a
   decision, not a scoreboard" at its peak — often more valuable than the per-record scores themselves.
+
+## 14. Interactive-workbench agents — a human authors WITH the AI (the Quill design)
+
+Most agents run headless (cron/upload → record). **Quill** (proposal generator) is the first
+*interactive workbench*: a rep drives a full-page editor, the AI drafts and co-edits, and the human
+ships the result. It still lives inside the platform (a package + registry entry + missions +
+metering), but it breaks a few defaults on purpose. The patterns, so the next document-generation
+agent (a contract/SOW writer, a report builder) reuses them:
+
+- **A full-page route is the escape hatch from the `SydekykDetail` shell.** Settings/operations still
+  render in the shared detail page via the registry (`operationsPanel` is the entry point — "New
+  proposal" → navigate), but the editor itself is its own route (`/hq/<slug>/editor/:id`,
+  `frontend/src/pages/QuillEditor.tsx`, registered in `App.tsx`). Don't try to cram a workbench into a
+  settings panel.
+- **The rich editor is a shared, generic component, not agent-specific.** `components/RichDocEditor.tsx`
+  (TipTap, HTML in/out, image insert) has one consumer today but is deliberately reusable — the
+  platform's "build the generic thing once, wire one consumer" rule (§9). Editor content is HTML;
+  Markdown templates convert on the way in (`marked`).
+- **Every AI turn is still a Mission — even the interactive ones.** Both `quill.draft` (generate) and
+  `quill.refine` (the "Ask Quill" chat that rewrites the work-in-progress) are playbooks run **inline**
+  from the router (`run_mission(mid)` synchronously, then re-read the mutated row) so the editor gets
+  its result immediately, while metering (`usage_guard.check_allowed` + `mission_ai.emit_usage`), the
+  activity feed, and savings all work unchanged. A package can `register_playbook` **more than one**
+  key; the catalog's `playbook_key` is just the primary. Refine missions render as muted revision rows.
+- **Token tracking is a product surface, not just billing.** Generative agents are far more
+  token-hungry than classifiers (long content in *and* out every turn). Copy each turn's token counts
+  (from its `UsageRecord`) onto a per-document chat store (`quill_chat_messages`) so the editor shows a
+  **live per-document token + cost badge**; lead the dashboard card with tokens/AI-cost. A `usage_guard`
+  denial becomes a **429** the UI toasts, pausing the chat until the window frees.
+- **⚠️ An `<img>` can't send the bearer token.** Serving user images from an auth-gated
+  `/assets/{id}` route 401s inside the editor. Return the uploaded image as a **data URI** and embed
+  that (TipTap `Image.configure({ allowBase64: true })`) — it renders in the editor *and* in the PDF
+  with no auth dance. Keep the bytes in a `<agent>_assets` table (mirroring the `document_storage`
+  boundary) for the record/logo reuse.
+- **HTML→PDF is WeasyPrint + pypdf, imported lazily.** `sydekyks/quill/pdf.py` wraps the fragment in a
+  branded print stylesheet and renders server-side (crisp vector text). Do the heavy/native import
+  *inside* the function so package discovery never needs pango/cairo present — only an export call
+  does; a missing lib is a clean 501, not an import crash. **WeasyPrint needs system libs**
+  (pango/cairo/gdk-pixbuf) in the backend image — the one real ops step. `pypdf` merges the proposal
+  with the official Odoo quotation PDF.
+- **Odoo stays optional and best-effort.** Quill is the first `sale.order` integration
+  (`services/odoo_sales.py`, reusable): create **draft** quotations only (never confirm), add free-text
+  lines best-effort (a stock `sale.order.line` may require a product — skip a rejected line rather than
+  fail the quotation), and `fetch_quotation_pdf` degrades to `None` on any version/marshalling snag so
+  the merge falls back to proposal-only. The `erp` gadget requirement is `is_required=False` — the
+  agent is fully usable with no Odoo at all. Teach `gadget_links.mission_generic_record` the new model
+  (`sale.order` → "Open quotation in Odoo").
+- **Draft, never send** still holds (§12): Quill produces a document and (optionally) a draft
+  quotation + a PDF attached back to it; the human reviews and sends.

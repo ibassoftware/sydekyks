@@ -11,6 +11,7 @@ import AdminMissions from "./pages/AdminMissions";
 import TenantDashboard from "./pages/TenantDashboard";
 import Roster from "./pages/Roster";
 import SydekykDetail from "./pages/SydekykDetail";
+import QuillEditor from "./pages/QuillEditor";
 import Gadgets from "./pages/Gadgets";
 import Missions from "./pages/Missions";
 import Issues from "./pages/Issues";
@@ -65,6 +66,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={["commander", "hero"]}>
                 <SydekykDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hq/quill/editor/:proposalId"
+            element={
+              <ProtectedRoute roles={["commander", "hero"]}>
+                <QuillEditor />
               </ProtectedRoute>
             }
           />

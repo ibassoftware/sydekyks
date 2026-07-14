@@ -101,6 +101,24 @@ _ROSTER_SYDEKYKS = [
         model="gpt-4o-mini", temperature=0.3, chat_enabled=False, workflow_enabled=True,
     ),
     dict(
+        name="Quill", slug="quill",
+        tagline="Your proposal-writing sidekick — turns notes into a polished, client-ready proposal.",
+        description=(
+            "Quill turns a template and your notes into a polished, client-ready proposal you can edit "
+            "in a rich web editor. Pick a template, drop in your notes, and Quill drafts the whole "
+            "document as clean HTML — then keep refining it by conversation ('shorten the intro', 'add "
+            "a pricing table'), insert images, and export a crisp PDF. Optionally link an Odoo "
+            "opportunity so the draft is grounded in the real customer and amounts, raise a draft "
+            "sales quotation, and merge its official PDF with the proposal. Quill drafts; you send."
+        ),
+        avatar_url="/sydekyks/quill.png",
+        system_prompt=(
+            "You are Quill, a proposal writer. Draft polished, client-ready proposals from the rep's "
+            "notes and template, grounded only in supplied facts — never invent numbers or commitments."
+        ),
+        model="gpt-4o-mini", temperature=0.4, chat_enabled=False, workflow_enabled=True,
+    ),
+    dict(
         name="Mirror", slug="mirror",
         tagline="Your accounts-payable watchdog — catches duplicate vendor bills before you pay twice.",
         description=(

@@ -65,3 +65,25 @@ body {
     transform: scale(1);
   }
 }
+
+/* RichDocEditor (TipTap) content — rendered on a light "paper" surface, so it reads like a document. */
+.quill-doc-content {
+  color: #1a1a1a;
+  font-family: Georgia, "Times New Roman", serif;
+  line-height: 1.6;
+}
+.quill-doc-content h1 { font-size: 1.9rem; font-weight: 700; margin: 0.6em 0 0.3em; color: #6b5410; }
+.quill-doc-content h2 { font-size: 1.45rem; font-weight: 700; margin: 0.7em 0 0.3em; color: #6b5410; }
+.quill-doc-content h3 { font-size: 1.15rem; font-weight: 700; margin: 0.7em 0 0.3em; color: #6b5410; }
+.quill-doc-content p { margin: 0 0 0.7em; }
+.quill-doc-content ul { list-style: disc; margin: 0 0 0.7em 1.4em; }
+.quill-doc-content ol { list-style: decimal; margin: 0 0 0.7em 1.4em; }
+.quill-doc-content blockquote { border-left: 3px solid #c9b877; margin: 0 0 0.7em; padding-left: 1em; color: #555; }
+.quill-doc-content a { color: #9a7b1a; text-decoration: underline; }
+.quill-doc-content img { max-width: 100%; height: auto; border-radius: 4px; margin: 0.4em 0; }
+.quill-doc-content hr { border: none; border-top: 1px solid #ddd; margin: 1em 0; }
+.quill-doc-content table { width: 100%; border-collapse: collapse; margin: 0.7em 0; }
+.quill-doc-content th, .quill-doc-content td { border: 1px solid #d9d9d9; padding: 6px 8px; text-align: left; }
+.quill-doc-content th { background: #f0ead6; }
+.quill-doc-content:focus { outline: none; }
+.quill-doc-content .ProseMirror-selectednode { outline: 2px solid #c9b877; }

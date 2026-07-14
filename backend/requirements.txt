@@ -16,4 +16,6 @@ arq
 redis
 pillow
 pypdfium2
+weasyprint
+pypdf
 pytest

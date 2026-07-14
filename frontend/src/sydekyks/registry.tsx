@@ -23,6 +23,9 @@ import { NudgeSettingsSection } from "./nudge/NudgeSettingsSection";
 import { NudgePlaybookPanel } from "./nudge/NudgePlaybookPanel";
 import { NudgeMissionSummary } from "./nudge/NudgeMissionSummary";
 import { NudgeOperationsSection } from "./nudge/NudgeOperationsSection";
+import { QuillSettingsSection } from "./quill/QuillSettingsSection";
+import { QuillOperationsSection } from "./quill/QuillOperationsSection";
+import { QuillMissionSummary } from "./quill/QuillMissionSummary";
 
 /** VS-9: a deliberately plain per-Sydekyk UI registry — mirrors the backend's per-Sydekyk package
  * structure. No dynamic imports, no plugin framework; it just lets a Sydekyk provide optional UI so
@@ -107,6 +110,7 @@ const SCOUT_VERBS = ["Graded", "Scored", "Evaluated", "Assessed", "Rated", "Revi
 const MIRROR_VERBS = ["Checked", "Scanned", "Inspected", "Vetted", "Screened", "Reviewed"];
 const SHIELD_VERBS = ["Assessed", "Screened", "Reviewed", "Audited", "Vetted", "Examined"];
 const NUDGE_VERBS = ["Nudged", "Followed up on", "Chased", "Revived", "Re-engaged", "Warmed"];
+const QUILL_VERBS = ["Drafted", "Wrote", "Composed", "Authored", "Produced", "Prepared"];
 
 /** Fallback headline when a Mission produced no business object yet (queued/running) or was rejected
  * (failed) — the friendly error already reads like "This doesn't look like a résumé…". */
@@ -193,7 +197,28 @@ function nudgeRowLabel(m: RowLabelInput): MissionRowLabel {
   return { title: `${verb} ${opp}${days}` };
 }
 
+function quillRowLabel(m: RowLabelInput): MissionRowLabel {
+  const s = m.result_summary ?? {};
+  const title = s.title as string | undefined;
+  if (!title) return fallbackRowLabel(m);
+  if (s.action === "revised") {
+    const changed = s.changed as string | undefined;
+    return { title: `Revised “${title}”${changed ? ` · ${changed}` : ""}`, muted: true };
+  }
+  const verb = pick(QUILL_VERBS, m.id);
+  const customer = s.customer as string | undefined;
+  return { title: `${verb} the proposal “${title}”${customer ? ` for ${customer}` : ""}` };
+}
+
 const BY_SLUG: Record<string, SydekykRegistryEntry> = {
+  quill: {
+    setupSection: QuillSettingsSection,
+    operationsPanel: QuillOperationsSection,
+    missionSummary: QuillMissionSummary,
+    missionRowLabel: quillRowLabel,
+    functionGroup: "sales",
+    reviewNoun: { one: "proposal", many: "proposals" },
+  },
   nudge: {
     setupSection: NudgeSettingsSection,
     playbookPanel: NudgePlaybookPanel,
@@ -262,6 +287,8 @@ const BY_PLAYBOOK: Record<string, SydekykRegistryEntry> = {
   "mirror.duplicate_check": { missionSummary: MirrorMissionSummary, missionRowLabel: mirrorRowLabel },
   "shield.risk_assess": { missionSummary: ShieldMissionSummary, missionRowLabel: shieldRowLabel },
   "nudge.followup": { missionSummary: NudgeMissionSummary, missionRowLabel: nudgeRowLabel },
+  "quill.draft": { missionSummary: QuillMissionSummary, missionRowLabel: quillRowLabel },
+  "quill.refine": { missionSummary: QuillMissionSummary, missionRowLabel: quillRowLabel },
 };
 
 export function registryForSlug(slug: string | undefined): SydekykRegistryEntry | undefined {

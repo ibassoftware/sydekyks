@@ -6,7 +6,7 @@
  * `backend/app/seed.py` (`_ROSTER_SYDEKYKS`). Group labels + order mirror the in-app roster
  * grouping (`FUNCTION_GROUPS` in `src/sydekyks/registry.tsx`) so naming stays consistent. */
 
-export type RosterSlug = "nudge" | "ledger" | "mirror" | "shield" | "decode" | "scout";
+export type RosterSlug = "nudge" | "quill" | "ledger" | "mirror" | "shield" | "decode" | "scout";
 
 /** Business function — matches the in-app `FunctionGroup` labels (Sales · Accounting · HR). */
 export type Domain = "Sales" | "Accounting" | "HR";
@@ -60,6 +60,33 @@ export const ROSTER: RosterEntry[] = [
       { title: "Read", detail: "Reads each deal's stage and real conversation history." },
       { title: "Draft", detail: "Writes a context-aware follow-up — never a generic “just checking in”." },
       { title: "Hand off", detail: "Creates a To-Do and logs the draft to the chatter for the rep to edit and send." },
+    ],
+    accent: "gold",
+  },
+  {
+    slug: "quill",
+    name: "Quill",
+    tagline: "Your proposal-writing sidekick — turns notes into a polished, client-ready proposal.",
+    domain: "Sales",
+    role: "Proposal generation",
+    summary:
+      "Quill turns a template and your notes into a polished, client-ready proposal you can edit in a " +
+      "rich web editor. Pick a template, drop in your notes, and Quill drafts the whole document — then " +
+      "keep refining it by conversation (“shorten the intro”, “add a pricing table”), insert images, and " +
+      "export a crisp PDF. Optionally ground the draft in a real Odoo opportunity, raise a draft sales " +
+      "quotation, and merge its official PDF with the proposal.",
+    capabilities: [
+      "Drafts a full proposal as clean, editable HTML from your notes + a template",
+      "Refine it by chat — Quill rewrites the work-in-progress on request",
+      "Insert images, edit freely, and save your own reusable templates",
+      "Exports a crisp, branded PDF",
+      "Optional Odoo: ground in an opportunity, raise a quotation, and merge its PDF",
+    ],
+    howItWorks: [
+      { title: "Draft", detail: "Pick a template, drop in your notes, and Quill writes the proposal." },
+      { title: "Refine", detail: "Edit by hand or ask Quill to revise the document in place." },
+      { title: "Illustrate", detail: "Insert images and save the result as a new template." },
+      { title: "Export", detail: "Download a polished PDF — optionally merged with an Odoo quotation." },
     ],
     accent: "gold",
   },
@@ -200,6 +227,93 @@ export const ROSTER: RosterEntry[] = [
 export const rosterBySlug: Record<string, RosterEntry> = Object.fromEntries(
   ROSTER.map((entry) => [entry.slug, entry])
 );
+
+/** A Sydekyk on the roadmap — not yet available, no detail page. Marketing-only teaser. */
+export interface UpcomingSydekyk {
+  name: string;
+  /** What the agent does, e.g. "Collections Agent". */
+  agent: string;
+  /** The human role it backs up, e.g. "AR Officer". */
+  replaces: string;
+}
+
+/** The public roadmap: Sydekyks we're building next, grouped by business area. New ones land
+ * constantly, so this list grows. Anything shipped moves up into `ROSTER` above and drops out here. */
+export const UPCOMING: { domain: string; entries: UpcomingSydekyk[] }[] = [
+  {
+    domain: "Finance",
+    entries: [
+      { name: "Chase", agent: "Collections Agent", replaces: "AR Officer" },
+      { name: "Balance", agent: "Bank Reconciliation Assistant", replaces: "Accountant" },
+      { name: "Match", agent: "Payment Matcher", replaces: "Accountant" },
+      { name: "Audit", agent: "Expense Policy Checker", replaces: "Finance Auditor" },
+      { name: "Beacon", agent: "Executive Finance Reporter", replaces: "Financial Analyst" },
+    ],
+  },
+  {
+    domain: "Recruitment",
+    entries: [
+      { name: "Echo", agent: "Interview Summarizer", replaces: "Recruiter" },
+      { name: "Launch", agent: "Onboarding Coordinator", replaces: "HR Officer" },
+      { name: "Verify", agent: "Document Validator", replaces: "HR Assistant" },
+      { name: "Pulse", agent: "Attendance Exception Detector", replaces: "HR Admin" },
+    ],
+  },
+  {
+    domain: "Sales",
+    entries: [
+      { name: "Spark", agent: "Lead Qualification Agent", replaces: "SDR" },
+      { name: "Forecast", agent: "Opportunity Forecast Agent", replaces: "Sales Manager" },
+      { name: "Coach", agent: "Sales Call Reviewer", replaces: "Sales Manager" },
+      { name: "Reply", agent: "Customer Email Responder", replaces: "Sales Support" },
+    ],
+  },
+  {
+    domain: "Purchasing",
+    entries: [
+      { name: "Source", agent: "RFQ Creator", replaces: "Buyer" },
+      { name: "Comparex", agent: "Quotation Comparator", replaces: "Buyer" },
+      { name: "Gauge", agent: "Supplier Scorecard", replaces: "Procurement Analyst" },
+      { name: "Renew", agent: "Contract Renewal Reminder", replaces: "Procurement Officer" },
+    ],
+  },
+  {
+    domain: "Inventory",
+    entries: [
+      { name: "Stocker", agent: "Replenishment Agent", replaces: "Inventory Planner" },
+      { name: "Sentinel", agent: "Inventory Exception Detector", replaces: "Inventory Controller" },
+      { name: "Locate", agent: "Bin Optimization Agent", replaces: "Warehouse Supervisor" },
+      { name: "Cycle", agent: "Cycle Count Planner", replaces: "Warehouse Staff" },
+    ],
+  },
+  {
+    domain: "Manufacturing",
+    entries: [
+      { name: "Vector", agent: "Production Scheduler", replaces: "Planner" },
+      { name: "Prism", agent: "Quality Defect Detector", replaces: "QA Inspector" },
+      { name: "Delay", agent: "Bottleneck Detector", replaces: "Production Manager" },
+      { name: "Predict", agent: "Machine Downtime Predictor", replaces: "Maintenance Planner" },
+    ],
+  },
+  {
+    domain: "CRM & Customer Support",
+    entries: [
+      { name: "Halo", agent: "Customer Support Agent", replaces: "CSR" },
+      { name: "Switch", agent: "Ticket Router", replaces: "Dispatcher" },
+      { name: "Scribe", agent: "Knowledge Article Generator", replaces: "Technical Writer" },
+      { name: "Mood", agent: "Customer Sentiment Analyzer", replaces: "Support Manager" },
+    ],
+  },
+  {
+    domain: "Data Quality",
+    entries: [
+      { name: "Cleanse", agent: "Duplicate Contact Detector", replaces: "Data Admin" },
+      { name: "Twin", agent: "Duplicate Product Detector", replaces: "Data Admin" },
+      { name: "Fixer", agent: "Missing Data Detector", replaces: "Data Admin" },
+      { name: "Guardian", agent: "Compliance Monitor", replaces: "Compliance Officer" },
+    ],
+  },
+];
 
 /** Group labels + order for the landing roster — mirrors the in-app `FUNCTION_GROUPS`. */
 export const DOMAIN_ORDER: Domain[] = ["Sales", "Accounting", "HR"];

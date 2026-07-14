@@ -829,3 +829,113 @@ export interface NudgeInsights {
   estimated_net_savings: number;
   processing_seconds: number;
 }
+
+// --- Quill (proposal generator) ---
+export interface QuillReadiness {
+  items: ReadinessItem[];
+  can_upload: boolean;
+}
+export interface QuillSettings {
+  default_template_id: string | null;
+  page_size: string;
+  accent_color: string | null;
+  estimated_hourly_wage: number;
+  estimated_minutes_per_proposal: number;
+  auto_create_quotation: boolean;
+  merge_quotation_pdf: boolean;
+  upload_to_quotation: boolean;
+}
+export interface QuillTemplateSummary {
+  id: string;
+  name: string;
+  format: "html" | "md";
+  is_builtin: boolean;
+}
+export interface QuillTemplate extends QuillTemplateSummary {
+  body: string;
+  created_by: string | null;
+  updated_at: string | null;
+}
+export interface QuillProposalSummary {
+  id: string;
+  title: string;
+  status: "draft" | "final";
+  customer_name: string | null;
+  odoo_sale_order_name: string | null;
+  updated_at: string;
+}
+export interface QuillProposal {
+  id: string;
+  title: string;
+  status: "draft" | "final";
+  content_html: string;
+  customer_name: string | null;
+  template_id: string | null;
+  odoo_lead_id: number | null;
+  odoo_sale_order_id: number | null;
+  odoo_sale_order_name: string | null;
+  token_total: number;
+  cost_usd: number;
+  updated_at: string;
+}
+export interface QuillProposalPage {
+  items: QuillProposalSummary[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+export interface QuillChatMessage {
+  id: string;
+  seq: number;
+  role: "user" | "assistant";
+  content: string;
+  total_tokens: number;
+  created_at: string;
+}
+export interface QuillChatHistory {
+  messages: QuillChatMessage[];
+  proposal_token_total: number;
+  proposal_cost_usd: number;
+}
+export interface QuillChatResult {
+  reply: string;
+  changed_summary: string;
+  proposal: QuillProposal;
+  turn_tokens: { prompt_tokens: number; completion_tokens: number; total_tokens: number; cost_usd: number };
+  proposal_token_total: number;
+  proposal_cost_usd: number;
+}
+export interface QuillAsset {
+  id: string;
+  url: string;
+  data_uri: string;
+  filename: string;
+}
+export interface QuillOpportunity {
+  id: number;
+  name: string | null;
+  partner_name: string | null;
+  stage_name: string | null;
+  expected_revenue: number | null;
+}
+export interface QuillQuotation {
+  odoo_sale_order_id: number;
+  odoo_sale_order_name: string | null;
+  amount_total: number | null;
+  currency: string | null;
+  odoo_url: string | null;
+}
+export interface QuillInsights {
+  activated: boolean;
+  proposals_created: number;
+  proposals_final: number;
+  revisions: number;
+  total_tokens: number;
+  ai_cost: number;
+  top_customers: { label: string; count: number }[];
+  estimated_hourly_wage: number;
+  estimated_minutes_each: number;
+  estimated_manual_cost: number;
+  estimated_net_savings: number;
+  processing_seconds: number;
+}

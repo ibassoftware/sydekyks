@@ -83,6 +83,9 @@ def mission_generic_record(summary: dict | None) -> tuple[str, int, str] | None:
     lead_id = summary.get("odoo_lead_id")
     if lead_id:
         return "crm.lead", int(lead_id), "Open opportunity in Odoo"
+    order_id = summary.get("odoo_sale_order_id")
+    if order_id:
+        return "sale.order", int(order_id), "Open quotation in Odoo"
     return None
 
 
