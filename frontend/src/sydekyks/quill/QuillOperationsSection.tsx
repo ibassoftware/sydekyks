@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api, type QuillProposalPage, type QuillProposalSummary, type QuillTemplateSummary } from "../../lib/api";
+import { marked } from "marked";
+import { api, type QuillProposalPage, type QuillProposalSummary, type QuillTemplate, type QuillTemplateSummary } from "../../lib/api";
 import { Button } from "../../components/ui";
 import type { OperationsProps } from "../registry";
 
@@ -29,6 +30,19 @@ export function QuillOperationsSection({ canManage }: OperationsProps) {
         title: "Untitled proposal",
         from_template_id: templateId || null,
       });
+      // Prefill the editor from the template. HTML templates are prefilled server-side; Markdown ones
+      // we convert client-side (marked) and save, so any template opens as an editable document.
+      if (templateId) {
+        try {
+          const tpl = await api.get<QuillTemplate>(`/tenant/quill/templates/${templateId}`);
+          if (tpl.data.format === "md" && tpl.data.body) {
+            const html = await marked.parse(tpl.data.body);
+            await api.put(`/tenant/quill/proposals/${r.data.id}`, { content_html: html });
+          }
+        } catch {
+          /* non-fatal — the proposal still opens (blank), and Generate can fill it from the template */
+        }
+      }
       navigate(`/hq/quill/editor/${r.data.id}`);
     } finally {
       setCreating(false);
