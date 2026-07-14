@@ -70,7 +70,7 @@ def _fmt_history(history: list[dict]) -> str:
 
 
 def generate_proposal(
-    virtual_key, model_alias, *, template_body, template_format, notes, facts=None, timeout: float = 90.0
+    virtual_key, model_alias, *, template_body, template_format, notes, facts=None, timeout: float = 240.0
 ):
     """Returns (ok, msg, {html, title, customer} | None, meta)."""
     prompt = _GENERATE_TEMPLATE.format(
@@ -89,7 +89,7 @@ def generate_proposal(
     }, meta
 
 
-def refine_proposal(virtual_key, model_alias, *, current_html, message, history=None, timeout: float = 90.0):
+def refine_proposal(virtual_key, model_alias, *, current_html, message, history=None, timeout: float = 240.0):
     """Returns (ok, msg, {reply, html, changed_summary} | None, meta)."""
     prompt = _REFINE_TEMPLATE.format(
         history=_fmt_history(history or []),
