@@ -43,7 +43,7 @@ def build_document(content_html: str, *, title: str | None = None, page_size: st
                    header_text: str | None = None, footer_text: str | None = None) -> str:
     """Wrap a proposal HTML fragment in a full, print-styled HTML document with a running header/footer
     (optional header line top-left + title top-right; footer line bottom-left + page numbers bottom-right)."""
-    accent = accent or "#8a6d1a"
+    accent = accent or "#1e3a5f"  # professional navy default; overridden by the tenant's accent setting
     css = _BASE_CSS.format(
         page_size=page_size or "A4", accent=accent,
         header_left=_css_string(header_text),
