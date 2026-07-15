@@ -189,7 +189,7 @@ One click on the Ledger page ("Create Email Inbox") creates the link **and** ass
 ```bash
 curl -s -X POST $API/tenant/ledger/email-inbox -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' -d '{"name":"Ledger Inbox"}'
-# → { "link_id": "...", "inbound_address": "acme-xxxx@inbound.sydekyks.app" }
+# → { "link_id": "...", "inbound_address": "acme-xxxx@inbound.sydekyks.com" }
 ```
 
 ### 6d. Check readiness (VS-1 / VS-6)
@@ -276,7 +276,7 @@ Why real Postgres: models use `JSONB`/`bytea`/`UUID`; SQLite would give false co
 AUTH=$(printf 'postmark:dev-inbound-webhook-secret-change-me' | base64)
 curl -s -X POST http://127.0.0.1:8000/api/webhooks/email/postmark \
   -H "Authorization: Basic $AUTH" -H 'Content-Type: application/json' \
-  -d '{"OriginalRecipient":"acme-xxxx@inbound.sydekyks.app","FromFull":{"Email":"vendor@ex.com"},
+  -d '{"OriginalRecipient":"acme-xxxx@inbound.sydekyks.com","FromFull":{"Email":"vendor@ex.com"},
        "Subject":"Invoice","MessageID":"msg-1",
        "Attachments":[{"Name":"bill.pdf","ContentType":"application/pdf","Content":"'"$(printf '%%PDF-1.4 test' | base64)"'"}]}'
 # Repeat with the same MessageID → {"status":"duplicate"}.  Unknown local-part → {"status":"no_match"}.
@@ -298,7 +298,7 @@ curl -s -X POST http://127.0.0.1:8000/api/webhooks/email/postmark \
 | `max_document_bytes` | 15 MiB | Shared upload + email size cap |
 | `email_webhook_basic_auth_user`/`_pass` | `postmark`/dev | Webhook auth |
 | `email_webhook_rate_limit_per_minute` | 60 | Webhook flood guard (VS-11) |
-| `email_inbound_domain` | `inbound.sydekyks.app` | Inbound address domain |
+| `email_inbound_domain` | `inbound.sydekyks.com` | Inbound address domain |
 | `SCHEMA_AUTO_CREATE` (env only) | unset | `1` = `create_all` for local/test bootstrap only |
 
 **Secrets:** never commit real keys. `backend/.env` is gitignored. Provider keys live encrypted in

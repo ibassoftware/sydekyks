@@ -710,7 +710,7 @@ function PostmarkSettings() {
                     setDomain(e.target.value);
                     setSaved(false);
                   }}
-                  placeholder="inbound.sydekyks.app"
+                  placeholder="inbound.sydekyks.com"
                 />
                 <p className="mt-1 text-xs text-[#8a7f6d]">
                   New inbox addresses are minted as <code className="text-[#b9ad98]">slug-agent-xxxx@{domain || "…"}</code>.

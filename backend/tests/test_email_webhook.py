@@ -85,7 +85,7 @@ def _latest_outcome(db):
 
 def test_missing_auth_is_unauthorized_and_recorded(db, engine, seeded, monkeypatch):
     _wire(engine, monkeypatch)
-    r = TestClient(app).post("/api/webhooks/email/postmark", json=_pdf_payload("x@inbound.sydekyks.app"))
+    r = TestClient(app).post("/api/webhooks/email/postmark", json=_pdf_payload("x@inbound.sydekyks.com"))
     assert r.status_code == 200 and r.json()["status"] == "unauthorized"
     db.expire_all()
     assert _latest_outcome(db) == "unauthorized"
@@ -96,7 +96,7 @@ def test_wrong_password_is_unauthorized(db, engine, seeded, monkeypatch):
     bad = base64.b64encode(f"{settings.email_webhook_basic_auth_user}:nope".encode()).decode()
     r = TestClient(app).post(
         "/api/webhooks/email/postmark",
-        json=_pdf_payload("x@inbound.sydekyks.app"),
+        json=_pdf_payload("x@inbound.sydekyks.com"),
         headers={"Authorization": f"Basic {bad}"},
     )
     assert r.json()["status"] == "unauthorized"
@@ -112,7 +112,7 @@ def test_unknown_recipient_is_no_match(db, engine, seeded, monkeypatch):
     _wire(engine, monkeypatch)
     r = TestClient(app).post(
         "/api/webhooks/email/postmark",
-        json=_pdf_payload("nobody-here@inbound.sydekyks.app"),
+        json=_pdf_payload("nobody-here@inbound.sydekyks.com"),
         headers=_auth_headers(),
     )
     assert r.json()["status"] == "no_match"
@@ -163,6 +163,6 @@ def test_rate_limited_after_cap(db, engine, seeded, monkeypatch):
     _wire(engine, monkeypatch)
     monkeypatch.setattr(settings, "email_webhook_rate_limit_per_minute", 1)
     client = TestClient(app)
-    client.post("/api/webhooks/email/postmark", json=_pdf_payload("x@inbound.sydekyks.app"), headers=_auth_headers())
-    r2 = client.post("/api/webhooks/email/postmark", json=_pdf_payload("x@inbound.sydekyks.app"), headers=_auth_headers())
+    client.post("/api/webhooks/email/postmark", json=_pdf_payload("x@inbound.sydekyks.com"), headers=_auth_headers())
+    r2 = client.post("/api/webhooks/email/postmark", json=_pdf_payload("x@inbound.sydekyks.com"), headers=_auth_headers())
     assert r2.json()["status"] == "rate_limited"

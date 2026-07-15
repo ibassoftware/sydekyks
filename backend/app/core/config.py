@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     # Inbound email (Postmark) — app-wide, proves "came from our configured webhook" (not per-tenant).
     email_webhook_basic_auth_user: str = "postmark"
     email_webhook_basic_auth_pass: str = "dev-inbound-webhook-secret-change-me"
-    email_inbound_domain: str = "inbound.sydekyks.app"
+    email_inbound_domain: str = "inbound.sydekyks.com"
     # Queue-backed Mission execution (VS-7). When queue_enabled is true, Missions are dispatched to
     # the arq worker over Redis; otherwise they fall back to in-process threadpool execution.
     redis_url: str = "redis://localhost:6379/0"

@@ -28,7 +28,7 @@ The old app's data was already backed up to `deploy_meteor_app_mongo_backup.arch
 
 ## Prerequisites
 
-1. **DNS** — an A record for `APP_DOMAIN` (e.g. `app.sydekyks.ai`) pointing at this server's public
+1. **DNS** — an A record for `APP_DOMAIN` (e.g. `sydekyks.com`) pointing at this server's public
    IP. Let's Encrypt's HTTP-01 challenge needs this resolvable and port 80 reachable.
 2. **Ports 80 and 443 free** — stop the old Meteor container (above); it holds port 80.
 3. **Docker + Compose v2** — already present (`docker compose version`).

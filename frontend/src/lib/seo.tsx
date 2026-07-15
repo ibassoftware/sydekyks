@@ -8,7 +8,7 @@
 import { useEffect } from "react";
 
 /** Absolute site origin for canonical + OG URLs. Override per-env with VITE_SITE_URL. */
-export const SITE_URL = (import.meta.env.VITE_SITE_URL ?? "https://sydekyks.ai").replace(/\/$/, "");
+export const SITE_URL = (import.meta.env.VITE_SITE_URL ?? "https://sydekyks.com").replace(/\/$/, "");
 export const SITE_NAME = "Sydekyks";
 const DEFAULT_OG_IMAGE = "/og-cover.png";
 

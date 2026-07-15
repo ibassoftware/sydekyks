@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://sydekyks.ai/</loc></url>
-  <url><loc>https://sydekyks.ai/sydekyks/nudge</loc></url>
-  <url><loc>https://sydekyks.ai/sydekyks/ledger</loc></url>
-  <url><loc>https://sydekyks.ai/sydekyks/mirror</loc></url>
-  <url><loc>https://sydekyks.ai/sydekyks/shield</loc></url>
-  <url><loc>https://sydekyks.ai/sydekyks/decode</loc></url>
-  <url><loc>https://sydekyks.ai/sydekyks/scout</loc></url>
+  <url><loc>https://sydekyks.com/</loc></url>
+  <url><loc>https://sydekyks.com/sydekyks/nudge</loc></url>
+  <url><loc>https://sydekyks.com/sydekyks/quill</loc></url>
+  <url><loc>https://sydekyks.com/sydekyks/ledger</loc></url>
+  <url><loc>https://sydekyks.com/sydekyks/mirror</loc></url>
+  <url><loc>https://sydekyks.com/sydekyks/shield</loc></url>
+  <url><loc>https://sydekyks.com/sydekyks/decode</loc></url>
+  <url><loc>https://sydekyks.com/sydekyks/scout</loc></url>
 </urlset>

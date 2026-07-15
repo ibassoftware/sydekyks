@@ -9,14 +9,14 @@ from app.sydekyks.ledger.playbook import PLAYBOOK_STEPS
 def test_postmark_parses_recipient_message_id_and_attachment():
     content = base64.b64encode(b"%PDF-1.4 fake").decode()
     raw = {
-        "OriginalRecipient": "acme-abcd@inbound.sydekyks.app",
+        "OriginalRecipient": "acme-abcd@inbound.sydekyks.com",
         "FromFull": {"Email": "vendor@example.com"},
         "Subject": "Invoice",
         "MessageID": "msg-123",
         "Attachments": [{"Name": "bill.pdf", "ContentType": "application/pdf", "Content": content}],
     }
     email = parse_postmark_payload(raw)
-    assert email.to_address == "acme-abcd@inbound.sydekyks.app"
+    assert email.to_address == "acme-abcd@inbound.sydekyks.com"
     assert email.from_address == "vendor@example.com"
     assert email.message_id == "msg-123"
     assert len(email.attachments) == 1
@@ -25,22 +25,22 @@ def test_postmark_parses_recipient_message_id_and_attachment():
 
 def test_postmark_falls_back_to_tofull_and_skips_bad_attachment():
     raw = {
-        "ToFull": [{"Email": "x@inbound.sydekyks.app"}],
+        "ToFull": [{"Email": "x@inbound.sydekyks.com"}],
         "From": "v@example.com",
         "Attachments": [{"Name": "broken", "ContentType": "application/pdf", "Content": "!!!not-base64!!!"}],
     }
     email = parse_postmark_payload(raw)
-    assert email.to_address == "x@inbound.sydekyks.app"
+    assert email.to_address == "x@inbound.sydekyks.com"
     assert email.from_address == "v@example.com"
     assert email.attachments == []
 
 
 def test_postmark_prefers_original_recipient_over_tofull():
     raw = {
-        "OriginalRecipient": "real@inbound.sydekyks.app",
-        "ToFull": [{"Email": "other@inbound.sydekyks.app"}],
+        "OriginalRecipient": "real@inbound.sydekyks.com",
+        "ToFull": [{"Email": "other@inbound.sydekyks.com"}],
     }
-    assert parse_postmark_payload(raw).to_address == "real@inbound.sydekyks.app"
+    assert parse_postmark_payload(raw).to_address == "real@inbound.sydekyks.com"
 
 
 def test_postmark_parses_mailbox_hash_and_multiple_attachments():
@@ -49,7 +49,7 @@ def test_postmark_parses_mailbox_hash_and_multiple_attachments():
     a = base64.b64encode(b"one").decode()
     b = base64.b64encode(b"two").decode()
     raw = {
-        "OriginalRecipient": "acme-ledger-a1b2c3+ahoy@inbound.sydekyks.app",
+        "OriginalRecipient": "acme-ledger-a1b2c3+ahoy@inbound.sydekyks.com",
         "FromFull": {"Email": "vendor@example.com"},
         "MailboxHash": "ahoy",
         "StrippedTextReply": "reply text",
