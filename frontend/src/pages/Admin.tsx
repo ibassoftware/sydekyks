@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import axios from "axios";
-import { api, type HostedAssignment, type ProviderKey, type SydekykAdmin, type SydekykUsage, type Tenant } from "../lib/api";
+import { api, type HostedAssignment, type PostmarkConfig, type ProviderKey, type SydekykAdmin, type SydekykUsage, type Tenant } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { Badge, Button, Card, Input, Label, Modal, PageShell } from "../components/ui";
 import { Link, useNavigate } from "react-router-dom";
@@ -374,6 +374,8 @@ export default function Admin() {
           )}
         </Card>
 
+        <PostmarkSettings />
+
         <CommandCenterMetering />
       </main>
 
@@ -618,5 +620,198 @@ function HostedAssignmentForm({ sydekyk, onClose }: { sydekyk: SydekykAdmin; onC
         </form>
       )}
     </Card>
+  );
+}
+
+function authenticatedWebhookUrl(cfg: PostmarkConfig) {
+  // Postmark posts to this URL; the Basic Auth creds embedded in it are how we verify the request is
+  // really from Postmark (Postmark does not sign inbound webhooks).
+  const creds = `${encodeURIComponent(cfg.webhook_basic_auth_user)}:${encodeURIComponent(cfg.webhook_basic_auth_pass)}`;
+  return cfg.webhook_url.replace(/^(https?:\/\/)/, `$1${creds}@`);
+}
+
+function PostmarkSettings() {
+  const [cfg, setCfg] = useState<PostmarkConfig | null>(null);
+  const [domain, setDomain] = useState("");
+  const [token, setToken] = useState("");
+  const [authUser, setAuthUser] = useState("");
+  const [authPass, setAuthPass] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  function apply(next: PostmarkConfig) {
+    setCfg(next);
+    setDomain(next.inbound_domain);
+    setToken("");
+    setAuthUser(next.webhook_basic_auth_user);
+    setAuthPass("");
+  }
+
+  useEffect(() => {
+    api.get<PostmarkConfig>("/admin/postmark").then((res) => apply(res.data));
+  }, []);
+
+  async function save() {
+    setSaving(true);
+    setSaved(false);
+    setError(null);
+    try {
+      const res = await api.put<PostmarkConfig>("/admin/postmark", {
+        inbound_domain: domain,
+        server_token: token || undefined,
+        webhook_basic_auth_user: authUser || undefined,
+        webhook_basic_auth_pass: authPass || undefined,
+      });
+      apply(res.data);
+      setSaved(true);
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.data?.detail) setError(String(err.response.data.detail));
+      else setError("Failed to save. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function disableToken() {
+    const res = await api.delete<PostmarkConfig>("/admin/postmark/server-token");
+    apply(res.data);
+  }
+
+  async function copyWebhook() {
+    if (!cfg) return;
+    await navigator.clipboard.writeText(authenticatedWebhookUrl(cfg));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+
+  return (
+    <>
+      <div className="mt-12">
+        <h2 className="text-2xl font-bold text-[#f5eee0]">Inbound Email (Postmark)</h2>
+        <p className="mt-1 text-sm text-[#b9ad98]">
+          The domain that inbound bills/documents are received on, the Postmark Server API token, and the webhook URL
+          Postmark must post to. Shared across every HQ.
+        </p>
+      </div>
+
+      <Card className="mt-6 p-6">
+        {!cfg ? (
+          <p className="text-sm text-[#b9ad98]">Loading…</p>
+        ) : (
+          <div className="grid gap-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <Label>Inbound Domain</Label>
+                <Input
+                  value={domain}
+                  onChange={(e) => {
+                    setDomain(e.target.value);
+                    setSaved(false);
+                  }}
+                  placeholder="inbound.sydekyks.app"
+                />
+                <p className="mt-1 text-xs text-[#8a7f6d]">
+                  New inbox addresses are minted as <code className="text-[#b9ad98]">slug-agent-xxxx@{domain || "…"}</code>.
+                </p>
+              </div>
+              <div>
+                <Label>Postmark Server API Token</Label>
+                <Input
+                  type="password"
+                  value={token}
+                  onChange={(e) => {
+                    setToken(e.target.value);
+                    setSaved(false);
+                  }}
+                  placeholder={cfg.has_server_token ? "Enter a new token to replace the existing one" : "••••••••"}
+                />
+                <p className="mt-1 text-xs text-[#8a7f6d]">
+                  {cfg.has_server_token ? (
+                    <span className="inline-flex items-center gap-1.5 font-semibold text-gold-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-gold-400" /> Configured
+                    </span>
+                  ) : (
+                    "Not configured"
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <Label>Webhook Basic Auth — Username</Label>
+                <Input
+                  value={authUser}
+                  onChange={(e) => {
+                    setAuthUser(e.target.value);
+                    setSaved(false);
+                  }}
+                  placeholder="postmark"
+                />
+              </div>
+              <div>
+                <Label>Webhook Basic Auth — Password</Label>
+                <Input
+                  type="password"
+                  value={authPass}
+                  onChange={(e) => {
+                    setAuthPass(e.target.value);
+                    setSaved(false);
+                  }}
+                  placeholder="Enter a new password to replace the existing one"
+                />
+                <p className="mt-1 text-xs text-[#8a7f6d]">
+                  Postmark sends these with every inbound POST; they're how we verify the request is really Postmark.
+                </p>
+              </div>
+            </div>
+
+            {error && <p className="text-sm text-red-400">{error}</p>}
+            {saved && !error && (
+              <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-gold-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-gold-400" /> Saved.
+              </p>
+            )}
+
+            <div className="flex items-center gap-3">
+              <Button disabled={saving} onClick={save}>
+                {saving ? "Saving…" : "Save"}
+              </Button>
+              {cfg.has_server_token && (
+                <Button variant="ghost" onClick={disableToken}>
+                  Disable token
+                </Button>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-ink-700 bg-ink-900/60 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <Label>Webhook URL — set this in Postmark</Label>
+                <Button variant="ghost" className="px-3 py-1.5 text-xs" onClick={copyWebhook}>
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+              </div>
+              <code className="mt-2 block break-all rounded bg-ink-950/70 px-3 py-2 text-xs text-[#ede6da]">
+                {authenticatedWebhookUrl(cfg)}
+              </code>
+              <ol className="mt-4 list-decimal space-y-1.5 pl-5 text-xs text-[#b9ad98]">
+                <li>
+                  In Postmark, open (or create) an <strong>Inbound</strong> server and point your domain's MX records
+                  at Postmark for <code className="text-[#ede6da]">{cfg.inbound_domain}</code>.
+                </li>
+                <li>
+                  Set that server's <strong>Inbound Webhook URL</strong> to the URL above (the
+                  <code className="text-[#ede6da]"> user:pass@</code> prefix is HTTP Basic Auth — Postmark does not sign
+                  inbound webhooks, so this is how we verify the request came from Postmark).
+                </li>
+                <li>Send a bill to any HQ's inbox address; it appears under All Missions once processed.</li>
+              </ol>
+            </div>
+          </div>
+        )}
+      </Card>
+    </>
   );
 }

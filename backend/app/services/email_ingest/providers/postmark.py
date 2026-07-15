@@ -41,5 +41,6 @@ def parse_postmark_payload(raw: dict) -> ParsedInboundEmail:
         subject=raw.get("Subject") or "",
         text_body=raw.get("StrippedTextReply") or raw.get("TextBody") or "",
         message_id=raw.get("MessageID") or None,
+        mailbox_hash=raw.get("MailboxHash") or None,
         attachments=attachments,
     )

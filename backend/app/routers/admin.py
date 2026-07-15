@@ -1,10 +1,11 @@
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.crypto import decrypt_secret, encrypt_secret
 from app.core.deps import require_super_admin
 from app.core.security import hash_password
@@ -12,10 +13,12 @@ from app.db.session import get_db
 from app.models.llm_provider import CentralProviderKey, SydekykHostedAssignment
 from app.models.metering import ModelRateProfile, PlanTier
 from app.models.mission import Mission, MissionDocument
+from app.models.postmark import PostmarkConfig
 from app.models.sydekyk import Sydekyk
 from app.models.tenant import Tenant
 from app.models.user import User
 from app.schemas.hosted_assignment import HostedAssignmentOut, HostedAssignmentUpdate
+from app.schemas.postmark import PostmarkConfigOut, PostmarkConfigUpdate
 from app.schemas.metering import (
     MeteringConfigOut,
     MeteringConfigUpdate,
@@ -31,7 +34,7 @@ from app.schemas.provider_key import ProviderKeyOut, ProviderKeyUpdate
 from app.schemas.sydekyk import SydekykAdminOut, SydekykModelUpdate
 from app.schemas.sydekyk_llm_config import SydekykUsageOut
 from app.schemas.tenant import TenantCreate, TenantOut
-from app.services import gadget_links, llm_provisioning, metering
+from app.services import gadget_links, llm_provisioning, metering, postmark_config
 from app.services.missions import apply_mission_filters
 from app.services.usage import get_sydekyk_total_usage
 
@@ -161,6 +164,56 @@ def clear_provider_key(provider: str, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(key)
     return _to_provider_key_out(key)
+
+
+# ---------------------------------------------------------------------------
+# Postmark (inbound email) — global config: the domain mail is received on + the
+# Postmark Server API token. The webhook URL Postmark must POST to is surfaced here too.
+# ---------------------------------------------------------------------------
+
+_WEBHOOK_PATH = "/api/webhooks/email/postmark"
+
+
+def _postmark_out(cfg: PostmarkConfig, request: Request) -> PostmarkConfigOut:
+    base = str(request.base_url).rstrip("/")
+    user, pwd = postmark_config.effective_credentials(cfg)
+    return PostmarkConfigOut(
+        inbound_domain=cfg.inbound_domain,
+        has_server_token=bool(cfg.encrypted_server_token),
+        webhook_url=f"{base}{_WEBHOOK_PATH}",
+        webhook_basic_auth_user=user,
+        webhook_basic_auth_pass=pwd,
+        updated_at=cfg.updated_at,
+    )
+
+
+@router.get("/postmark", response_model=PostmarkConfigOut)
+def get_postmark_config(request: Request, db: Session = Depends(get_db)):
+    return _postmark_out(postmark_config.get_config(db), request)
+
+
+@router.put("/postmark", response_model=PostmarkConfigOut)
+def update_postmark_config(payload: PostmarkConfigUpdate, request: Request, db: Session = Depends(get_db)):
+    cfg = postmark_config.get_config(db)
+    cfg.inbound_domain = payload.inbound_domain.strip()
+    if payload.server_token:
+        cfg.encrypted_server_token = encrypt_secret(payload.server_token)
+    if payload.webhook_basic_auth_user:
+        cfg.webhook_basic_auth_user = payload.webhook_basic_auth_user.strip()
+    if payload.webhook_basic_auth_pass:
+        cfg.encrypted_webhook_basic_auth_pass = encrypt_secret(payload.webhook_basic_auth_pass)
+    db.commit()
+    db.refresh(cfg)
+    return _postmark_out(cfg, request)
+
+
+@router.delete("/postmark/server-token", response_model=PostmarkConfigOut)
+def clear_postmark_server_token(request: Request, db: Session = Depends(get_db)):
+    cfg = postmark_config.get_config(db)
+    cfg.encrypted_server_token = None
+    db.commit()
+    db.refresh(cfg)
+    return _postmark_out(cfg, request)
 
 
 # ---------------------------------------------------------------------------

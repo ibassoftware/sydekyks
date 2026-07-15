@@ -263,6 +263,22 @@ export interface ProviderKeyUpdate {
   api_base?: string;
 }
 
+export interface PostmarkConfig {
+  inbound_domain: string;
+  has_server_token: boolean;
+  webhook_url: string;
+  webhook_basic_auth_user: string;
+  webhook_basic_auth_pass: string;
+  updated_at: string | null;
+}
+
+export interface PostmarkConfigUpdate {
+  inbound_domain: string;
+  server_token?: string;
+  webhook_basic_auth_user?: string;
+  webhook_basic_auth_pass?: string;
+}
+
 // --- GPU-second metering + per-tenant plan caps (Command Center) ---
 
 export interface MeteringConfig {

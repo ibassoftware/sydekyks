@@ -16,6 +16,7 @@ from app.models.gadget_requirement import SydekykGadgetRequirement, TenantSydeky
 from app.models.sydekyk import Sydekyk
 from app.services.email_ingest.providers.base import ParsedInboundEmail
 from app.services.email_ingest.providers.postmark import parse_postmark_payload
+from app.services import postmark_config
 from app.services.missions import create_mission_for_document
 from app.services.queue import enqueue_mission
 
@@ -41,7 +42,7 @@ def _rate_limited(key: str) -> bool:
     return False
 
 
-def _authorized(authorization: str | None) -> bool:
+def _authorized(authorization: str | None, expected_user: str, expected_pass: str) -> bool:
     if not authorization or not authorization.startswith("Basic "):
         return False
     try:
@@ -49,9 +50,7 @@ def _authorized(authorization: str | None) -> bool:
         user, _, pwd = decoded.partition(":")
     except (binascii.Error, ValueError):
         return False
-    return secrets.compare_digest(user, settings.email_webhook_basic_auth_user) and secrets.compare_digest(
-        pwd, settings.email_webhook_basic_auth_pass
-    )
+    return secrets.compare_digest(user, expected_user) and secrets.compare_digest(pwd, expected_pass)
 
 
 def _record(
@@ -94,29 +93,22 @@ async def postmark_inbound(request: Request, authorization: str | None = Header(
     if _rate_limited(client_ip):
         return {"status": "rate_limited"}
 
-    if not _authorized(authorization):
-        db: Session = next(get_db())
-        try:
-            _record(db, None, "unauthorized", reason=f"bad/absent auth from {client_ip}")
-        finally:
-            db.close()
-        return {"status": "unauthorized"}
-
-    try:
-        raw = await request.json()
-    except ValueError:
-        db = next(get_db())
-        try:
-            _record(db, None, "ignored", reason="invalid JSON body")
-        finally:
-            db.close()
-        return {"status": "ignored"}
-
-    email = parse_postmark_payload(raw)
-    local_part = email.to_address.split("@")[0].strip().lower()
-
     db: Session = next(get_db())
     try:
+        expected_user, expected_pass = postmark_config.get_webhook_credentials(db)
+        if not _authorized(authorization, expected_user, expected_pass):
+            _record(db, None, "unauthorized", reason=f"bad/absent auth from {client_ip}")
+            return {"status": "unauthorized"}
+
+        try:
+            raw = await request.json()
+        except ValueError:
+            _record(db, None, "ignored", reason="invalid JSON body")
+            return {"status": "ignored"}
+
+        email = parse_postmark_payload(raw)
+        local_part = email.to_address.split("@")[0].strip().lower()
+
         # Idempotency: a repeated provider message id never re-creates Missions.
         if email.message_id:
             existing = (

@@ -6,11 +6,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.core.config import settings as app_settings
 from app.core.crypto import decrypt_secret, encrypt_secret
 from app.core.deps import require_tenant_member
 from app.db.session import get_db
-from app.services import permissions
+from app.services import permissions, postmark_config
+from app.services.email_ingest.addressing import build_inbound_local_part
 from app.models.gadget import Gadget, TenantGadgetLink
 from app.models.gadget_requirement import SydekykGadgetRequirement, TenantSydekykGadgetAssignment
 from app.models.llm_provider import TenantSydekykLLMConfig
@@ -211,8 +211,8 @@ def create_email_inbox(
         name=payload.name,
         config={
             "provider": "postmark",
-            "inbound_local_part": f"{tenant_slug}-{secrets.token_hex(4)}",
-            "inbound_domain": app_settings.email_inbound_domain,
+            "inbound_local_part": build_inbound_local_part(tenant_slug, "ledger"),
+            "inbound_domain": postmark_config.get_inbound_domain(db),
         },
         encrypted_secret=encrypt_secret(secrets.token_urlsafe(24)),
         status="connected",

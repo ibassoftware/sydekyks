@@ -35,6 +35,46 @@ def test_postmark_falls_back_to_tofull_and_skips_bad_attachment():
     assert email.attachments == []
 
 
+def test_postmark_prefers_original_recipient_over_tofull():
+    raw = {
+        "OriginalRecipient": "real@inbound.sydekyks.app",
+        "ToFull": [{"Email": "other@inbound.sydekyks.app"}],
+    }
+    assert parse_postmark_payload(raw).to_address == "real@inbound.sydekyks.app"
+
+
+def test_postmark_parses_mailbox_hash_and_multiple_attachments():
+    # Mirrors Postmark's documented inbound payload: plus-addressing hash + several attachments,
+    # each with a base64 Content and an ignored ContentLength/ContentID.
+    a = base64.b64encode(b"one").decode()
+    b = base64.b64encode(b"two").decode()
+    raw = {
+        "OriginalRecipient": "acme-ledger-a1b2c3+ahoy@inbound.sydekyks.app",
+        "FromFull": {"Email": "vendor@example.com"},
+        "MailboxHash": "ahoy",
+        "StrippedTextReply": "reply text",
+        "TextBody": "full body",
+        "Attachments": [
+            {"Name": "a.png", "ContentType": "image/png", "Content": a, "ContentLength": 3, "ContentID": "cid"},
+            {"Name": "b.pdf", "ContentType": "application/pdf", "Content": b, "ContentLength": 3},
+        ],
+    }
+    email = parse_postmark_payload(raw)
+    assert email.mailbox_hash == "ahoy"
+    assert email.text_body == "reply text"  # StrippedTextReply wins over TextBody
+    assert [att.filename for att in email.attachments] == ["a.png", "b.pdf"]
+    assert [att.content_bytes for att in email.attachments] == [b"one", b"two"]
+
+
+def test_postmark_empty_payload_is_safe():
+    email = parse_postmark_payload({})
+    assert email.to_address == ""
+    assert email.from_address == ""
+    assert email.message_id is None
+    assert email.mailbox_hash is None
+    assert email.attachments == []
+
+
 def test_playbook_steps_metadata_matches_expected_keys():
     """Guards against the read-only Playbook panel (VS-5) drifting from what run() records."""
     keys = [s["key"] for s in PLAYBOOK_STEPS]

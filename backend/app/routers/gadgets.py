@@ -5,14 +5,14 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
 from app.core.crypto import decrypt_secret, encrypt_secret
 from app.core.deps import require_commander, require_tenant_member
 from app.db.session import get_db
 from app.models.gadget import Gadget, TenantGadgetLink
 from app.models.user import User
 from app.schemas.gadget import GadgetLinkCreate, GadgetLinkOut, GadgetLinkTestResult, GadgetLinkUpdate, GadgetOut
-from app.services import odoo
+from app.services import odoo, postmark_config
+from app.services.email_ingest.addressing import build_inbound_local_part
 
 router = APIRouter(prefix="/api/tenant", tags=["gadgets"], dependencies=[Depends(require_tenant_member)])
 
@@ -69,8 +69,8 @@ def create_gadget_link(payload: GadgetLinkCreate, user: User = Depends(require_c
         tenant_slug = user.tenant.slug if user.tenant else "hq"
         link.config = {
             "provider": "postmark",
-            "inbound_local_part": f"{tenant_slug}-{secrets.token_hex(4)}",
-            "inbound_domain": settings.email_inbound_domain,
+            "inbound_local_part": build_inbound_local_part(tenant_slug, "inbox"),
+            "inbound_domain": postmark_config.get_inbound_domain(db),
         }
         link.encrypted_secret = encrypt_secret(secrets.token_urlsafe(24))
         link.status = "connected"

@@ -18,4 +18,5 @@ class ParsedInboundEmail:
     subject: str
     text_body: str = ""  # plain-text body — used e.g. by Decode to infer the applied-for position
     message_id: str | None = None  # provider message id — the idempotency key (VS-8)
+    mailbox_hash: str | None = None  # Postmark plus-addressing hash (recipient `local+hash@domain`)
     attachments: list[ParsedAttachment] = field(default_factory=list)
