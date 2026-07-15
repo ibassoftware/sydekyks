@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Button, PageShell } from "../components/ui";
 import { MarketingHeader, MarketingFooter } from "../components/MarketingChrome";
 import { Seo, SITE_URL } from "../lib/seo";
-import { ROSTER, rosterByDomain, type RosterEntry } from "../content/roster";
+import { UPCOMING, rosterByDomain, type RosterEntry } from "../content/roster";
 import { BoltIcon, CheckIcon, ChevronRightIcon, ShieldIcon } from "../components/icons";
 
 const orgJsonLd = [
@@ -36,22 +36,35 @@ export default function Landing() {
       />
       <MarketingHeader />
 
-      <main className="mx-auto max-w-6xl px-6">
-        {/* Hero */}
-        <section className="relative flex flex-col items-center overflow-hidden py-24 text-center sm:py-28">
-          <div className="pointer-events-none absolute -top-24 left-1/2 h-96 w-[42rem] max-w-[90vw] -translate-x-1/2 rounded-full bg-gold-500/10 blur-3xl" />
-          <span className="relative mb-6 rounded-full border border-gold-700/50 bg-ink-900/60 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-gold-400">
+      {/* Hero — full-bleed video background */}
+      <section className="relative flex flex-col items-center overflow-hidden py-24 text-center sm:py-28">
+        <video
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-20"
+          autoPlay
+          loop
+          muted
+          playsInline
+          aria-hidden="true"
+        >
+          <source src="/bground.mp4" type="video/mp4" />
+        </video>
+        {/* Fade the video into the page background so the copy stays legible */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-ink-950/70 via-ink-950/50 to-ink-950" />
+        <div className="pointer-events-none absolute -top-24 left-1/2 h-96 w-[42rem] max-w-[90vw] -translate-x-1/2 rounded-full bg-gold-500/10 blur-3xl" />
+        <div className="relative mx-auto flex max-w-6xl flex-col items-center px-6">
+          <span className="mb-6 rounded-full border border-gold-700/50 bg-ink-900/60 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-gold-400">
             Every hero needs backup
           </span>
-          <h1 className="relative max-w-3xl text-5xl font-bold leading-tight text-[#f5eee0] md:text-6xl">
+          <h1 className="max-w-3xl text-5xl font-bold leading-tight text-[#f5eee0] md:text-6xl">
             Activate AI <span className="text-gold-400">Sydekyks</span> for your entire team
           </h1>
-          <p className="relative mt-6 max-w-2xl text-lg text-[#b9ad98]">
-            Sydekyks are premium AI agents that take the repetitive back-office work off your team's
-            plate — reading the documents, catching what humans miss, and acting directly inside the
-            tools you already run. Live in your Odoo today, reaching further tomorrow.
+          <p className="mt-6 max-w-2xl text-lg text-[#b9ad98]">
+            Sydekyks are premium AI agents built to take the repetitive back-office work your team
+            dreads and just get it done. They read every document, catch what humans miss, and act on
+            their own. Each one connects straight into your Odoo and works alongside your team like
+            your sharpest hire, one who never sleeps and never drops the ball.
           </p>
-          <div className="relative mt-10 flex flex-wrap justify-center gap-4">
+          <div className="mt-10 flex flex-wrap justify-center gap-4">
             <Link to="/login">
               <Button className="px-8 py-3 text-base">Enter Your HQ</Button>
             </Link>
@@ -61,11 +74,10 @@ export default function Landing() {
               </Button>
             </a>
           </div>
-          <p className="relative mt-8 text-xs font-medium uppercase tracking-widest text-[#7a6f5d]">
-            {ROSTER.length} Sydekyks · Sales · Accounting · HR · Works inside Odoo
-          </p>
-        </section>
+        </div>
+      </section>
 
+      <main className="mx-auto max-w-6xl px-6">
         {/* Roster */}
         <section id="roster" className="scroll-mt-24 py-12">
           <div className="text-center">
@@ -86,6 +98,50 @@ export default function Landing() {
               </div>
             </div>
           ))}
+        </section>
+
+        {/* Coming soon — the roadmap */}
+        <section id="upcoming" className="scroll-mt-24 py-12">
+          <div className="text-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-gold-700/40 bg-ink-900/60 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-gold-400">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold-400" />
+              In the works
+            </span>
+            <h2 className="mt-5 text-3xl font-bold text-[#f5eee0] md:text-4xl">
+              The roster keeps growing
+            </h2>
+            <p className="mx-auto mt-3 max-w-2xl text-[#b9ad98]">
+              These Sydekyks aren't live yet, but they're on the way. We ship new specialists across
+              your whole back office all the time, so check back soon.
+            </p>
+          </div>
+
+          {UPCOMING.map(({ domain, entries }) => (
+            <div key={domain} className="mt-14 first:mt-12">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-500">{domain}</p>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {entries.map((entry) => (
+                  <div
+                    key={entry.name}
+                    className="group relative rounded-xl border border-dashed border-ink-600 bg-ink-900/40 p-5"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-lg font-semibold text-[#e8dfce]">{entry.name}</h3>
+                      <span className="shrink-0 rounded-full border border-ink-600 bg-ink-800/60 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-[#8a7f6b]">
+                        Soon
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm font-medium text-gold-400/90">{entry.agent}</p>
+                    <p className="mt-2 text-xs text-[#8a7f6b]">Backs up your {entry.replaces}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          <p className="mt-14 text-center text-sm text-[#7a6f5d]">
+            New Sydekyks land regularly. Bookmark this page and check back soon.
+          </p>
         </section>
 
         {/* How Sydekyks work */}
