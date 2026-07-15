@@ -26,6 +26,12 @@ import { NudgeOperationsSection } from "./nudge/NudgeOperationsSection";
 import { QuillSettingsSection } from "./quill/QuillSettingsSection";
 import { QuillOperationsSection } from "./quill/QuillOperationsSection";
 import { QuillMissionSummary } from "./quill/QuillMissionSummary";
+import { SealSettingsSection } from "./seal/SealSettingsSection";
+import { SealOperationsSection } from "./seal/SealOperationsSection";
+import { SealMissionSummary } from "./seal/SealMissionSummary";
+import { SignetSettingsSection } from "./signet/SignetSettingsSection";
+import { SignetOperationsSection } from "./signet/SignetOperationsSection";
+import { SignetMissionSummary } from "./signet/SignetMissionSummary";
 
 /** VS-9: a deliberately plain per-Sydekyk UI registry — mirrors the backend's per-Sydekyk package
  * structure. No dynamic imports, no plugin framework; it just lets a Sydekyk provide optional UI so
@@ -114,6 +120,7 @@ const MIRROR_VERBS = ["Checked", "Scanned", "Inspected", "Vetted", "Screened", "
 const SHIELD_VERBS = ["Assessed", "Screened", "Reviewed", "Audited", "Vetted", "Examined"];
 const NUDGE_VERBS = ["Nudged", "Followed up on", "Chased", "Revived", "Re-engaged", "Warmed"];
 const QUILL_VERBS = ["Drafted", "Wrote", "Composed", "Authored", "Produced", "Prepared"];
+const SEAL_VERBS = ["Drafted", "Wrote", "Prepared", "Composed", "Authored", "Produced"];
 
 /** Fallback headline when a Mission produced no business object yet (queued/running) or was rejected
  * (failed) — the friendly error already reads like "This doesn't look like a résumé…". */
@@ -213,6 +220,34 @@ function quillRowLabel(m: RowLabelInput): MissionRowLabel {
   return { title: `${verb} the proposal “${title}”${customer ? ` for ${customer}` : ""}` };
 }
 
+function sealRowLabel(m: RowLabelInput): MissionRowLabel {
+  const s = m.result_summary ?? {};
+  const title = s.title as string | undefined;
+  if (!title) return fallbackRowLabel(m);
+  if (s.action === "reviewed") {
+    const findings = (s.findings as number) ?? 0;
+    const high = (s.high as number) ?? 0;
+    const tail = findings === 0 ? "no issues found" : `${findings} finding${findings === 1 ? "" : "s"}${high ? ` · ${high} high` : ""}`;
+    return { title: `Reviewed “${title}” · ${tail}`, muted: findings === 0 };
+  }
+  if (s.action === "revised") {
+    const changed = s.changed as string | undefined;
+    return { title: `Revised “${title}”${changed ? ` · ${changed}` : ""}`, muted: true };
+  }
+  const verb = pick(SEAL_VERBS, m.id);
+  const counterparty = s.counterparty as string | undefined;
+  return { title: `${verb} the contract “${title}”${counterparty ? ` with ${counterparty}` : ""}` };
+}
+
+function signetRowLabel(m: RowLabelInput): MissionRowLabel {
+  const s = m.result_summary ?? {};
+  const title = s.title as string | undefined;
+  if (!title) return fallbackRowLabel(m);
+  const sent = (s.sent as number) ?? 0;
+  if (s.action === "reminded") return { title: `Reminded ${sent} signer${sent === 1 ? "" : "s"} · “${title}”`, muted: sent === 0 };
+  return { title: `Sent “${title}” for signature · ${sent} invited`, muted: sent === 0 };
+}
+
 const BY_SLUG: Record<string, SydekykRegistryEntry> = {
   quill: {
     setupSection: QuillSettingsSection,
@@ -221,6 +256,24 @@ const BY_SLUG: Record<string, SydekykRegistryEntry> = {
     missionRowLabel: quillRowLabel,
     functionGroup: "sales",
     reviewNoun: { one: "proposal", many: "proposals" },
+    hideReviewerAssignment: true,
+  },
+  seal: {
+    setupSection: SealSettingsSection,
+    operationsPanel: SealOperationsSection,
+    missionSummary: SealMissionSummary,
+    missionRowLabel: sealRowLabel,
+    functionGroup: "sales",
+    reviewNoun: { one: "contract", many: "contracts" },
+    hideReviewerAssignment: true,
+  },
+  signet: {
+    setupSection: SignetSettingsSection,
+    operationsPanel: SignetOperationsSection,
+    missionSummary: SignetMissionSummary,
+    missionRowLabel: signetRowLabel,
+    functionGroup: "sales",
+    reviewNoun: { one: "envelope", many: "envelopes" },
     hideReviewerAssignment: true,
   },
   nudge: {
@@ -293,6 +346,11 @@ const BY_PLAYBOOK: Record<string, SydekykRegistryEntry> = {
   "nudge.followup": { missionSummary: NudgeMissionSummary, missionRowLabel: nudgeRowLabel },
   "quill.draft": { missionSummary: QuillMissionSummary, missionRowLabel: quillRowLabel },
   "quill.refine": { missionSummary: QuillMissionSummary, missionRowLabel: quillRowLabel },
+  "seal.draft": { missionSummary: SealMissionSummary, missionRowLabel: sealRowLabel },
+  "seal.refine": { missionSummary: SealMissionSummary, missionRowLabel: sealRowLabel },
+  "seal.review": { missionSummary: SealMissionSummary, missionRowLabel: sealRowLabel },
+  "signet.dispatch": { missionSummary: SignetMissionSummary, missionRowLabel: signetRowLabel },
+  "signet.remind": { missionSummary: SignetMissionSummary, missionRowLabel: signetRowLabel },
 };
 
 export function registryForSlug(slug: string | undefined): SydekykRegistryEntry | undefined {

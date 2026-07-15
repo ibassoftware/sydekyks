@@ -38,12 +38,14 @@ def discover_sydekyk_packages() -> list[ModuleType]:
 
 
 def collect_routers() -> list:
-    """Every Sydekyk package that exposes a top-level `router` attribute."""
+    """Every Sydekyk package's top-level `router` — plus an optional `public_router` for packages that
+    expose an unauthenticated surface (e.g. Signet's token-scoped `/api/sign` signing endpoints)."""
     routers = []
     for pkg in discover_sydekyk_packages():
-        router = getattr(pkg, "router", None)
-        if router is not None:
-            routers.append(router)
+        for attr in ("router", "public_router"):
+            r = getattr(pkg, attr, None)
+            if r is not None:
+                routers.append(r)
     return routers
 
 

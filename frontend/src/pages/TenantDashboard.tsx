@@ -15,6 +15,8 @@ import { MirrorInsightsSection } from "../sydekyks/mirror/MirrorInsightsSection"
 import { ShieldInsightsSection } from "../sydekyks/shield/ShieldInsightsSection";
 import { NudgeInsightsSection } from "../sydekyks/nudge/NudgeInsightsSection";
 import { QuillInsightsSection } from "../sydekyks/quill/QuillInsightsSection";
+import { SealInsightsSection } from "../sydekyks/seal/SealInsightsSection";
+import { SignetInsightsSection } from "../sydekyks/signet/SignetInsightsSection";
 
 function compactNumber(n: number): string {
   return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
@@ -118,6 +120,8 @@ export default function TenantDashboard() {
             {/* Grouped by business function: Sales · Accounting · HR. Each card self-gates on activation. */}
             <NudgeInsightsSection />
             <QuillInsightsSection />
+            <SealInsightsSection />
+            <SignetInsightsSection />
 
             {insights && (insights.activated ? <LedgerInsightsSection insights={insights} /> : <LedgerNotActivatedCard />)}
             <MirrorInsightsSection />

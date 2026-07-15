@@ -105,6 +105,30 @@ npm run dev                     # http://localhost:5173
 > dev/demo, no Redis/worker needed). Set `queue_enabled=true` + run the worker to exercise the
 > durable arq path (VS-7).
 
+### 4a. Auto-bootstrap on API startup (dev convenience)
+
+So a fresh pull "just works" without remembering to migrate/seed, the API can bootstrap itself on
+startup — apply `alembic upgrade head` then run the catalog seed — gated by two env flags:
+
+```bash
+# backend/.env
+AUTO_MIGRATE=true    # run `alembic upgrade head` on API startup (creates any new tables)
+AUTO_SEED=true       # run the catalog seed on API startup (registers any new agents / templates)
+```
+
+Both steps are **idempotent** (safe to run every start; the seed just prints "already exists"). They
+are **OFF by default** and should stay off in production — prod applies migrations via the Docker
+entrypoint (`RUN_MIGRATIONS=1`, on a single container) so multiple API replicas never race on the
+Alembic version lock. A bootstrap error is logged but never blocks the API from booting. Implemented as
+a FastAPI `lifespan` in `app/main.py`; with `--reload` it runs on every restart (fast — no-ops when
+already current).
+
+**Adding a new agent (Sydekyk):** dropping a package under `app/sydekyks/<slug>/` is auto-discovered
+(router + playbooks + seed). For it to appear in the in-app roster (`/hq/roster`) and on the public
+landing page you still need its **catalog row**, which the seed creates — so after adding an agent, run
+`alembic upgrade head` + `python -m app.seed` (or just restart the API with `AUTO_MIGRATE`/`AUTO_SEED`
+on). Public marketing copy + the showcase page live in `frontend/src/content/roster.ts`.
+
 ---
 
 ## 5. Create a tenant and log in
@@ -128,6 +152,10 @@ TOKEN=$(curl -s $API/auth/login -H 'Content-Type: application/json' \
 ```
 
 In the browser: go to `http://localhost:5173`, log in as the commander, land on **/hq**.
+
+> **Forgot/wrong commander login?** As super-admin, the **Command Center → HQs** table has a
+> *Manage login* action per HQ to change the commander's email and/or reset its password (API:
+> `PATCH /api/admin/tenants/{tenant_id}/commander`). No DB surgery needed.
 
 ---
 

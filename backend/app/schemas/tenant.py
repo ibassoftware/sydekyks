@@ -16,7 +16,15 @@ class TenantOut(BaseModel):
     name: str
     slug: str
     plan: str
+    commander_email: str | None = None  # the tenant's (earliest) commander login, for the Command Center
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+
+class TenantCommanderUpdate(BaseModel):
+    """Fix/reset an HQ's commander login from the Command Center. Provide either (or both)."""
+
+    email: EmailStr | None = None
+    password: str | None = Field(default=None, min_length=8)

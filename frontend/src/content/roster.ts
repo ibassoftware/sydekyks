@@ -6,7 +6,7 @@
  * `backend/app/seed.py` (`_ROSTER_SYDEKYKS`). Group labels + order mirror the in-app roster
  * grouping (`FUNCTION_GROUPS` in `src/sydekyks/registry.tsx`) so naming stays consistent. */
 
-export type RosterSlug = "nudge" | "quill" | "ledger" | "mirror" | "shield" | "decode" | "scout";
+export type RosterSlug = "nudge" | "quill" | "seal" | "signet" | "ledger" | "mirror" | "shield" | "decode" | "scout";
 
 /** Business function — matches the in-app `FunctionGroup` labels (Sales · Accounting · HR). */
 export type Domain = "Sales" | "Accounting" | "HR";
@@ -87,6 +87,60 @@ export const ROSTER: RosterEntry[] = [
       { title: "Refine", detail: "Edit by hand or ask Quill to revise the document in place." },
       { title: "Illustrate", detail: "Insert images and save the result as a new template." },
       { title: "Export", detail: "Download a polished PDF — optionally merged with an Odoo quotation." },
+    ],
+    accent: "gold",
+  },
+  {
+    slug: "seal",
+    name: "Seal",
+    tagline: "Your contract-drafting sidekick — writes contracts and reviews them clause-by-clause.",
+    domain: "Sales",
+    role: "Contract drafting & review",
+    summary:
+      "Seal drafts a contract from a template and your brief in a rich web editor, then reviews it " +
+      "clause-by-clause and flags the risky, one-sided, or missing clauses — proposing a redline for " +
+      "each that you accept or reject. Draft an NDA, service agreement, SOW or MSA, keep refining it by " +
+      "conversation, import a counterparty's contract to review it, and export a clean PDF. Hand the " +
+      "finished contract off for signing via Odoo Sign or the native Signet e-signature agent.",
+    capabilities: [
+      "Drafts a full contract as clean, editable HTML from your brief + a template",
+      "Reviews clause-by-clause and flags risky, one-sided, or missing clauses",
+      "Proposes a redline for each finding that you accept (auto-applied) or dismiss",
+      "Import a counterparty's contract to review it, or refine yours by chat",
+      "Exports a branded PDF and hands off to Odoo Sign or Signet for signature",
+    ],
+    howItWorks: [
+      { title: "Draft", detail: "Pick a template, give Seal a plain-language brief, and it writes the contract." },
+      { title: "Review", detail: "Seal reads it clause-by-clause and flags the risks, grounded in your playbook." },
+      { title: "Redline", detail: "Accept a suggested redline and Seal edits the clause in place — or dismiss it." },
+      { title: "Send", detail: "Export a clean PDF and hand off for signing via Odoo Sign or Signet." },
+    ],
+    accent: "gold",
+  },
+  {
+    slug: "signet",
+    name: "Signet",
+    tagline: "Your e-signature sidekick — sends contracts out for signing and chases the stragglers.",
+    domain: "Sales",
+    role: "E-signature & tracking",
+    summary:
+      "Signet takes a finished contract and gets it signed. Add the signatories and their email " +
+      "addresses, and Signet sends each a secure public signing link, tracks who has opened and signed, " +
+      "and follows up automatically after a few days — while letting you hold or void a request at any " +
+      "time. When everyone has signed, it assembles the final signed PDF with an audit trail. A native " +
+      "e-signature path that needs no Odoo Enterprise.",
+    capabilities: [
+      "Sends each signatory a secure, public signing link — no account needed",
+      "Tracks who has viewed, signed, or declined in real time",
+      "Follows up automatically on a cadence you set, and lets you hold or void",
+      "Assembles the final signed PDF with a certificate-of-completion audit trail",
+      "Parallel or sequential signing order, with typed or drawn signatures",
+    ],
+    howItWorks: [
+      { title: "Prepare", detail: "Add the signatories and their emails to a finished contract." },
+      { title: "Send", detail: "Each signer gets a secure public link to review and sign — no login." },
+      { title: "Track", detail: "Watch progress live and let Signet chase the stragglers for you." },
+      { title: "Complete", detail: "Once all have signed, Signet assembles the signed PDF with an audit trail." },
     ],
     accent: "gold",
   },

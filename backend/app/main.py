@@ -1,3 +1,7 @@
+import logging
+from contextlib import asynccontextmanager
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -18,7 +22,40 @@ from app.routers import (
 )
 from app.sydekyks import collect_routers
 
-app = FastAPI(title="Sydekyks API")
+logger = logging.getLogger("uvicorn.error")
+
+
+def _run_migrations() -> None:
+    """Apply `alembic upgrade head` in-process (idempotent — no-ops when already at head)."""
+    from alembic import command
+    from alembic.config import Config
+
+    ini_path = Path(__file__).resolve().parent.parent / "alembic.ini"
+    command.upgrade(Config(str(ini_path)), "head")
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # Optional startup bootstrap so a fresh pull (new tables / new agents) is ready without remembering
+    # to run migrate + seed by hand. Both are idempotent; both are OFF by default (see config).
+    if settings.auto_migrate:
+        try:
+            logger.info("[bootstrap] applying migrations (alembic upgrade head)…")
+            _run_migrations()
+        except Exception:  # noqa: BLE001 — never let a bootstrap error stop the API from booting
+            logger.exception("[bootstrap] migration failed")
+    if settings.auto_seed:
+        try:
+            logger.info("[bootstrap] seeding catalog (idempotent)…")
+            from app.seed import run as seed_run
+
+            seed_run()
+        except Exception:  # noqa: BLE001
+            logger.exception("[bootstrap] seed failed")
+    yield
+
+
+app = FastAPI(title="Sydekyks API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

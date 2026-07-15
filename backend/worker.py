@@ -243,6 +243,18 @@ async def audit_review_assignees(ctx: dict) -> int:
         db.close()
 
 
+async def poll_signet(ctx: dict) -> int:
+    """Hourly: send due signing reminders and expire overdue envelopes across all tenants. Deterministic
+    (template reminders, no model call), respecting each envelope's hold / interval / max-reminder cap."""
+    from app.sydekyks.signet import service as signet_service
+
+    db = SessionLocal()
+    try:
+        return await asyncio.to_thread(signet_service.process_due_reminders, db)
+    finally:
+        db.close()
+
+
 async def snapshot_daily_usage(ctx: dict) -> int:
     db = SessionLocal()
     try:
@@ -261,6 +273,7 @@ class WorkerSettings:
         cron(poll_nudge, minute={12, 42}),
         cron(audit_nudge_stages, hour={3}, minute={0}),
         cron(audit_review_assignees, hour={2}, minute={0}),
+        cron(poll_signet, minute={7, 37}),
         cron(snapshot_daily_usage, hour={0}, minute={5}),
     ]
     redis_settings = RedisSettings.from_dsn(settings.redis_url)

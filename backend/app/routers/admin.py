@@ -33,7 +33,7 @@ from app.schemas.mission import MissionDetailOut, MissionOut, MissionPage, Missi
 from app.schemas.provider_key import ProviderKeyOut, ProviderKeyUpdate
 from app.schemas.sydekyk import SydekykAdminOut, SydekykModelUpdate
 from app.schemas.sydekyk_llm_config import SydekykUsageOut
-from app.schemas.tenant import TenantCreate, TenantOut
+from app.schemas.tenant import TenantCommanderUpdate, TenantCreate, TenantOut
 from app.services import gadget_links, llm_provisioning, metering, postmark_config
 from app.services.missions import apply_mission_filters
 from app.services.usage import get_sydekyk_total_usage
@@ -43,9 +43,27 @@ router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(re
 _PROVIDERS = ("openai", "anthropic", "ollama_cloud")
 
 
+def _tenant_commander(db: Session, tenant_id: uuid.UUID) -> User | None:
+    """The tenant's primary (earliest-created) commander — the HQ's login owner."""
+    return (
+        db.query(User)
+        .filter(User.tenant_id == tenant_id, User.role == "commander")
+        .order_by(User.created_at.asc())
+        .first()
+    )
+
+
+def _tenant_out(db: Session, tenant: Tenant) -> TenantOut:
+    commander = _tenant_commander(db, tenant.id)
+    return TenantOut(
+        id=tenant.id, name=tenant.name, slug=tenant.slug, plan=tenant.plan,
+        commander_email=(commander.email if commander else None), created_at=tenant.created_at,
+    )
+
+
 @router.get("/tenants", response_model=list[TenantOut])
 def list_tenants(db: Session = Depends(get_db)):
-    return db.query(Tenant).order_by(Tenant.created_at.desc()).all()
+    return [_tenant_out(db, t) for t in db.query(Tenant).order_by(Tenant.created_at.desc()).all()]
 
 
 @router.post("/tenants", response_model=TenantOut, status_code=status.HTTP_201_CREATED)
@@ -68,7 +86,32 @@ def create_tenant(payload: TenantCreate, db: Session = Depends(get_db)):
     db.add(commander)
     db.commit()
     db.refresh(tenant)
-    return tenant
+    return _tenant_out(db, tenant)
+
+
+@router.patch("/tenants/{tenant_id}/commander", response_model=TenantOut)
+def update_tenant_commander(tenant_id: uuid.UUID, payload: TenantCommanderUpdate, db: Session = Depends(get_db)):
+    """Fix/reset an HQ's commander login — change its email and/or reset its password. Operates on the
+    tenant's earliest commander (the HQ owner)."""
+    tenant = db.get(Tenant, tenant_id)
+    if tenant is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found")
+    commander = _tenant_commander(db, tenant_id)
+    if commander is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="This HQ has no commander to update")
+    if payload.email is None and payload.password is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Provide a new email and/or password")
+
+    if payload.email is not None and payload.email != commander.email:
+        clash = db.query(User).filter(User.email == payload.email, User.id != commander.id).first()
+        if clash is not None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already in use")
+        commander.email = payload.email
+    if payload.password is not None:
+        commander.hashed_password = hash_password(payload.password)
+    db.commit()
+    db.refresh(tenant)
+    return _tenant_out(db, tenant)
 
 
 def _get_roster_sydekyk(db: Session, sydekyk_id: uuid.UUID) -> Sydekyk:

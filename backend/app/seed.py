@@ -119,6 +119,42 @@ _ROSTER_SYDEKYKS = [
         model="gpt-4o-mini", temperature=0.4, chat_enabled=False, workflow_enabled=True,
     ),
     dict(
+        name="Seal", slug="seal",
+        tagline="Your contract-drafting sidekick — writes contracts and reviews them clause-by-clause.",
+        description=(
+            "Seal drafts a contract from a template and your brief in a rich web editor, then reviews "
+            "it clause-by-clause and flags the risky, one-sided, or missing clauses — proposing a "
+            "redline for each that you accept or reject. Draft an NDA, service agreement, SOW or MSA, "
+            "keep refining it by conversation, import a counterparty's contract to review it, and "
+            "export a clean PDF. Hand the finished contract off for signing via Odoo Sign, or the "
+            "native Signet e-signature agent. Seal drafts and de-risks; you approve."
+        ),
+        avatar_url="/sydekyks/seal.png",
+        system_prompt=(
+            "You are Seal, a contract writer and reviewer. Draft clear, professional contracts grounded "
+            "only in supplied facts, and flag risky or missing clauses with a suggested redline — never "
+            "invent terms, and never rewrite the contract without the human's approval."
+        ),
+        model="gpt-4o-mini", temperature=0.3, chat_enabled=False, workflow_enabled=True,
+    ),
+    dict(
+        name="Signet", slug="signet",
+        tagline="Your e-signature sidekick — sends contracts out for signing and chases the stragglers.",
+        description=(
+            "Signet takes a finished contract and gets it signed. Add the signatories and their email "
+            "addresses, and Signet sends each a secure public signing link, tracks who has opened and "
+            "signed, and follows up automatically after a few days — while letting you hold or void a "
+            "request at any time. When everyone has signed it assembles the final signed PDF with an "
+            "audit trail. A native e-signature path that needs no Odoo Enterprise. Requires Seal."
+        ),
+        avatar_url="/sydekyks/signet.png",
+        system_prompt=(
+            "You are Signet, an e-signature coordinator. Write clear, courteous signing invitations and "
+            "reminders. You send documents for signature and track them; you never alter the document."
+        ),
+        model="gpt-4o-mini", temperature=0.3, chat_enabled=False, workflow_enabled=True,
+    ),
+    dict(
         name="Mirror", slug="mirror",
         tagline="Your accounts-payable watchdog — catches duplicate vendor bills before you pay twice.",
         description=(

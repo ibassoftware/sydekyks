@@ -44,6 +44,7 @@ export interface Tenant {
   name: string;
   slug: string;
   plan: string;
+  commander_email: string | null;
   created_at: string;
 }
 
@@ -955,4 +956,246 @@ export interface QuillInsights {
   estimated_manual_cost: number;
   estimated_net_savings: number;
   processing_seconds: number;
+}
+
+// --- Seal (contract generator + reviewer) ---
+export interface SealReadiness {
+  items: ReadinessItem[];
+  can_upload: boolean;
+}
+export interface SealSettings {
+  default_template_id: string | null;
+  review_guidelines: string;
+  page_size: string;
+  accent_color: string | null;
+  header_text: string | null;
+  footer_text: string | null;
+  estimated_hourly_wage: number;
+  estimated_minutes_per_contract: number;
+}
+export interface SealTemplateSummary {
+  id: string;
+  name: string;
+  format: "html" | "md";
+  is_builtin: boolean;
+}
+export interface SealTemplate extends SealTemplateSummary {
+  body: string;
+  created_by: string | null;
+  updated_at: string | null;
+}
+export interface SealContractSummary {
+  id: string;
+  title: string;
+  status: "draft" | "final";
+  counterparty_name: string | null;
+  owned_by: string | null;
+  open_findings: number;
+  updated_at: string;
+}
+export interface SealContract {
+  id: string;
+  title: string;
+  status: "draft" | "final";
+  content_html: string;
+  counterparty_name: string | null;
+  template_id: string | null;
+  review_seq: number;
+  odoo_lead_id: number | null;
+  odoo_partner_id: number | null;
+  odoo_sign_request_id: number | null;
+  token_total: number;
+  cost_usd: number;
+  updated_at: string;
+}
+export interface SealContractPage {
+  items: SealContractSummary[];
+  total: number;
+  limit: number;
+  offset: number;
+  sees_all: boolean;
+}
+export interface SealChatMessage {
+  id: string;
+  seq: number;
+  role: "user" | "assistant";
+  content: string;
+  total_tokens: number;
+  created_at: string;
+}
+export interface SealChatHistory {
+  messages: SealChatMessage[];
+  contract_token_total: number;
+  contract_cost_usd: number;
+}
+export interface SealChatResult {
+  reply: string;
+  changed_summary: string;
+  contract: SealContract;
+  turn_tokens: { prompt_tokens: number; completion_tokens: number; total_tokens: number; cost_usd: number };
+  contract_token_total: number;
+  contract_cost_usd: number;
+}
+export interface SealFinding {
+  id: string;
+  clause_label: string;
+  category: string;
+  severity: "high" | "medium" | "low";
+  issue: string;
+  rationale: string;
+  clause_anchor: string;
+  suggested_redline: string;
+  status: "open" | "accepted" | "dismissed";
+  created_at: string;
+}
+export interface SealReview {
+  review_seq: number;
+  findings: SealFinding[];
+  high: number;
+  open_count: number;
+}
+export interface SealFindingDecision {
+  finding: SealFinding;
+  applied: boolean;
+  contract: SealContract;
+}
+export interface SealAsset {
+  id: string;
+  url: string;
+  data_uri: string;
+  filename: string;
+}
+export interface SealOpportunity {
+  id: number;
+  name: string | null;
+  partner_name: string | null;
+  stage_name: string | null;
+  expected_revenue: number | null;
+}
+export interface SealSignRequest {
+  path: "odoo_sign" | "signet";
+  odoo_sign_request_id: number | null;
+  odoo_url: string | null;
+  signet_envelope_id: string | null;
+  detail: string | null;
+}
+export interface SealInsights {
+  activated: boolean;
+  contracts_created: number;
+  contracts_final: number;
+  revisions: number;
+  contracts_reviewed: number;
+  high_severity_caught: number;
+  redlines_accepted: number;
+  total_tokens: number;
+  ai_cost: number;
+  top_counterparties: { label: string; count: number }[];
+  estimated_hourly_wage: number;
+  estimated_minutes_each: number;
+  estimated_manual_cost: number;
+  estimated_net_savings: number;
+  processing_seconds: number;
+}
+
+// --- Signet (native e-signature) ---
+export interface SignetReadiness {
+  items: ReadinessItem[];
+  can_send: boolean;
+}
+export interface SignetSettings {
+  sender_name: string | null;
+  reminder_interval_days: number;
+  max_reminders: number;
+  expiry_days: number;
+  email_copy_mode: "template" | "ai";
+  email_prompt: string;
+  estimated_hourly_wage: number;
+  estimated_minutes_per_signature: number;
+}
+export interface SignetSigner {
+  id: string;
+  name: string;
+  email: string;
+  order: number;
+  status: "pending" | "viewed" | "signed" | "declined";
+  signed_at: string | null;
+  viewed_at: string | null;
+  reminder_count: number;
+  decline_reason: string | null;
+}
+export interface SignetEvent {
+  id: string;
+  event_type: string;
+  detail: string | null;
+  created_at: string;
+}
+export interface SignetEnvelopeSummary {
+  id: string;
+  title: string;
+  status: string;
+  signed_count: number;
+  signer_count: number;
+  hold: boolean;
+  owned_by: string | null;
+  updated_at: string;
+}
+export interface SignetEnvelope {
+  id: string;
+  title: string;
+  message: string;
+  status: string;
+  signing_order: "parallel" | "sequential";
+  reminder_interval_days: number;
+  max_reminders: number;
+  email_copy_mode: "template" | "ai";
+  email_prompt: string;
+  hold: boolean;
+  expires_at: string | null;
+  seal_contract_id: string | null;
+  has_signed_pdf: boolean;
+  signers: SignetSigner[];
+  events: SignetEvent[];
+  created_by: string | null;
+  sent_at: string | null;
+  completed_at: string | null;
+  updated_at: string;
+}
+export interface SignetEnvelopePage {
+  items: SignetEnvelopeSummary[];
+  total: number;
+  limit: number;
+  offset: number;
+  sees_all: boolean;
+}
+export interface SignetSendResult {
+  envelope: SignetEnvelope;
+  sent: number;
+}
+export interface SignetInsights {
+  activated: boolean;
+  envelopes_sent: number;
+  completed: number;
+  completion_rate: number;
+  pending: number;
+  at_risk: number;
+  reminders_sent: number;
+  median_hours_to_sign: number | null;
+  estimated_hourly_wage: number;
+  estimated_minutes_each: number;
+  estimated_manual_cost: number;
+  estimated_net_savings: number;
+  processing_seconds: number;
+}
+// Public signing page (no auth).
+export interface PublicSignEnvelope {
+  title: string;
+  message: string;
+  signer_name: string;
+  status: string;
+  already_signed: boolean;
+  document_data_uri: string | null;
+}
+export interface PublicSignResult {
+  status: string;
+  message: string;
 }

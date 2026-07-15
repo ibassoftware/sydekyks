@@ -25,6 +25,7 @@ export default function Admin() {
   const [editingProviderKey, setEditingProviderKey] = useState<ProviderKey | null>(null);
   const [removingProviderKey, setRemovingProviderKey] = useState<string | null>(null);
   const [configuringSydekyk, setConfiguringSydekyk] = useState<SydekykAdmin | null>(null);
+  const [editingCommander, setEditingCommander] = useState<Tenant | null>(null);
 
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -216,8 +217,10 @@ export default function Admin() {
                 <tr className="border-b border-ink-700 text-xs uppercase tracking-wider text-gold-500">
                   <th className="px-6 py-3 font-semibold">Name</th>
                   <th className="px-6 py-3 font-semibold">Slug</th>
+                  <th className="px-6 py-3 font-semibold">Commander</th>
                   <th className="px-6 py-3 font-semibold">Plan</th>
                   <th className="px-6 py-3 font-semibold">Created</th>
+                  <th className="px-6 py-3 font-semibold"></th>
                 </tr>
               </thead>
               <tbody>
@@ -225,8 +228,12 @@ export default function Admin() {
                   <tr key={t.id} className="border-b border-ink-700/60 last:border-0">
                     <td className="px-6 py-3 font-medium text-[#f5eee0]">{t.name}</td>
                     <td className="px-6 py-3 text-[#b9ad98]">{t.slug}</td>
+                    <td className="px-6 py-3 text-[#b9ad98]">{t.commander_email ?? <span className="text-red-400/80">none</span>}</td>
                     <td className="px-6 py-3 capitalize text-[#b9ad98]">{t.plan}</td>
                     <td className="px-6 py-3 text-[#b9ad98]">{new Date(t.created_at).toLocaleDateString()}</td>
+                    <td className="px-6 py-3 text-right">
+                      <button onClick={() => setEditingCommander(t)} className="text-xs font-semibold text-gold-400 hover:text-gold-300">Manage login</button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -397,7 +404,65 @@ export default function Admin() {
           <HostedAssignmentForm sydekyk={configuringSydekyk} onClose={() => setConfiguringSydekyk(null)} />
         )}
       </Modal>
+
+      <Modal open={!!editingCommander} onClose={() => setEditingCommander(null)}>
+        {editingCommander && (
+          <CommanderForm
+            tenant={editingCommander}
+            onClose={() => setEditingCommander(null)}
+            onSaved={() => { setEditingCommander(null); loadTenants(); }}
+          />
+        )}
+      </Modal>
     </PageShell>
+  );
+}
+
+function CommanderForm({ tenant, onClose, onSaved }: { tenant: Tenant; onClose: () => void; onSaved: () => void }) {
+  const [email, setEmail] = useState(tenant.commander_email ?? "");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    const body: { email?: string; password?: string } = {};
+    if (email.trim() && email.trim() !== tenant.commander_email) body.email = email.trim();
+    if (password) body.password = password;
+    if (!body.email && !body.password) { setError("Change the email or set a new password."); return; }
+    setBusy(true);
+    try {
+      await api.patch(`/admin/tenants/${tenant.id}/commander`, body);
+      onSaved();
+    } catch (err) {
+      const detail = axios.isAxiosError(err) ? (err.response?.data?.detail as string) : null;
+      setError(detail || "Couldn't update the commander login.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="w-full max-w-md rounded-xl border border-ink-600 bg-gradient-to-b from-ink-800 to-ink-900 p-6 shadow-2xl">
+      <h2 className="text-lg font-semibold text-[#f5eee0]">Manage commander login</h2>
+      <p className="mt-1 text-sm text-[#b9ad98]">{tenant.name} — the HQ's commander account.</p>
+      <form onSubmit={save} className="mt-4 grid gap-4">
+        <div>
+          <Label>Commander email</Label>
+          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="commander@acme.com" />
+        </div>
+        <div>
+          <Label>New password (optional)</Label>
+          <Input type="password" minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Leave blank to keep current" />
+        </div>
+        {error && <p className="text-sm text-red-400">{error}</p>}
+        <div className="flex items-center gap-2">
+          <Button type="submit" disabled={busy}>{busy ? "Saving…" : "Save"}</Button>
+          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+        </div>
+      </form>
+    </div>
   );
 }
 

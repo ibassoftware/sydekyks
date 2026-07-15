@@ -12,6 +12,8 @@ import TenantDashboard from "./pages/TenantDashboard";
 import Roster from "./pages/Roster";
 import SydekykDetail from "./pages/SydekykDetail";
 import QuillEditor from "./pages/QuillEditor";
+import SealEditor from "./pages/SealEditor";
+import SignContract from "./pages/SignContract";
 import Gadgets from "./pages/Gadgets";
 import Missions from "./pages/Missions";
 import Issues from "./pages/Issues";
@@ -29,6 +31,8 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/sydekyks/:slug" element={<SydekykShowcase />} />
           <Route path="/login" element={<Login />} />
+          {/* Public, unauthenticated signing page — a signer opens this from the emailed link. */}
+          <Route path="/sign/:token" element={<SignContract />} />
           <Route
             path="/admin"
             element={
@@ -74,6 +78,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={["commander", "hero"]}>
                 <QuillEditor />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hq/seal/editor/:contractId"
+            element={
+              <ProtectedRoute roles={["commander", "hero"]}>
+                <SealEditor />
               </ProtectedRoute>
             }
           />
