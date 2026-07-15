@@ -1,0 +1,178 @@
+# Production stack for a single host. Traefik terminates TLS on 80/443 and is the ONLY thing that
+# publishes host ports; everything else talks over the internal `web` network. Data lives in named
+# volumes (postgres_data etc.) so `up -d --build` updates never lose it.
+#
+#   Deploy / update:  docker compose -f docker-compose.prod.yml up -d --build
+#   See deploy/README.md for the full runbook (DNS, freeing port 80, backups, rollback).
+
+services:
+  traefik:
+    image: traefik:v3.3
+    container_name: sydekyks-traefik
+    restart: unless-stopped
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      # Global http -> https redirect.
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      # Let's Encrypt via HTTP-01 challenge (needs :80 reachable + DNS pointing here).
+      - --certificatesresolvers.le.acme.httpchallenge=true
+      - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.le.acme.email=${ACME_EMAIL}
+      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_letsencrypt:/letsencrypt
+    networks:
+      - web
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_SITE_URL: https://${APP_DOMAIN}
+    image: sydekyks-frontend:latest
+    container_name: sydekyks-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=web
+      # Catch-all for the app domain; the backend router below has higher priority for /api.
+      - traefik.http.routers.frontend.rule=Host(`${APP_DOMAIN}`)
+      - traefik.http.routers.frontend.entrypoints=websecure
+      - traefik.http.routers.frontend.tls.certresolver=le
+      - traefik.http.services.frontend.loadbalancer.server.port=80
+    networks:
+      - web
+
+  backend:
+    build: ./backend
+    image: sydekyks-backend:latest
+    container_name: sydekyks-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://sydekyks:${POSTGRES_PASSWORD}@postgres:5432/sydekyks
+      REDIS_URL: redis://redis:6379/0
+      QUEUE_ENABLED: "true"
+      RUN_MIGRATIONS: "1"
+      LITELLM_PROXY_URL: http://litellm-proxy:4000
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      CORS_ORIGINS: '["https://${APP_DOMAIN}"]'
+      EMAIL_WEBHOOK_BASIC_AUTH_USER: ${EMAIL_WEBHOOK_BASIC_AUTH_USER}
+      EMAIL_WEBHOOK_BASIC_AUTH_PASS: ${EMAIL_WEBHOOK_BASIC_AUTH_PASS}
+      EMAIL_INBOUND_DOMAIN: ${EMAIL_INBOUND_DOMAIN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=web
+      # Higher priority than the frontend catch-all so /api/** (incl. the Postmark webhook) hits the API.
+      - traefik.http.routers.backend.rule=Host(`${APP_DOMAIN}`) && PathPrefix(`/api`)
+      - traefik.http.routers.backend.priority=100
+      - traefik.http.routers.backend.entrypoints=websecure
+      - traefik.http.routers.backend.tls.certresolver=le
+      - traefik.http.services.backend.loadbalancer.server.port=8000
+    networks:
+      - web
+
+  worker:
+    build: ./backend
+    image: sydekyks-backend:latest
+    container_name: sydekyks-worker
+    restart: unless-stopped
+    command: ["arq", "worker.WorkerSettings"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://sydekyks:${POSTGRES_PASSWORD}@postgres:5432/sydekyks
+      REDIS_URL: redis://redis:6379/0
+      QUEUE_ENABLED: "true"
+      RUN_MIGRATIONS: "0"
+      LITELLM_PROXY_URL: http://litellm-proxy:4000
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      EMAIL_INBOUND_DOMAIN: ${EMAIL_INBOUND_DOMAIN}
+    depends_on:
+      - backend
+      - redis
+    networks:
+      - web
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: sydekyks-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sydekyks
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: sydekyks
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sydekyks"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - web
+
+  redis:
+    image: redis:7-alpine
+    container_name: sydekyks-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - web
+
+  litellm-postgres:
+    image: postgres:16-alpine
+    container_name: sydekyks-litellm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: litellm
+      POSTGRES_PASSWORD: ${LITELLM_POSTGRES_PASSWORD:-litellm}
+      POSTGRES_DB: litellm
+    volumes:
+      - litellm_postgres_data:/var/lib/postgresql/data
+    networks:
+      - web
+
+  litellm-proxy:
+    image: ghcr.io/berriai/litellm:v1.81.9-stable
+    container_name: sydekyks-litellm-proxy
+    restart: unless-stopped
+    depends_on:
+      - litellm-postgres
+    environment:
+      DATABASE_URL: postgresql://litellm:${LITELLM_POSTGRES_PASSWORD:-litellm}@litellm-postgres:5432/litellm
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
+    volumes:
+      - ./litellm-config.yaml:/app/config.yaml:ro
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    networks:
+      - web
+
+networks:
+  web:
+
+volumes:
+  postgres_data:
+  redis_data:
+  litellm_postgres_data:
+  traefik_letsencrypt:
