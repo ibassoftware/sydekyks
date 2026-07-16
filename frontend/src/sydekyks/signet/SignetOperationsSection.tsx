@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { api, type SignetEnvelope, type SignetEnvelopePage, type SignetEnvelopeSummary, type SignetSendResult } from "../../lib/api";
+import { api, type SignetEnvelope, type SignetEnvelopePage, type SignetSendResult } from "../../lib/api";
 import { Button, Input, Label } from "../../components/ui";
 import { toast } from "../../lib/toast";
 import type { OperationsProps } from "../registry";
