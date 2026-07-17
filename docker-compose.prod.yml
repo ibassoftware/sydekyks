@@ -63,6 +63,9 @@ services:
       REDIS_URL: redis://redis:6379/0
       QUEUE_ENABLED: "true"
       RUN_MIGRATIONS: "1"
+      # Idempotent catalog seed on startup so a fresh pull with new agents is ready without a manual
+      # `python -m app.seed` (creates the super-admin + roster + gadgets; only fills what's missing).
+      AUTO_SEED: "true"
       LITELLM_PROXY_URL: http://litellm-proxy:4000
       LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
       JWT_SECRET: ${JWT_SECRET}
