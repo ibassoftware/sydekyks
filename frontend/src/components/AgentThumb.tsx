@@ -3,7 +3,7 @@
 export function AgentThumb({ slug, alt, size = 40 }: { slug: string; alt: string; size?: number }) {
   return (
     <span
-      className="inline-block shrink-0 overflow-hidden rounded-lg border border-gold-600/30 bg-ink-950 shadow-[0_0_10px_rgba(212,168,40,0.15)]"
+      className="inline-block shrink-0 overflow-hidden rounded-[4px] border-2 border-ink-600 bg-ink-950 shadow-[var(--shadow-xs)]"
       style={{ width: size, height: size }}
     >
       <img src={`/sydekyks/${slug}.png`} alt={alt} className="h-full w-full object-cover object-top" />

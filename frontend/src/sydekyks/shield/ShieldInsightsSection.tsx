@@ -17,10 +17,10 @@ function riskPill(score: number): string {
  * "warrants review", confirm / clear, never an accusation. */
 const PAGE = 3;
 
-export function ShieldInsightsSection() {
+export function ShieldInsightsSection({ initialData, initialQueue }: { initialData?: ShieldInsights | null; initialQueue?: ShieldQueuePage | null } = {}) {
   const currency = useTenantCurrency();
-  const [data, setData] = useState<ShieldInsights | null>(null);
-  const [queue, setQueue] = useState<ShieldQueuePage | null>(null);
+  const [data, setData] = useState<ShieldInsights | null>(initialData ?? null);
+  const [queue, setQueue] = useState<ShieldQueuePage | null>(initialQueue ?? null);
   const [offset, setOffset] = useState(0);
 
   const loadStats = useCallback(() => {
@@ -31,8 +31,14 @@ export function ShieldInsightsSection() {
       .then((r) => setQueue(r.data)).catch(() => setQueue(null));
   }, []);
 
-  useEffect(() => loadStats(), [loadStats]);
-  useEffect(() => loadQueue(offset), [loadQueue, offset]);
+  useEffect(() => {
+    if (initialData !== undefined) setData(initialData);
+    else loadStats();
+  }, [initialData, loadStats]);
+  useEffect(() => {
+    if (offset === 0 && initialQueue !== undefined) setQueue(initialQueue);
+    else loadQueue(offset);
+  }, [initialQueue, loadQueue, offset]);
 
   if (!data || !data.activated || data.total_assessed === 0) return null;
 
@@ -71,7 +77,7 @@ export function ShieldInsightsSection() {
         </p>
       </div>
 
-      <div className="mt-5 grid max-w-md grid-cols-3 gap-3">
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Stat value={data.flagged_count.toLocaleString()} label="Warrant review" accent />
         <Stat value={data.holds_count.toLocaleString()} label="Hard-holds" />
         <Stat value={data.total_assessed.toLocaleString()} label="Bills assessed" />
@@ -144,9 +150,9 @@ export function ShieldInsightsSection() {
 
 function Stat({ value, label, accent }: { value: string; label: string; accent?: boolean }) {
   return (
-    <div>
-      <p className={`text-2xl font-bold ${accent ? "text-gold-300" : "text-[#f5eee0]"}`}>{value}</p>
-      <p className="text-[11px] text-[#8a7f6d]">{label}</p>
+    <div className="rounded-[4px] border-2 border-ink-700 bg-ink-900/50 p-4">
+      <p className={`text-2xl font-bold ${accent ? "text-gold-300" : "text-heading"}`}>{value}</p>
+      <p className="mt-1 text-xs text-body">{label}</p>
     </div>
   );
 }

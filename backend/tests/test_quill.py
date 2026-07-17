@@ -9,23 +9,35 @@ from app.sydekyks.quill.playbook import PLAYBOOK_KEY, PLAYBOOK_KEY_REFINE, PLAYB
 
 # --- Pure AI-parsing unit tests (no DB, no network) ------------------------------------------------
 
-def test_generate_proposal_parses_and_defaults(monkeypatch):
-    monkeypatch.setattr(
-        vision_ai, "llm_completion",
-        lambda *a, **k: (True, "ok",
-                         {"html": "<h1>Proposal</h1><p>Body</p>", "title": "Acme rollout", "customer": "Acme"}, {}),
+def test_generate_proposal_streams_and_derives_title(monkeypatch):
+    chunks = ["<h1>Acme rollout</h1>", "<p>Body for Acme</p>"]
+
+    def fake_stream(*_a, **_k):
+        for c in chunks:
+            yield {"type": "delta", "text": c}
+        yield {"type": "done", "text": "".join(chunks), "meta": {"usage": None, "cost_usd": 0.0}}
+
+    monkeypatch.setattr(vision_ai, "llm_stream", fake_stream)
+    seen: list[str] = []
+    ok, _m, draft, _meta = extraction.generate_proposal_stream(
+        "v", "m", template_body="<h1>[title]</h1>", template_format="html",
+        notes="rollout for acme", on_delta=seen.append,
     )
-    ok, _m, draft, _meta = extraction.generate_proposal(
-        "v", "m", template_body="<h1>[title]</h1>", template_format="html", notes="rollout for acme",
-    )
-    assert ok and draft["html"].startswith("<h1>Proposal</h1>")
-    assert draft["title"] == "Acme rollout" and draft["customer"] == "Acme"
+    assert ok
+    assert draft["html"] == "<h1>Acme rollout</h1><p>Body for Acme</p>"
+    assert draft["title"] == "Acme rollout"   # derived from the leading <h1>, not a JSON field
+    assert seen == chunks                      # every token chunk was forwarded live
 
 
-def test_generate_proposal_propagates_ai_failure(monkeypatch):
-    monkeypatch.setattr(vision_ai, "llm_completion", lambda *a, **k: (False, "engine down", None, {}))
-    ok, msg, draft, _meta = extraction.generate_proposal("v", "m", template_body=None, template_format="html", notes="x")
-    assert ok is False and draft is None
+def test_generate_proposal_stream_propagates_ai_failure(monkeypatch):
+    def fake_stream(*_a, **_k):
+        yield {"type": "error", "ok": False, "msg": "engine down", "meta": {}}
+
+    monkeypatch.setattr(vision_ai, "llm_stream", fake_stream)
+    ok, msg, draft, _meta = extraction.generate_proposal_stream(
+        "v", "m", template_body=None, template_format="html", notes="x",
+    )
+    assert ok is False and draft is None and msg == "engine down"
 
 
 def test_refine_proposal_parses(monkeypatch):

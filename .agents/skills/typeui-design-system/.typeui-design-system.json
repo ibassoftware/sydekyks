@@ -1,0 +1,12 @@
+{
+  "designSystemId": "60e92ca6-8dc9-4a04-8b0e-15ec38dc49b6",
+  "installScope": "project",
+  "packageId": "86871425-efaa-491d-b920-48dee063e82b",
+  "skillFolderName": "typeui-design-system",
+  "slug": "dithered",
+  "source": "workspace",
+  "templateSlug": "dithered",
+  "type": "typeui-design-system",
+  "variant": "workspace",
+  "workspaceId": "bfb4997b-48b3-411f-880d-8d9b789eea0b"
+}

@@ -140,11 +140,6 @@ class HoldIn(BaseModel):
     hold: bool
 
 
-class SendOut(BaseModel):
-    envelope: EnvelopeOut
-    sent: int
-
-
 # --- Public signing (no auth) ----------------------------------------------------------------------
 
 class PublicEnvelopeOut(BaseModel):

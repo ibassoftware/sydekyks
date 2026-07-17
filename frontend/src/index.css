@@ -1,29 +1,194 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 @theme {
-  --color-ink-950: #0a0806;
-  --color-ink-900: #120e0a;
-  --color-ink-800: #1c1610;
-  --color-ink-700: #2a2119;
-  --color-ink-600: #3a2f24;
+  --color-ink-950: #060a12;
+  --color-ink-900: #080d16;
+  --color-ink-800: #0e1524;
+  --color-ink-700: #111c30;
+  --color-ink-600: #596b85;
 
-  --color-gold-300: #f3dd93;
-  --color-gold-400: #eac25f;
-  --color-gold-500: #d4a828;
-  --color-gold-600: #b3891c;
-  --color-gold-700: #8a6a15;
+  --color-gold-300: #9ddcdb;
+  --color-gold-400: #8dd5d3;
+  --color-gold-500: #71c7c5;
+  --color-gold-600: #4a9b99;
+  --color-gold-700: #164040;
 
-  --font-display: Georgia, "Times New Roman", serif;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --color-surface: #060a12;
+  --color-surface-soft: #080d16;
+  --color-surface-raised: #0e1524;
+  --color-heading: #f0f5fa;
+  --color-body: #8a9bb5;
+  --color-brand: #71c7c5;
+  --color-brand-strong: #4a9b99;
+  --color-brand-softer: #0c2424;
+  --color-line: #596b85;
+  --color-success: #00cc88;
+  --color-success-soft: #002c22;
+  --color-success-strong: #10b981;
+  --color-warning: #ff8c42;
+  --color-warning-soft: #7c2d12;
+  --color-warning-fg: #fbbf24;
+
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+  --neutral-primary: #060a12;
+  --neutral-primary-soft: #080d16;
+  --neutral-secondary-medium: #0e1524;
+  --neutral-tertiary-medium: #1a2640;
+  --brand: #71c7c5;
+  --brand-strong: #4a9b99;
+  --heading: #f0f5fa;
+  --body: #8a9bb5;
+  --border-default: #111c30;
+  --border-default-medium: #1a2640;
+  --border-default-strong: #243350;
+  --success: #00cc88;
+  --success-soft: #002c22;
+  --warning: #ff8c42;
+  --warning-soft: #7c2d12;
+  --shadow-xs: 0 1px 2px 0 rgb(113 199 197 / 0.08);
+  --shadow-sm: 0 1px 3px 0 rgb(113 199 197 / 0.12), 0 1px 2px -1px rgb(113 199 197 / 0.08);
+  --shadow-md: 0 4px 6px -1px rgb(113 199 197 / 0.15), 0 2px 4px -2px rgb(113 199 197 / 0.1);
+  --color-1-400: rgb(113 199 197 / 0.12);
+  --color-1-700: rgb(0 0 0 / 0.3);
 }
 
 body {
   margin: 0;
   background-color: var(--color-ink-950);
-  color: #ede6da;
+  color: var(--heading);
   font-family: var(--font-sans);
   font-synthesis: none;
   -webkit-font-smoothing: antialiased;
+}
+
+*:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 3px;
+}
+
+.typeui-grid {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.typeui-page h1,
+.typeui-page h2,
+.typeui-page h3,
+.typeui-page h4,
+.typeui-page h5,
+.typeui-page h6 {
+  color: var(--brand);
+  font-family: var(--font-display);
+  font-weight: 700;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 3px var(--heading);
+  text-transform: uppercase;
+}
+
+.agent-name {
+  color: var(--heading) !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  paint-order: normal !important;
+  -webkit-text-stroke: 0 !important;
+  text-transform: none !important;
+}
+
+.typeui-page p {
+  color: var(--body);
+  line-height: 1.7;
+}
+
+.typeui-page h1 { font-size: clamp(2rem, 6vw, 3.75rem); line-height: 1.05; letter-spacing: -0.05rem; }
+.typeui-page h2 { font-size: clamp(1.75rem, 4vw, 2.75rem); line-height: 1.15; }
+.typeui-page h3 { font-size: clamp(1.5rem, 3vw, 2.25rem); line-height: 1.2; }
+
+.typeui-page section {
+  position: relative;
+  background: var(--neutral-primary);
+}
+
+.typeui-section {
+  padding-block: 6rem;
+}
+
+.typeui-container {
+  width: min(100%, 72rem);
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+}
+
+@media (max-width: 767px) {
+  .typeui-section { padding-block: 3rem; }
+}
+
+.typeui-grid::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgb(113 199 197 / 0.18) 1px, transparent 1px), linear-gradient(rgb(113 199 197 / 0.08) 1px, transparent 1px), linear-gradient(90deg, rgb(113 199 197 / 0.08) 1px, transparent 1px);
+  background-size: 16px 16px, 40px 40px, 40px 40px;
+  content: "";
+  mask-image: linear-gradient(to bottom, black, transparent 92%);
+}
+
+.hq-command-background {
+  background-color: var(--neutral-primary);
+  background-image:
+    radial-gradient(circle at 8% 4%, color-mix(in srgb, var(--brand) 13%, transparent) 0, transparent 32rem),
+    radial-gradient(circle at 94% 22%, color-mix(in srgb, var(--warning) 6%, transparent) 0, transparent 26rem),
+    linear-gradient(color-mix(in srgb, var(--brand) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--brand) 5%, transparent) 1px, transparent 1px);
+  background-position: center;
+  background-size: auto, auto, 40px 40px, 40px 40px;
+}
+
+.typeui-scanlines::after,
+.typeui-image::after {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom, transparent 0, transparent 1px, rgb(0 0 0 / 0.28) 1px, rgb(0 0 0 / 0.28) 2px);
+  content: "";
+  mix-blend-mode: multiply;
+}
+
+.typeui-image {
+  position: relative;
+  overflow: hidden;
+}
+
+.typeui-image img {
+  filter: grayscale(1) contrast(1.65) brightness(0.72) sepia(0.35) saturate(2.4) hue-rotate(126deg);
+  image-rendering: pixelated;
+  transition: filter 180ms ease-out, transform 180ms ease-out;
+}
+
+.typeui-image:hover img {
+  filter: grayscale(1) contrast(1.75) brightness(0.82) sepia(0.55) saturate(3) hue-rotate(126deg);
+}
+
+.typeui-divider {
+  height: 10px;
+  background: repeating-linear-gradient(-55deg, rgb(113 199 197 / 0.7) 0, rgb(113 199 197 / 0.7) 2px, transparent 2px, transparent 8px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 ::selection {

@@ -10,7 +10,7 @@ from app.core.deps import require_tenant_member
 from app.db.session import get_db
 from app.models.sydekyk import Sydekyk
 from app.models.user import User
-from app.services import gadget_links, lead_poll, odoo, odoo_crm, permissions
+from app.services import gadget_links, lead_poll, mission_events, odoo, odoo_crm, permissions
 from app.services.missions import create_mission
 
 from app.sydekyks.nudge import insights as insights_svc
@@ -193,12 +193,17 @@ async def run_now(user: User = Depends(require_tenant_member), db: Session = Dep
         db, tenant_id=user.tenant_id, sydekyk=sydekyk, user_id=user.id,
         source="manual", signal_type="manual", trigger_context={"mode": "nudge_sweep"},
     )
+    sweep.status = "running"
+    sweep.started_at = datetime.now(timezone.utc)
+    db.commit()
+    mission_events.publish(sweep.id, "mission.started", {"playbook_key": sweep.playbook_key})
     sweep.status = "succeeded"
     sweep.result_summary = {"mode": "nudge_sweep", **(breakdown or {"open_total": 0, "scheduled": 0,
                                                                      "snoozed": 0, "recently_nudged": 0,
                                                                      "enqueued": queued})}
     sweep.completed_at = datetime.now(timezone.utc)
     db.commit()
+    mission_events.publish(sweep.id, "mission.completed", {"status": "succeeded"})
     return RunNowOut(queued=queued)
 
 

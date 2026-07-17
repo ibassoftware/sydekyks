@@ -71,7 +71,8 @@ add the package. `app/models/__init__.py` must import the new models so Alembic/
 
 **Mission engine.** Work is a `Mission`. `create_mission_for_document(...)` (with optional
 `trigger_context` JSONB carrying per-trigger data — e.g. `{"odoo_applicant_id": 8, "job_id": 3}`)
-creates it; `run_mission(id)` dispatches by `playbook_key` through the registry. Your `run(db,
+creates it; the command router calls `enqueue_mission(id)`, and the worker dispatches through
+`run_mission(id)` by `playbook_key`. Routers never invoke `run_mission` directly. Your `run(db,
 mission)` drives the Mission to a terminal status and records a `MissionStep` per step via
 `record_step(...)`. Always end with a `result_summary` dict — the frontend renders from it.
 
@@ -124,6 +125,56 @@ mission)` drives the Mission to a terminal status and records a `MissionStep` pe
   rolling-hour GPU caps); record with `mission_ai.emit_usage(...)`. On cap-exceeded, raise a
   `tenant_issues.report_issue(...)` and fail the Mission with `failure_category="quota"`.
 
+### 4a. One model gateway; explicit completion contracts
+
+All AI calls go through `vision_ai`; do not add provider-specific HTTP paths inside a Sydekyk. The
+gateway may use a streamed or non-streamed provider response according to model capability. That wire
+choice is separate from whether partial output is safe for a browser or application code.
+
+Choose an output contract for each AI step:
+
+- **Structured output (default for extraction, classification, scoring, findings, and tool input).**
+  Use `vision_ai.llm_completion(...)`, validate the fully assembled object against the expected
+  schema and grounded option set, and only then consume it.
+- **Human-facing prose/HTML.** A safe authoring step may consume `vision_ai.llm_stream(...)` and
+  publish each usable text chunk with
+  `mission_events.publish(mission.id, "output.delta", {"text": text})`. Emit raw prose/HTML rather
+  than a JSON envelope. The preview is provisional; persist and refetch the finished resource after
+  the Mission succeeds.
+
+**Never publish partial structured output and never act on it.** A half-formed JSON object is not an
+application result. Side-effecting agents must preserve the full completion, schema-validation, and
+grounded-ID boundary before writing to Odoo, sending mail, or dispatching another action.
+
+Every normal `create_mission*`, `run_mission`, and `record_step` call already publishes the shared
+Mission lifecycle protocol. Do not make live behavior conditional on a browser being connected.
+
+### 4b. Commands and universal Mission SSE
+
+An agent-specific command endpoint validates its domain inputs, creates and enqueues the Mission, and
+returns `202 {"mission_id": ..., "status": "queued"}`. It must not start a private worker thread or
+create an agent-specific `/stream` twin.
+
+Every authorized Mission is observed through the existing generic endpoint:
+
+```text
+GET /api/tenant/missions/{mission_id}/events
+```
+
+The shared protocol is `mission.snapshot` / `mission.queued` / `mission.started` /
+`step.completed` / optional `output.delta` / `mission.completed|failed|cancelled`. The frontend uses
+`lib/sse.ts` with authenticated `fetch` + `ReadableStream`; native `EventSource` cannot send the
+Bearer header. On terminal events, refetch the Mission or domain resource because the database is the
+source of truth.
+
+Redis Streams provide bounded cross-process replay when the arq queue is enabled. Event publication
+is best-effort and must never fail Mission work. Do not put prompts, credentials, raw provider errors,
+or sensitive structured partials in events. See `docs/STREAMING.md` for the complete contract.
+
+> Once the first SSE frame is sent the observation response is `200 OK`; runtime failure arrives as
+> `mission.failed`, not a later HTTP error. Initial authentication/authorization failures still use
+> normal status codes. Keep proxy buffering disabled and timeouts longer than the heartbeat interval.
+
 ---
 
 ## 5. Data, migrations, savings
@@ -175,7 +226,8 @@ Build these components (mirror an existing agent):
   email-triggered) an inbox block that **reads the existing address from readiness** and hides the
   "Create" button once set.
 - **Operations panel** (for non-upload agents) — the batch action (`Run now`) **at the top** + a live
-  **Recent Missions** list (`MissionList`) that polls while work is active.
+  **Recent Missions** list (`MissionList`) that subscribes through `useMissionRefresh` while work is
+  active and refetches its REST projection on Mission events.
 - **Dashboard insights card** — renders only when the agent is installed and has data. Lead with a
   small **agent thumbnail** (`AgentThumb slug="<slug>"`, from `/sydekyks/<slug>.png`) + the agent
   name so the value block is instantly recognizable. Show `$ saved` and the **speed line** (AI time
@@ -223,7 +275,8 @@ run-now/upload create Missions the normal way; nothing agent-specific to build.
   (Decode's job picker).
 - **Cron + Run-now:** share one routine (e.g. `recruitment_poll.enqueue_untagged_applicants`) — DRY.
   Cron needs `queue_enabled=True` + Redis + the running **arq worker** (`worker.py`, `cron_jobs`).
-  Run-now works inline without the worker. Surface the worker requirement in the settings UI.
+  Run-now uses the asynchronous in-process fallback when the worker is disabled. Surface the worker
+  requirement in the settings UI.
 - **RBAC (enforce on BOTH ends).** Backend: guard config endpoints (settings, gadget assignment,
   recurring/suppression) with `permissions.assert_can_configure`, and action endpoints (run-now,
   retry, decide-on-finding, upload) with `permissions.assert_can_use`. A commander has both; a hero
@@ -474,16 +527,19 @@ agent (a contract/SOW writer, a report builder) reuses them:
   platform's "build the generic thing once, wire one consumer" rule (§9). Editor content is HTML;
   Markdown templates convert on the way in (`marked`).
 - **Every AI turn is still a Mission — even the interactive ones.** Both `quill.draft` (generate) and
-  `quill.refine` (the "Ask Quill" chat that rewrites the work-in-progress) are playbooks run **inline**
-  from the router (`run_mission(mid)` synchronously, then re-read the mutated row) so the editor gets
-  its result immediately, while metering (`usage_guard.check_allowed` + `mission_ai.emit_usage`), the
-  activity feed, and savings all work unchanged. A package can `register_playbook` **more than one**
-  key; the catalog's `playbook_key` is just the primary. Refine missions render as muted revision rows.
+  `quill.refine` (the "Ask Quill" chat that rewrites the work-in-progress) validate their command,
+  create and enqueue a Mission, and return `202 MissionStartOut`. The editor observes the shared
+  Mission SSE endpoint and refetches proposal/chat state after completion. Structured refine output
+  is never partially streamed as JSON. Metering (`usage_guard.check_allowed` +
+  `mission_ai.emit_usage`), the activity feed, and savings all work unchanged. A package can
+  `register_playbook` **more than one** key; the catalog's `playbook_key` is just the primary. Refine
+  missions render as muted revision rows.
 - **Token tracking is a product surface, not just billing.** Generative agents are far more
   token-hungry than classifiers (long content in *and* out every turn). Copy each turn's token counts
   (from its `UsageRecord`) onto a per-document chat store (`quill_chat_messages`) so the editor shows a
-  **live per-document token + cost badge**; lead the dashboard card with tokens/AI-cost. A `usage_guard`
-  denial becomes a **429** the UI toasts, pausing the chat until the window frees.
+  **live per-document token + cost badge**; lead the dashboard card with tokens/AI-cost. A
+  `usage_guard` denial becomes a `mission.failed` event with a safe error detail that the UI toasts,
+  pausing the chat until the window frees. Command-validation failures retain their HTTP status.
 - **⚠️ An `<img>` can't send the bearer token.** Serving user images from an auth-gated
   `/assets/{id}` route 401s inside the editor. Return the uploaded image as a **data URI** and embed
   that (TipTap `Image.configure({ allowBase64: true })`) — it renders in the editor *and* in the PDF

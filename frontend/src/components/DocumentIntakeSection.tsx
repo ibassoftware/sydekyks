@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
+import { useCallback, useEffect, useState, type ComponentType } from "react";
 import { api, type LedgerReadiness, type Mission, type Sydekyk } from "../lib/api";
 import { FileDropZone } from "./FileDropZone";
 import { MissionList } from "./MissionList";
 import type { UploadContextProps } from "../sydekyks/registry";
+import { useMissionRefresh } from "../lib/useMissionRefresh";
 
 export function DocumentIntakeSection({
   sydekyk,
@@ -29,15 +30,10 @@ export function DocumentIntakeSection({
   }, [load]);
 
   const active = missions?.some((m) => m.status === "queued" || m.status === "running");
-  const activeRef = useRef(active);
-  activeRef.current = active;
-  useEffect(() => {
-    if (!active) return;
-    const t = setInterval(() => {
-      if (activeRef.current) load();
-    }, 4000);
-    return () => clearInterval(t);
-  }, [active, load]);
+  useMissionRefresh(
+    active ? (missions ?? []).filter((m) => m.status === "queued" || m.status === "running").map((m) => m.id) : [],
+    load,
+  );
 
   async function handleFiles(files: File[]) {
     if (!canManage) return;

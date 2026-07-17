@@ -9,10 +9,10 @@ import { useTenantCurrency } from "../../lib/useTenantCurrency";
  * the AI's draft for the rep to lift; sent / dismiss feeds the learning loop. */
 const PAGE = 3;
 
-export function NudgeInsightsSection() {
+export function NudgeInsightsSection({ initialData, initialQueue }: { initialData?: NudgeInsights | null; initialQueue?: NudgeQueuePage | null } = {}) {
   const currency = useTenantCurrency();
-  const [data, setData] = useState<NudgeInsights | null>(null);
-  const [queue, setQueue] = useState<NudgeQueuePage | null>(null);
+  const [data, setData] = useState<NudgeInsights | null>(initialData ?? null);
+  const [queue, setQueue] = useState<NudgeQueuePage | null>(initialQueue ?? null);
   const [offset, setOffset] = useState(0);
 
   const loadStats = useCallback(() => {
@@ -23,8 +23,14 @@ export function NudgeInsightsSection() {
       .then((r) => setQueue(r.data)).catch(() => setQueue(null));
   }, []);
 
-  useEffect(() => loadStats(), [loadStats]);
-  useEffect(() => loadQueue(offset), [loadQueue, offset]);
+  useEffect(() => {
+    if (initialData !== undefined) setData(initialData);
+    else loadStats();
+  }, [initialData, loadStats]);
+  useEffect(() => {
+    if (offset === 0 && initialQueue !== undefined) setQueue(initialQueue);
+    else loadQueue(offset);
+  }, [initialQueue, loadQueue, offset]);
 
   if (!data || !data.activated || data.followups_drafted === 0) return null;
 
@@ -61,7 +67,7 @@ export function NudgeInsightsSection() {
         </p>
       </div>
 
-      <div className="mt-5 grid max-w-md grid-cols-3 gap-3">
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Stat value={`${data.coverage_pct}%`} label="Follow-ups never missed" accent />
         <Stat value={data.stale_caught.toLocaleString()} label="Stale deals caught" />
         <Stat value={data.open_total.toLocaleString()} label="Open opportunities" />
@@ -133,9 +139,9 @@ export function NudgeInsightsSection() {
 
 function Stat({ value, label, accent }: { value: string; label: string; accent?: boolean }) {
   return (
-    <div>
-      <p className={`text-2xl font-bold ${accent ? "text-gold-300" : "text-[#f5eee0]"}`}>{value}</p>
-      <p className="text-[11px] text-[#8a7f6d]">{label}</p>
+    <div className="rounded-[4px] border-2 border-ink-700 bg-ink-900/50 p-4">
+      <p className={`text-2xl font-bold ${accent ? "text-gold-300" : "text-heading"}`}>{value}</p>
+      <p className="mt-1 text-xs text-body">{label}</p>
     </div>
   );
 }

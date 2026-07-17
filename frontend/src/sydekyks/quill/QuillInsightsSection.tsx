@@ -14,16 +14,19 @@ function fmtTokens(n: number): string {
 
 /** Quill dashboard card — proposals are the most token-intensive work, so it leads with tokens + AI
  * cost, then the time saved. Includes a ready "New proposal" quick action. */
-export function QuillInsightsSection() {
+export function QuillInsightsSection({ initialData }: { initialData?: QuillInsights | null } = {}) {
   const currency = useTenantCurrency();
   const navigate = useNavigate();
-  const [data, setData] = useState<QuillInsights | null>(null);
+  const [data, setData] = useState<QuillInsights | null>(initialData ?? null);
   const [creating, setCreating] = useState(false);
 
   const load = useCallback(() => {
     api.get<QuillInsights>("/tenant/quill/insights").then((r) => setData(r.data)).catch(() => setData(null));
   }, []);
-  useEffect(() => load(), [load]);
+  useEffect(() => {
+    if (initialData !== undefined) setData(initialData);
+    else load();
+  }, [initialData, load]);
 
   // The card appears once Quill is installed — even with zero proposals — so the New Proposal action is ready.
   if (!data || !data.activated) return null;
@@ -63,7 +66,7 @@ export function QuillInsightsSection() {
         </p>
       </div>
 
-      <div className="mt-5 grid max-w-md grid-cols-3 gap-3">
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Stat value={data.proposals_created.toLocaleString()} label="Proposals" accent />
         <Stat value={data.proposals_final.toLocaleString()} label="Finalised" />
         <Stat value={data.revisions.toLocaleString()} label="AI revisions" />
@@ -87,9 +90,9 @@ export function QuillInsightsSection() {
 
 function Stat({ value, label, accent }: { value: ReactNode; label: string; accent?: boolean }) {
   return (
-    <div className="rounded-lg border border-ink-700 bg-ink-900/50 px-3 py-2">
-      <p className={`text-xl font-bold ${accent ? "text-gold-300" : "text-[#f5eee0]"}`}>{value}</p>
-      <p className="mt-0.5 text-[11px] text-[#8a7f6d]">{label}</p>
+    <div className="rounded-[4px] border-2 border-ink-700 bg-ink-900/50 p-4">
+      <p className={`text-2xl font-bold ${accent ? "text-gold-300" : "text-heading"}`}>{value}</p>
+      <p className="mt-1 text-xs text-body">{label}</p>
     </div>
   );
 }

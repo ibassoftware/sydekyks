@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
-import { Button, PageShell } from "../components/ui";
-import { MarketingHeader, MarketingFooter } from "../components/MarketingChrome";
-import { Seo, SITE_URL } from "../lib/seo";
-import { UPCOMING, rosterByDomain, type RosterEntry } from "../content/roster";
+import { MarketingFooter, MarketingHeader } from "../components/MarketingChrome";
+import { TypeUIPanel } from "../components/TypeUIPanel";
+import { PageShell, buttonClassName } from "../components/ui";
 import { BoltIcon, CheckIcon, ChevronRightIcon, ShieldIcon } from "../components/icons";
+import { UPCOMING, rosterByDomain, type RosterEntry } from "../content/roster";
+import { Seo, SITE_URL } from "../lib/seo";
 
 const orgJsonLd = [
   {
@@ -12,237 +13,206 @@ const orgJsonLd = [
     name: "Sydekyks",
     url: SITE_URL,
     logo: `${SITE_URL}/og-cover.png`,
-    description:
-      "Sydekyks are premium AI agents that automate real back-office work — accounts payable, " +
-      "recruitment and sales — acting directly inside the tools your team already runs.",
+    description: "Specialist AI agents that execute auditable back-office workflows inside Odoo.",
   },
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: "Sydekyks",
-    url: SITE_URL,
-  },
+  { "@context": "https://schema.org", "@type": "WebSite", name: "Sydekyks", url: SITE_URL },
 ];
-
-export default function Landing() {
-  return (
-    <PageShell>
-      <Seo
-        title="Sydekyks — AI agents that automate your back office"
-        description="Activate a roster of premium AI Sydekyks that automate accounts payable, recruitment and sales — acting directly inside your Odoo. Every hero needs backup."
-        path="/"
-        type="website"
-        jsonLd={orgJsonLd}
-      />
-      <MarketingHeader />
-
-      {/* Hero — full-bleed video background */}
-      <section className="relative flex flex-col items-center overflow-hidden py-24 text-center sm:py-28">
-        <video
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-20"
-          autoPlay
-          loop
-          muted
-          playsInline
-          aria-hidden="true"
-        >
-          <source src="/bground.mp4" type="video/mp4" />
-        </video>
-        {/* Fade the video into the page background so the copy stays legible */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-ink-950/70 via-ink-950/50 to-ink-950" />
-        <div className="pointer-events-none absolute -top-24 left-1/2 h-96 w-[42rem] max-w-[90vw] -translate-x-1/2 rounded-full bg-gold-500/10 blur-3xl" />
-        <div className="relative mx-auto flex max-w-6xl flex-col items-center px-6">
-          <span className="mb-6 rounded-full border border-gold-700/50 bg-ink-900/60 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-gold-400">
-            Every hero needs backup
-          </span>
-          <h1 className="max-w-3xl text-5xl font-bold leading-tight text-[#f5eee0] md:text-6xl">
-            Activate AI <span className="text-gold-400">Sydekyks</span> for your entire team
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg text-[#b9ad98]">
-            Sydekyks are premium AI agents built to take the repetitive back-office work your team
-            dreads and just get it done. They read every document, catch what humans miss, and act on
-            their own. Each one connects straight into your Odoo and works alongside your team like
-            your sharpest hire, one who never sleeps and never drops the ball.
-          </p>
-          <div className="mt-10 flex flex-wrap justify-center gap-4">
-            <Link to="/login">
-              <Button className="px-8 py-3 text-base">Enter Your HQ</Button>
-            </Link>
-            <a href="#roster">
-              <Button variant="ghost" className="px-8 py-3 text-base">
-                Meet the Roster
-              </Button>
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <main className="mx-auto max-w-6xl px-6">
-        {/* Roster */}
-        <section id="roster" className="scroll-mt-24 py-12">
-          <div className="text-center">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-gold-500">The Roster</h2>
-            <p className="mx-auto mt-2 max-w-xl text-[#b9ad98]">
-              A growing lineup of specialist Sydekyks, each an expert at one job — ready for any HQ to
-              activate.
-            </p>
-          </div>
-
-          {rosterByDomain().map(({ domain, entries }) => (
-            <div key={domain} className="mt-14 first:mt-12">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-500">{domain}</p>
-              <div className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {entries.map((entry) => (
-                  <RosterCard key={entry.slug} entry={entry} />
-                ))}
-              </div>
-            </div>
-          ))}
-        </section>
-
-        {/* Coming soon — the roadmap */}
-        <section id="upcoming" className="scroll-mt-24 py-12">
-          <div className="text-center">
-            <span className="inline-flex items-center gap-2 rounded-full border border-gold-700/40 bg-ink-900/60 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-gold-400">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold-400" />
-              In the works
-            </span>
-            <h2 className="mt-5 text-3xl font-bold text-[#f5eee0] md:text-4xl">
-              The roster keeps growing
-            </h2>
-            <p className="mx-auto mt-3 max-w-2xl text-[#b9ad98]">
-              These Sydekyks aren't live yet, but they're on the way. We ship new specialists across
-              your whole back office all the time, so check back soon.
-            </p>
-          </div>
-
-          {UPCOMING.map(({ domain, entries }) => (
-            <div key={domain} className="mt-14 first:mt-12">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-500">{domain}</p>
-              <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {entries.map((entry) => (
-                  <div
-                    key={entry.name}
-                    className="group relative rounded-xl border border-dashed border-ink-600 bg-ink-900/40 p-5"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <h3 className="text-lg font-semibold text-[#e8dfce]">{entry.name}</h3>
-                      <span className="shrink-0 rounded-full border border-ink-600 bg-ink-800/60 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-[#8a7f6b]">
-                        Soon
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm font-medium text-gold-400/90">{entry.agent}</p>
-                    <p className="mt-2 text-xs text-[#8a7f6b]">Backs up your {entry.replaces}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-
-          <p className="mt-14 text-center text-sm text-[#7a6f5d]">
-            New Sydekyks land regularly. Bookmark this page and check back soon.
-          </p>
-        </section>
-
-        {/* How Sydekyks work */}
-        <section className="py-20">
-          <div className="text-center">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-gold-500">
-              How Sydekyks work
-            </h2>
-            <p className="mx-auto mt-2 max-w-xl text-[#b9ad98]">
-              Not another chatbot. Each Sydekyk is a specialist that does the job end to end.
-            </p>
-          </div>
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {HOW_IT_WORKS.map((item) => (
-              <div
-                key={item.title}
-                className="rounded-xl border border-ink-600 bg-gradient-to-b from-ink-800 to-ink-900 p-6 shadow-xl"
-              >
-                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-gold-500/10 text-gold-400">
-                  <item.icon className="h-5 w-5" />
-                </div>
-                <h3 className="mt-4 text-lg font-semibold text-[#f5eee0]">{item.title}</h3>
-                <p className="mt-2 text-sm text-[#b9ad98]">{item.detail}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* CTA */}
-        <section className="py-12 text-center">
-          <div className="relative mx-auto max-w-2xl overflow-hidden rounded-2xl border border-gold-700/40 bg-gradient-to-br from-ink-800 via-ink-900 to-ink-950 px-8 py-14 shadow-xl">
-            <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gold-500/10 blur-3xl" />
-            <h2 className="relative text-2xl font-bold text-[#f5eee0]">Ready to build your headquarters?</h2>
-            <p className="relative mx-auto mt-3 max-w-md text-[#b9ad98]">
-              Sign in to activate Sydekyks for your team, or ask your Commander for an invite.
-            </p>
-            <Link to="/login" className="relative mt-7 inline-block">
-              <Button className="px-8 py-3 text-base">Activate Your HQ</Button>
-            </Link>
-          </div>
-        </section>
-      </main>
-
-      <MarketingFooter />
-    </PageShell>
-  );
-}
 
 const HOW_IT_WORKS = [
   {
     icon: BoltIcon,
-    title: "Runs a Playbook",
-    detail:
-      "Each Sydekyk follows a fixed, auditable sequence of steps — no prompt-wrangling, no guesswork. You can see exactly what it did on every Mission.",
+    step: "01",
+    title: "Signal the mission",
+    detail: "Upload a document, schedule a sweep, or trigger a run from the work already happening in Odoo.",
   },
   {
     icon: CheckIcon,
-    title: "Acts in your tools",
-    detail:
-      "They don't just chat. Sydekyks read and write real records in the stack you already run — creating bills, filling applicants, drafting follow-ups in Odoo today.",
+    step: "02",
+    title: "Run the playbook",
+    detail: "A specialist follows a fixed sequence, reads the evidence, and acts directly in your operating system.",
   },
   {
     icon: ShieldIcon,
-    title: "Escalates the exceptions",
-    detail:
-      "Confident work gets done automatically; anything doubtful is handed to a human reviewer with the evidence attached — so nothing slips and nothing is blindly trusted.",
+    step: "03",
+    title: "Review the exceptions",
+    detail: "Confident work moves forward. Ambiguity reaches a human with the source, reasoning, and next action attached.",
   },
 ];
 
-function RosterCard({ entry }: { entry: RosterEntry }) {
-  const glow =
-    entry.accent === "hr"
-      ? "hover:border-blue-400/50 hover:shadow-[0_0_30px_-8px_rgba(96,165,250,0.45)]"
-      : "hover:border-gold-500/60 hover:shadow-[0_0_30px_-8px_rgba(212,168,40,0.5)]";
-  return (
-    <Link
-      to={`/sydekyks/${entry.slug}`}
-      className={`group relative block overflow-hidden rounded-xl border border-ink-600 bg-ink-950 shadow-xl transition-transform duration-300 hover:-translate-y-1 ${glow}`}
-    >
-      <div className="relative aspect-[912/1199] w-full overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_20%,_var(--color-gold-600)_0%,_transparent_65%)] opacity-25 transition-opacity duration-300 group-hover:opacity-40" />
-        <img
-          src={`/sydekyks/${entry.slug}.png`}
-          alt={`${entry.name} — ${entry.role} Sydekyk`}
-          loading="lazy"
-          className="relative z-10 h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
-        />
-        {/* readability scrim */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-3/4 bg-gradient-to-t from-ink-950 via-ink-950/85 to-transparent" />
+const LIVE_COUNT = rosterByDomain().reduce((total, group) => total + group.entries.length, 0);
+const UPCOMING_COUNT = UPCOMING.reduce((total, group) => total + group.entries.length, 0);
 
-        <div className="absolute inset-x-0 bottom-0 z-30 p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-gold-400/90">{entry.role}</p>
-          <h3 className="mt-1 text-xl font-bold text-[#f5eee0] [text-shadow:0_2px_10px_rgba(0,0,0,0.8)]">
-            {entry.name}
-          </h3>
-          <p className="mt-1.5 line-clamp-2 text-sm text-[#d8cdb9]">{entry.tagline}</p>
-          <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-gold-400 transition-transform duration-300 group-hover:translate-x-0.5">
-            Meet {entry.name}
-            <ChevronRightIcon className="h-4 w-4" />
-          </span>
-        </div>
+export default function Landing() {
+  return (
+    <PageShell>
+      <div className="typeui-page">
+        <Seo
+          title="Sydekyks — AI agents that automate your back office"
+          description="Activate specialist AI agents for accounts payable, recruitment and sales—working directly inside Odoo."
+          path="/"
+          type="website"
+          jsonLd={orgJsonLd}
+        />
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-ink-800 focus:p-3 focus:text-heading">
+          Skip to main content
+        </a>
+        <MarketingHeader />
+
+        <main id="main-content">
+          <section className="typeui-grid typeui-scanlines min-h-[42rem] border-b-2 border-ink-600">
+            <video className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-15 grayscale contrast-200 brightness-50" autoPlay loop muted playsInline aria-hidden="true">
+              <source src="/bground.mp4" type="video/mp4" />
+            </video>
+            <div className="absolute inset-0 bg-gradient-to-r from-ink-950 via-ink-950/95 to-ink-950/60" />
+            <div className="typeui-container relative grid min-h-[42rem] items-center gap-12 py-16 lg:grid-cols-[1fr_22rem] lg:py-24">
+              <div>
+                <span className="inline-flex rounded-[2px] border-2 border-gold-700 bg-brand-softer px-2 py-1 text-xs font-medium uppercase tracking-[0.4px] text-gold-300">
+                  Autonomous work. Human control.
+                </span>
+                <h1 className="mt-8 max-w-3xl">Your back office just got backup.</h1>
+                <p className="mt-8 max-w-[65ch] text-xl">
+                  Deploy specialist AI agents that read the work, follow an auditable playbook, and act inside Odoo—without turning your team into prompt engineers.
+                </p>
+                <div className="mt-10 flex flex-wrap gap-4">
+                  <Link to="/login" className={buttonClassName("primary", "px-6 py-3")}>Activate your HQ</Link>
+                  <a href="#roster" className={buttonClassName("ghost", "px-6 py-3")}>Meet the roster <ChevronRightIcon className="h-4 w-4" /></a>
+                </div>
+              </div>
+              <aside aria-label="Platform summary" className="rounded-[4px] border-2 border-ink-600 bg-ink-900 p-6 shadow-[var(--shadow-md)]">
+                <p className="text-xs font-medium uppercase tracking-[0.4px] text-gold-300">Mission control</p>
+                <dl className="mt-8 grid gap-6">
+                  <Metric value={String(LIVE_COUNT)} label="Live specialist agents" />
+                  <Metric value={String(UPCOMING_COUNT)} label="Agents in the build queue" />
+                  <Metric value={String(LIVE_COUNT + UPCOMING_COUNT)} label="Specialists on the roadmap" />
+                </dl>
+              </aside>
+            </div>
+          </section>
+
+          <div className="typeui-divider" aria-hidden="true" />
+
+          <section id="roster" className="typeui-section typeui-grid scroll-mt-24">
+            <div className="typeui-container">
+              <header className="mb-16 max-w-3xl">
+                <p className="text-sm font-medium uppercase tracking-[0.4px] text-gold-300">The roster</p>
+                <h2 className="mt-4">One expert for every mission.</h2>
+                <p className="mt-8 text-xl">Each Sydekyk has a defined job, a visible playbook, and a clear point where judgment returns to your team.</p>
+              </header>
+              <div className="grid items-start gap-6 lg:grid-cols-3">
+                {rosterByDomain().map(({ domain, entries }) => (
+                  <section key={domain} aria-labelledby={`domain-${domain}`} className="!bg-ink-900 rounded-[4px] border-2 border-ink-600 p-4 sm:p-6">
+                    <div className="mb-6 flex items-center gap-3 border-b-2 border-ink-600 pb-4">
+                      <h3 id={`domain-${domain}`} className="text-2xl">{domain}</h3>
+                      <span className="h-0.5 flex-1 bg-ink-700" aria-hidden="true" />
+                      <span className="rounded-[2px] border-2 border-gold-700 bg-brand-softer px-2 py-1 text-xs font-medium text-gold-300">{entries.length.toString().padStart(2, "0")} live</span>
+                    </div>
+                    <div className="grid gap-4">
+                      {entries.map((entry) => <RosterCard key={entry.slug} entry={entry} />)}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <div className="typeui-divider" aria-hidden="true" />
+
+          <section id="how-it-works" className="typeui-section typeui-grid scroll-mt-24">
+            <div className="typeui-container">
+              <header className="mb-16 max-w-3xl">
+                <p className="text-sm font-medium uppercase tracking-[0.4px] text-gold-300">How it works</p>
+                <h2 className="mt-4">Not a chatbot. An operating model.</h2>
+                <p className="mt-8 text-xl">Every mission has a trigger, a bounded sequence of work, durable evidence, and a human-safe finish.</p>
+              </header>
+              <ol className="grid gap-6 md:grid-cols-3">
+                {HOW_IT_WORKS.map((item) => (
+                  <li key={item.title} className="rounded-[4px] border-2 border-ink-600 bg-ink-900 p-6 shadow-[var(--shadow-xs)]">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="grid h-11 w-11 place-items-center rounded-[4px] border-2 border-gold-700 bg-brand-softer text-gold-300"><item.icon className="h-5 w-5" /></span>
+                      <span className="text-sm font-medium text-body">{item.step}</span>
+                    </div>
+                    <h3 className="mt-8 text-2xl">{item.title}</h3>
+                    <p className="mt-8">{item.detail}</p>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </section>
+
+          <div className="typeui-divider" aria-hidden="true" />
+
+          <section id="upcoming" className="typeui-section">
+            <div className="typeui-container">
+              <header className="mb-16 grid items-end gap-8 lg:grid-cols-[1fr_auto]">
+                <div className="max-w-3xl">
+                  <p className="text-sm font-medium uppercase tracking-[0.4px] text-gold-300">Next in queue</p>
+                  <h2 className="mt-4">This is only the beginning.</h2>
+                  <p className="mt-8 text-xl">The next wave brings specialist backup to finance, recruitment, sales, purchasing, inventory, manufacturing, support, and data quality.</p>
+                </div>
+                <div className="rounded-[4px] border-2 border-gold-600 bg-brand-softer px-6 py-5 text-right shadow-[var(--shadow-md)]">
+                  <strong className="block text-5xl font-bold text-heading">{UPCOMING_COUNT}</strong>
+                  <span className="mt-2 block text-sm font-medium uppercase tracking-[0.4px] text-gold-300">more agents coming</span>
+                </div>
+              </header>
+              <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+                {UPCOMING.map(({ domain, entries }, domainIndex) => (
+                  <article key={domain} className="rounded-[4px] border-2 border-dashed border-ink-600 bg-ink-900 p-5">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-xs font-medium text-body">{String(domainIndex + 1).padStart(2, "0")}</span>
+                      <span className="rounded-[2px] border-2 border-ink-600 bg-ink-800 px-2 py-1 text-xs font-medium uppercase text-body">{entries.length} queued</span>
+                    </div>
+                    <h3 className="mt-6 text-xl">{domain}</h3>
+                    <ul className="mt-6 grid gap-3">
+                      {entries.map((entry) => (
+                        <li key={entry.name} className="border-t-2 border-ink-600 pt-3">
+                          <span className="block font-medium text-heading">{entry.name}</span>
+                          <span className="mt-1 block text-sm text-body">{entry.agent}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section className="typeui-section typeui-grid border-t-2 border-ink-600">
+            <div className="typeui-container text-center">
+              <p className="text-sm font-medium uppercase tracking-[0.4px] text-gold-300">Ready when you are</p>
+              <h2 className="mx-auto mt-4 max-w-3xl">Give your team a specialist bench.</h2>
+              <p className="mx-auto mt-8 max-w-[65ch] text-xl">Activate your HQ, assign the right agents, and keep every mission visible from signal to sign-off.</p>
+              <Link to="/login" className={buttonClassName("primary", "mt-10 px-6 py-3")}>Enter your HQ</Link>
+            </div>
+          </section>
+        </main>
+
+        <MarketingFooter />
+        <TypeUIPanel />
+      </div>
+    </PageShell>
+  );
+}
+
+function Metric({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="border-t-2 border-ink-600 pt-4">
+      <dt className="text-sm text-body">{label}</dt>
+      <dd className="mt-1 text-3xl font-bold text-heading">{value}</dd>
+    </div>
+  );
+}
+
+function RosterCard({ entry }: { entry: RosterEntry }) {
+  return (
+    <Link to={`/sydekyks/${entry.slug}`} className="group grid min-h-40 grid-cols-[7.5rem_1fr] overflow-hidden rounded-[4px] border-2 border-ink-600 bg-ink-950 shadow-[var(--shadow-xs)] transition-colors hover:border-gold-600 hover:bg-ink-800">
+      <div className="border-r-2 border-ink-600 bg-ink-950">
+        <img src={`/sydekyks/${entry.slug}.png`} alt={`${entry.name}, ${entry.role}`} loading="lazy" className="h-full w-full object-cover object-top" />
+      </div>
+      <div className="flex min-w-0 flex-col p-4">
+        <span className="text-xs font-medium uppercase tracking-[0.4px] text-gold-300">{entry.role}</span>
+        <h4 className="agent-name mt-3 text-xl">{entry.name}</h4>
+        <p className="mt-4 line-clamp-2 text-sm">{entry.tagline}</p>
+        <span className="mt-auto inline-flex items-center gap-2 pt-4 text-sm font-medium text-gold-300">Agent file <ChevronRightIcon className="h-4 w-4" /></span>
       </div>
     </Link>
   );

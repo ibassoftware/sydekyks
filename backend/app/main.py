@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.routers import (
     admin,
     auth,
+    command_center,
     documents,
     email_webhook,
     gadget_assignments,
@@ -68,6 +69,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(tenant.router)
+app.include_router(command_center.router)
 app.include_router(gadgets.router)
 app.include_router(gadget_assignments.router)
 app.include_router(llm_settings.router)

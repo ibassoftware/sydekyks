@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.models.mission import Mission, MissionDocument, MissionStep
 from app.models.sydekyk import Sydekyk
-from app.services import document_storage
+from app.services import document_storage, mission_events
 
 # ---------------------------------------------------------------------------
 # Registries
@@ -98,6 +98,15 @@ def record_step(
     db.add(step)
     db.commit()
     db.refresh(step)
+    # Publish after commit: the event is an observation of durable Mission state, never its source.
+    # Raw step errors stay in the database and are sanitized by the tenant-facing detail endpoint.
+    mission_events.publish(mission.id, "step.completed", {
+        "index": step_index,
+        "key": step_key,
+        "step_type": step_type,
+        "status": status,
+        "has_error": bool(error),
+    })
     return step
 
 
@@ -115,6 +124,7 @@ def create_mission(
     source: str,
     signal_type: str,
     trigger_context: dict | None = None,
+    playbook_key: str | None = None,
 ) -> Mission:
     """Create a Mission with NO document — for agents that analyze existing Odoo records (Mirror,
     Shield) rather than an uploaded/emailed file. The target record id rides in `trigger_context`."""
@@ -124,13 +134,17 @@ def create_mission(
         sydekyk_id=sydekyk.id,
         mode="workflow_run",
         signal_type=signal_type,
-        playbook_key=sydekyk.playbook_key or "",
+        playbook_key=playbook_key if playbook_key is not None else (sydekyk.playbook_key or ""),
         status="queued",
         trigger_context=trigger_context,
     )
     db.add(mission)
     db.commit()
     db.refresh(mission)
+    mission_events.publish(mission.id, "mission.queued", {
+        "playbook_key": mission.playbook_key,
+        "signal_type": mission.signal_type,
+    })
     return mission
 
 
@@ -177,6 +191,10 @@ def create_mission_for_document(
     db.add(document)
     db.commit()
     db.refresh(mission)
+    mission_events.publish(mission.id, "mission.queued", {
+        "playbook_key": mission.playbook_key,
+        "signal_type": mission.signal_type,
+    })
     return mission
 
 
@@ -226,6 +244,10 @@ def retry_mission(db: Session, original: Mission) -> Mission:
     db.add(copy)
     db.commit()
     db.refresh(mission)
+    mission_events.publish(mission.id, "mission.queued", {
+        "playbook_key": mission.playbook_key,
+        "signal_type": mission.signal_type,
+    })
     return mission
 
 
@@ -244,18 +266,25 @@ def run_mission(mission_id: uuid.UUID) -> None:
         mission = db.get(Mission, mission_id)
         if mission is None:
             return
+        # Queue job ids prevent normal duplicate dispatch, but this guard also protects the
+        # queue-disabled fallback and manual/operator retries from emitting a second terminal event.
+        if mission.status in ("succeeded", "failed", "cancelled"):
+            return
 
         runner = PLAYBOOK_REGISTRY.get(mission.playbook_key)
         if runner is None:
             mission.status = "failed"
             mission.error_message = f"No playbook registered for '{mission.playbook_key}'"
+            mission.failure_category = "unknown"
             mission.completed_at = datetime.now(timezone.utc)
             db.commit()
+            mission_events.publish(mission.id, "mission.failed", {"failure_category": "unknown"})
             return
 
         mission.status = "running"
         mission.started_at = datetime.now(timezone.utc)
         db.commit()
+        mission_events.publish(mission.id, "mission.started", {"playbook_key": mission.playbook_key})
 
         try:
             runner(db, mission)
@@ -271,6 +300,9 @@ def run_mission(mission_id: uuid.UUID) -> None:
                     mission.failure_category = "unknown"
                 mission.completed_at = datetime.now(timezone.utc)
                 db.commit()
+                mission_events.publish(mission.id, "mission.failed", {
+                    "failure_category": mission.failure_category,
+                })
             return
 
         # Runner is expected to set a terminal status; backfill if it forgot.
@@ -281,6 +313,16 @@ def run_mission(mission_id: uuid.UUID) -> None:
             if mission.completed_at is None:
                 mission.completed_at = datetime.now(timezone.utc)
             db.commit()
+            event_type = {
+                "succeeded": "mission.completed",
+                "failed": "mission.failed",
+                "cancelled": "mission.cancelled",
+            }.get(mission.status)
+            if event_type:
+                mission_events.publish(mission.id, event_type, {
+                    "status": mission.status,
+                    "failure_category": mission.failure_category,
+                })
     finally:
         db.close()
 

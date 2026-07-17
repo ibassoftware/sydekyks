@@ -3,8 +3,12 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { api, type IssuesCount, type Mission, type MissionDetail } from "./api";
 import { useAuth } from "./auth";
+import { useMissionRefresh } from "./useMissionRefresh";
+import { MISSION_ACTIVITY_EVENT } from "./missionActivity";
 
-const POLL_MS = 3000;
+// Low-frequency discovery catches Missions created by cron/email. Browser-issued commands also
+// signal this provider immediately; focused active Missions then use SSE for step/terminal updates.
+const DISCOVERY_POLL_MS = 30000;
 const ISSUES_POLL_MS = 15000;
 const FINISHED_TTL_MS = 5000;
 
@@ -116,9 +120,18 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
       return;
     }
     poll();
-    const id = setInterval(poll, POLL_MS);
+    const id = setInterval(poll, DISCOVERY_POLL_MS);
     return () => clearInterval(id);
   }, [enabled, poll]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const discoverNow = () => { void poll(); };
+    window.addEventListener(MISSION_ACTIVITY_EVENT, discoverNow);
+    return () => window.removeEventListener(MISSION_ACTIVITY_EVENT, discoverNow);
+  }, [enabled, poll]);
+
+  useMissionRefresh(active.map((mission) => mission.id), poll);
 
   const pollIssues = useCallback(async () => {
     try {

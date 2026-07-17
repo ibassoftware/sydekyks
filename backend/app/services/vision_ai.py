@@ -109,54 +109,123 @@ def parse_json(text: str) -> dict | None:
     return None
 
 
+def strip_code_fences(text: str) -> str:
+    """Drop a ```lang … ``` wrapper if a model added one despite instructions. For prose agents that
+    emit a raw HTML fragment (not JSON), this is the whole cleanup — see `title_from_html`."""
+    text = text.strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```[a-zA-Z]*\n?", "", text)
+        text = re.sub(r"\n?```$", "", text)
+    return text.strip()
+
+
+def title_from_html(html: str) -> str:
+    """Text of the leading <h1>/<h2>. Prose agents are told to open their fragment with one, so a
+    document title can be derived without a second model call."""
+    m = re.search(r"<h[12][^>]*>(.*?)</h[12]>", html, re.IGNORECASE | re.DOTALL)
+    if not m:
+        return ""
+    return re.sub(r"<[^>]+>", "", m.group(1)).strip()[:255]
+
+
 def empty_meta(model_alias: str) -> dict:
     return {"usage": None, "request_id": None, "model": model_alias, "cost_usd": 0.0}
+
+
+def _message_content(prompt: str, image_uris: list[str]) -> object:
+    """The `messages[0].content` payload — a plain string for text-only, or a text+images list."""
+    if image_uris:
+        return [{"type": "text", "text": prompt}] + [
+            {"type": "image_url", "image_url": {"url": uri}} for uri in image_uris
+        ]
+    return prompt
+
+
+_REJECTED_MSG = (
+    "The AI engine rejected the request. Its assigned model may not support "
+    "image/PDF understanding — assign a vision-capable model in AI Engine settings. ({body})"
+)
+
+
+def llm_stream(virtual_key: str, model_alias: str, prompt: str, image_uris: list[str], timeout: float):
+    """The single streaming transport to the LiteLLM proxy — EVERY AI call rides this one path.
+    Text-only when `image_uris` is empty, vision otherwise. Yields event dicts with a discriminated
+    `type`:
+      - `{"type": "delta", "text": str}`                          one content chunk (for live prose)
+      - `{"type": "done",  "ok": True,  "text": str, "meta": {}}` full assembled text + usage/cost meta
+      - `{"type": "error", "ok": False, "msg": str,  "meta": {}}` reach/reject/transport failure
+
+    `meta` matches `empty_meta` (usage/request_id/model/cost_usd). Prose agents forward the deltas to
+    the browser; structured/batch agents use `llm_completion`, which drains this to the terminal event
+    and validates the whole assembled object before acting (never on a partial)."""
+    meta = empty_meta(model_alias)
+    payload = {
+        "model": model_alias,
+        "messages": [{"role": "user", "content": _message_content(prompt, image_uris)}],
+        "temperature": 0,
+        "stream": True,
+        "stream_options": {"include_usage": True},  # usage arrives in the final chunk
+    }
+    parts: list[str] = []
+    try:
+        with httpx.Client(base_url=settings.litellm_proxy_url, timeout=timeout) as client:
+            with client.stream(
+                "POST", "/chat/completions",
+                headers={"Authorization": f"Bearer {virtual_key}"}, json=payload,
+            ) as resp:
+                if resp.status_code >= 400:
+                    resp.read()  # a streamed response must be read before `.text` is available
+                    yield {"type": "error", "ok": False, "msg": _REJECTED_MSG.format(body=resp.text[:200]), "meta": meta}
+                    return
+                # Cost is a response header; may be absent on streaming — usage (final chunk) is the
+                # reliable attribution signal, cost falls back to 0.0 for downstream pricing.
+                try:
+                    meta["cost_usd"] = float(resp.headers.get("x-litellm-response-cost") or 0.0)
+                except (TypeError, ValueError):
+                    meta["cost_usd"] = 0.0
+                for line in resp.iter_lines():
+                    if not line.startswith("data:"):
+                        continue
+                    data = line[5:].strip()
+                    if data == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data)
+                    except json.JSONDecodeError:
+                        continue
+                    if chunk.get("id"):
+                        meta["request_id"] = chunk["id"]
+                    if chunk.get("usage"):
+                        meta["usage"] = chunk["usage"]
+                    for choice in chunk.get("choices") or []:
+                        piece = (choice.get("delta") or {}).get("content")
+                        if piece:
+                            parts.append(piece)
+                            yield {"type": "delta", "text": piece}
+    except (httpx.ConnectError, httpx.TimeoutException) as exc:
+        yield {"type": "error", "ok": False, "msg": f"Could not reach the LiteLLM proxy: {exc}", "meta": meta}
+        return
+    yield {"type": "done", "ok": True, "text": "".join(parts), "meta": meta}
 
 
 def llm_completion(
     virtual_key: str, model_alias: str, prompt: str, image_uris: list[str], timeout: float
 ) -> tuple[bool, str, dict | None, dict]:
-    """Shared LiteLLM-proxy completion. Text-only when `image_uris` is empty, vision otherwise.
-    Returns `(ok, message, parsed_json, meta)` where `meta = {usage, request_id, model, cost_usd}`
-    for VS-15 usage attribution (`cost_usd` from the `x-litellm-response-cost` header)."""
+    """Buffered completion — drains the shared `llm_stream` transport, then parses the fully assembled
+    text as JSON. This is the path for structured/batch agents that need the whole validated object
+    before acting; the `stream: true` underneath is transparent to them. Returns
+    `(ok, message, parsed_json, meta)` with `meta = {usage, request_id, model, cost_usd}` for usage
+    attribution. Prose agents wanting live tokens consume `llm_stream` directly instead."""
+    text = ""
     meta = empty_meta(model_alias)
-    if image_uris:
-        content: object = [{"type": "text", "text": prompt}] + [
-            {"type": "image_url", "image_url": {"url": uri}} for uri in image_uris
-        ]
-    else:
-        content = prompt
-    payload = {"model": model_alias, "messages": [{"role": "user", "content": content}], "temperature": 0}
+    for event in llm_stream(virtual_key, model_alias, prompt, image_uris, timeout):
+        if event["type"] == "delta":
+            continue  # the full text is re-delivered in the terminal `done` event
+        if event["type"] == "error":
+            return False, event["msg"], None, event["meta"]
+        text, meta = event["text"], event["meta"]  # done
 
-    try:
-        with httpx.Client(base_url=settings.litellm_proxy_url, timeout=timeout) as client:
-            resp = client.post("/chat/completions", headers={"Authorization": f"Bearer {virtual_key}"}, json=payload)
-    except (httpx.ConnectError, httpx.TimeoutException) as exc:
-        return False, f"Could not reach the LiteLLM proxy: {exc}", None, meta
-
-    if resp.status_code >= 400:
-        return (
-            False,
-            "The AI engine rejected the request. Its assigned model may not support "
-            f"image/PDF understanding — assign a vision-capable model in AI Engine settings. ({resp.text[:200]})",
-            None,
-            meta,
-        )
-
-    try:
-        body = resp.json()
-        msg_content = body["choices"][0]["message"]["content"]
-    except (KeyError, IndexError, ValueError):
-        return False, "The AI engine returned an unexpected response shape.", None, meta
-
-    meta["usage"] = body.get("usage")
-    meta["request_id"] = body.get("id")
-    try:
-        meta["cost_usd"] = float(resp.headers.get("x-litellm-response-cost") or 0.0)
-    except (TypeError, ValueError):
-        meta["cost_usd"] = 0.0
-
-    raw = parse_json(msg_content if isinstance(msg_content, str) else json.dumps(msg_content))
+    raw = parse_json(text)
     if raw is None:
-        return False, f"Could not parse structured data from the AI response: {str(msg_content)[:200]}", None, meta
+        return False, f"Could not parse structured data from the AI response: {text[:200]}", None, meta
     return True, "ok", raw, meta

@@ -181,7 +181,7 @@ function IssuesQuickLink({ sydekykId }: { sydekykId: string }) {
 
   return (
     <Link
-      to={`/hq/issues?sydekyk_id=${sydekykId}`}
+      to={`/hq/missions?view=attention&sydekyk_id=${sydekykId}`}
       className="flex items-center justify-between rounded-lg border border-ink-700 px-4 py-3 transition-colors hover:border-gold-500/60"
     >
       <div>

@@ -1,5 +1,6 @@
 import axios from "axios";
 import { toast } from "./toast";
+import { notifyMissionActivity } from "./missionActivity";
 
 export const api = axios.create({
   baseURL: "/api",
@@ -19,6 +20,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use((response) => {
   const method = (response.config.method || "").toLowerCase();
   const url = response.config.url || "";
+  const startsMission = method === "post" && /\/run-now(?:\?|$)|\/documents(?:\?|$)|\/retry(?:\?|$)/.test(url);
+  if (startsMission) notifyMissionActivity();
   const isSettingsSave = method === "put" || (method === "delete" && /gadget-requirements|reviewers|recurring/.test(url));
   if (isSettingsSave) {
     const affectsReadiness = /llm-config|gadget-requirements/.test(url);
@@ -63,6 +66,37 @@ export interface Dashboard {
   gpu_seconds_used_last_hour: number;
   gpu_seconds_per_hour_cap: number;
   gpu_throttled: boolean;
+}
+
+export interface AgentReadiness {
+  items: ReadinessItem[];
+  can_upload?: boolean;
+  can_send?: boolean;
+  last_inbound_email?: string | null;
+}
+
+export interface CommandCenter {
+  dashboard: Dashboard;
+  sydekyks: Sydekyk[];
+  missions: MissionPage;
+  insights: {
+    nudge?: NudgeInsights;
+    quill?: QuillInsights;
+    seal?: SealInsights;
+    signet?: SignetInsights;
+    ledger?: LedgerInsights;
+    mirror?: MirrorInsights;
+    shield?: ShieldInsights;
+    decode?: DecodeInsights;
+    scout?: ScoutInsights;
+  };
+  readiness: Record<string, AgentReadiness | undefined>;
+  queues: {
+    nudge?: NudgeQueuePage;
+    mirror?: MirrorFlagPage;
+    shield?: ShieldQueuePage;
+  };
+  money_saved: number;
 }
 
 export interface TenantSettings {
@@ -915,14 +949,6 @@ export interface QuillChatHistory {
   proposal_token_total: number;
   proposal_cost_usd: number;
 }
-export interface QuillChatResult {
-  reply: string;
-  changed_summary: string;
-  proposal: QuillProposal;
-  turn_tokens: { prompt_tokens: number; completion_tokens: number; total_tokens: number; cost_usd: number };
-  proposal_token_total: number;
-  proposal_cost_usd: number;
-}
 export interface QuillAsset {
   id: string;
   url: string;
@@ -1025,14 +1051,6 @@ export interface SealChatMessage {
 }
 export interface SealChatHistory {
   messages: SealChatMessage[];
-  contract_token_total: number;
-  contract_cost_usd: number;
-}
-export interface SealChatResult {
-  reply: string;
-  changed_summary: string;
-  contract: SealContract;
-  turn_tokens: { prompt_tokens: number; completion_tokens: number; total_tokens: number; cost_usd: number };
   contract_token_total: number;
   contract_cost_usd: number;
 }
@@ -1166,10 +1184,6 @@ export interface SignetEnvelopePage {
   limit: number;
   offset: number;
   sees_all: boolean;
-}
-export interface SignetSendResult {
-  envelope: SignetEnvelope;
-  sent: number;
 }
 export interface SignetInsights {
   activated: boolean;

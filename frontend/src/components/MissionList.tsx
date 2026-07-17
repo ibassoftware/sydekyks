@@ -143,8 +143,8 @@ export function MissionList({
               )}
               {needsReview && (
                 <Link
-                  to={`/hq/issues?mission=${m.id}`}
-                  title="Jump to this record on the Issues page"
+                  to={`/hq/missions?view=attention&mission=${m.id}`}
+                  title="Open this record in the Missions attention queue"
                   className={`flex items-center border-l border-ink-700/60 px-4 text-xs font-semibold text-amber-400 ${hoverTint}`}
                 >
                   Review →

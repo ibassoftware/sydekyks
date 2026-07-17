@@ -51,6 +51,11 @@ class MissionDetailOut(MissionOut):
     steps: list[MissionStepOut]
 
 
+class MissionStartOut(BaseModel):
+    mission_id: uuid.UUID
+    status: str = "queued"
+
+
 class MissionPage(BaseModel):
     items: list[MissionOut]
     total: int

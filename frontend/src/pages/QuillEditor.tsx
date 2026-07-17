@@ -5,7 +5,6 @@ import {
   type QuillAsset,
   type QuillChatHistory,
   type QuillChatMessage,
-  type QuillChatResult,
   type QuillOpportunity,
   type QuillProposal,
   type QuillQuotation,
@@ -14,6 +13,7 @@ import {
 import { HQShell } from "../components/HQShell";
 import { RichDocEditor } from "../components/RichDocEditor";
 import { Button, Input, Label } from "../components/ui";
+import { streamMission } from "../lib/sse";
 import { toast } from "../lib/toast";
 
 function fmtTokens(n: number): string {
@@ -101,14 +101,6 @@ export default function QuillEditor() {
       toast.error(errMsg(e, "Couldn't upload the image."));
       return null;
     }
-  }
-
-  function applyRewrite(newHtml: string, tokens: number, newCost: number) {
-    undoRef.current = html;
-    setHtml(newHtml);
-    dirtyRef.current = true;
-    setTokenTotal(tokens);
-    setCost(newCost);
   }
 
   function undoRevision() {
@@ -215,7 +207,7 @@ export default function QuillEditor() {
             <ChatPanel
               proposalId={proposalId!}
               onBusy={setAiBusy}
-              onRewrite={(res) => applyRewrite(res.proposal.content_html, res.proposal_token_total, res.proposal_cost_usd)}
+              onRewrite={(next) => { undoRef.current = html; setHtml(next.content_html); dirtyRef.current = false; setTokenTotal(next.token_total); setCost(next.cost_usd); }}
               canUndo={undoRef.current !== null}
               onUndo={undoRevision}
             />
@@ -258,6 +250,7 @@ function GeneratePanel({ proposalId, hasContent, onBusy, onGenerated }: {
   const [notes, setNotes] = useState("");
   const [opp, setOpp] = useState<QuillOpportunity | null>(null);
   const [busy, setBusy] = useState(false);
+  const [streamHtml, setStreamHtml] = useState("");
   // Show the full form only before the first generation; afterwards collapse to a "Regenerate" button
   // (expandable) so the panel isn't in the way while editing.
   const [expanded, setExpanded] = useState(!hasContent);
@@ -269,20 +262,37 @@ function GeneratePanel({ proposalId, hasContent, onBusy, onGenerated }: {
   async function generate() {
     setBusy(true);
     onBusy(true);
+    setStreamHtml("");
+    let acc = "";
+    let settled = false;
     try {
-      const r = await api.post<QuillProposal>(`/tenant/quill/proposals/${proposalId}/generate`, {
-        template_id: templateId || null,
-        notes,
-        odoo_lead_id: opp?.id ?? null,
-      });
-      onGenerated(r.data);
-      toast.success("Draft generated");
-      setExpanded(false);
+      await streamMission(
+        `/tenant/quill/proposals/${proposalId}/generate`,
+        { template_id: templateId || null, notes, odoo_lead_id: opp?.id ?? null },
+        {
+          onDelta: (t) => { acc += t; setStreamHtml(acc); },
+          onDone: async () => {
+            settled = true;
+            const fresh = await api.get<QuillProposal>(`/tenant/quill/proposals/${proposalId}`);
+            onGenerated(fresh.data);
+            toast.success("Draft generated");
+            setExpanded(false);
+          },
+          onError: (msg) => {
+            // Failure arrives as an event once the stream is open — deltas render into a throwaway
+            // preview, never the editor, so there is nothing to roll back.
+            settled = true;
+            toast.error(msg || "Generation failed. Is an AI engine configured?");
+          },
+        },
+      );
+      if (!settled) toast.error("Generation ended unexpectedly. Please try again.");
     } catch (e) {
       toast.error(errMsg(e, "Generation failed. Is an AI engine configured?"));
     } finally {
       setBusy(false);
       onBusy(false);
+      setStreamHtml("");
     }
   }
 
@@ -334,6 +344,15 @@ function GeneratePanel({ proposalId, hasContent, onBusy, onGenerated }: {
         <Button className="mt-1 py-2 text-xs" disabled={busy} onClick={generate}>
           {busy ? "Writing…" : "Generate proposal"}
         </Button>
+        {busy && (
+          <div>
+            <p className="mb-1 text-[11px] uppercase tracking-wider text-gold-500">Writing live…</p>
+            <div
+              className="max-h-72 overflow-auto rounded-md border border-ink-600 bg-ink-950 px-3 py-2 text-sm leading-relaxed text-[#ede6da] [&_h1]:text-base [&_h1]:font-semibold [&_h2]:mt-2 [&_h2]:font-semibold [&_p]:mt-1"
+              dangerouslySetInnerHTML={{ __html: streamHtml || "<span style=\"color:#8a7f6d\">Preparing…</span>" }}
+            />
+          </div>
+        )}
         <p className="text-[11px] text-[#8a7f6d]">Replaces the current document. Every AI turn is metered against your token allowance.</p>
       </div>
     </section>
@@ -345,7 +364,7 @@ function GeneratePanel({ proposalId, hasContent, onBusy, onGenerated }: {
 function ChatPanel({ proposalId, onBusy, onRewrite, canUndo, onUndo }: {
   proposalId: string;
   onBusy: (b: boolean) => void;
-  onRewrite: (res: QuillChatResult) => void;
+  onRewrite: (proposal: QuillProposal) => void;
   canUndo: boolean;
   onUndo: () => void;
 }) {
@@ -367,13 +386,31 @@ function ChatPanel({ proposalId, onBusy, onRewrite, canUndo, onUndo }: {
     setInput("");
     // optimistic user bubble
     setMessages((m) => [...m, { id: `tmp-${m.length}`, seq: m.length, role: "user", content: msg, total_tokens: 0, created_at: "" }]);
+    let completed = false;
+    let reported = false;
     try {
-      const r = await api.post<QuillChatResult>(`/tenant/quill/proposals/${proposalId}/chat`, { message: msg });
-      onRewrite(r.data);
-      setMessages((m) => [...m, { id: `a-${m.length}`, seq: m.length, role: "assistant", content: r.data.changed_summary, total_tokens: r.data.turn_tokens.total_tokens, created_at: "" }]);
+      await streamMission(
+        `/tenant/quill/proposals/${proposalId}/chat`,
+        { message: msg },
+        {
+          onDone: async () => {
+            const [proposal, history] = await Promise.all([
+              api.get<QuillProposal>(`/tenant/quill/proposals/${proposalId}`),
+              api.get<QuillChatHistory>(`/tenant/quill/proposals/${proposalId}/chat`),
+            ]);
+            onRewrite(proposal.data);
+            setMessages(history.data.messages);
+            completed = true;
+          },
+          onError: (error) => { reported = true; toast.error(error || "The edit failed."); },
+        },
+      );
+      if (!completed) {
+        setMessages((m) => m.slice(0, -1));
+        setInput(msg);
+      }
     } catch (e) {
-      const detail = errMsg(e, "The edit failed.");
-      toast.error(detail);
+      if (!reported) toast.error(errMsg(e, "The edit failed."));
       setMessages((m) => m.slice(0, -1)); // roll back the optimistic bubble
       setInput(msg);
     } finally {

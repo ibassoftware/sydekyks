@@ -7,13 +7,14 @@ import { useTenantCurrency } from "../../lib/useTenantCurrency";
 
 /** Recruitment (parsing) dashboard card — an intake monitor: where applicants are landing, how
  * clean the captured data is, the seniority mix, and the skills the pool brings. */
-export function DecodeInsightsSection() {
+export function DecodeInsightsSection({ initialData }: { initialData?: DecodeInsights | null } = {}) {
   const currency = useTenantCurrency();
-  const [data, setData] = useState<DecodeInsights | null>(null);
+  const [data, setData] = useState<DecodeInsights | null>(initialData ?? null);
 
   useEffect(() => {
-    api.get<DecodeInsights>("/tenant/decode/insights").then((r) => setData(r.data)).catch(() => setData(null));
-  }, []);
+    if (initialData !== undefined) setData(initialData);
+    else api.get<DecodeInsights>("/tenant/decode/insights").then((r) => setData(r.data)).catch(() => setData(null));
+  }, [initialData]);
 
   if (!data || !data.activated || data.total_applicants === 0) return null;
 
@@ -95,9 +96,9 @@ export function DecodeInsightsSection() {
 
 function Tile({ value, label }: { value: number; label: string }) {
   return (
-    <div>
-      <p className="text-2xl font-bold text-[#f5eee0]">{value.toLocaleString()}</p>
-      <p className="text-[11px] text-[#8a7f6d]">{label}</p>
+    <div className="rounded-[4px] border-2 border-ink-700 bg-ink-900/50 p-4">
+      <p className="text-2xl font-bold text-heading">{value.toLocaleString()}</p>
+      <p className="mt-1 text-xs text-body">{label}</p>
     </div>
   );
 }
@@ -107,9 +108,9 @@ function QualityTile({ pct, label, invert }: { pct: number; label: string; inver
   const good = invert ? pct <= 15 : pct >= 80;
   const tone = good ? "text-gold-300" : pct >= 50 && !invert ? "text-[#ede6da]" : invert && pct <= 40 ? "text-[#ede6da]" : "text-amber-400";
   return (
-    <div>
+    <div className="rounded-[4px] border-2 border-ink-700 bg-ink-900/50 p-3">
       <p className={`text-xl font-bold ${tone}`}>{pct}%</p>
-      <p className="text-[11px] text-[#8a7f6d]">{label}</p>
+      <p className="mt-1 text-xs text-body">{label}</p>
     </div>
   );
 }

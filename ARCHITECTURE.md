@@ -2,7 +2,7 @@
 
 ## 1. What we're building
 
-Sydekyks is a multi-tenant SaaS where each tenant ("HQ") activates AI "Sydekyks" — some shared across all tenants, some built exclusively for one tenant by the Sydekyks team. Visual theme: heroic dark (black/brown) with gold accents, premium feel.
+Sydekyks is a multi-tenant SaaS where each tenant ("HQ") activates AI "Sydekyks" — some shared across all tenants, some built exclusively for one tenant by the Sydekyks team. The product UI follows the project-local TypeUI **Sydekyks** workspace package (`dithered`): a high-contrast dark-navy and teal system with dithered imagery, early-computing texture, strong borders, and accessible interaction states. [The design-system contract](docs/DESIGN_SYSTEM.md) is the visual source of truth.
 
 A Sydekyk is not limited to being a chat agent. Each Sydekyk independently supports one or both modes:
 
@@ -23,6 +23,18 @@ A single Sydekyk can be chat-only, workflow-only, or both — the two capabiliti
 | Auth | Email/password + JWT (access + refresh tokens) |
 | Billing | Subscription + usage overage (metered) |
 | Deployment | Docker containers, single cloud provider (TBD), no Kubernetes for now |
+
+### 2.1 UI architecture and design authority
+
+- TypeUI workspace project: **Sydekyks** (`designSystemId: 60e92ca6-8dc9-4a04-8b0e-15ec38dc49b6`, template slug `dithered`).
+- The checked-in `.agents/skills/typeui-fundamentals` and `.agents/skills/typeui-design-system` packages are binding implementation inputs for UI work.
+- `frontend/src/index.css` maps TypeUI’s agnostic tokens into the Tailwind theme and CSS custom properties. Components consume semantic tokens instead of raw colors.
+- `frontend/src/components/ui.tsx` owns the shared button, input, card, badge, and page-shell treatments. Page-specific code should compose these primitives rather than inventing alternatives.
+- The HQ dashboard loads one bounded projection from `GET /api/tenant/command-center`. The backend computes dashboard totals, the latest Mission sample, agent insights, readiness, and small work queues sequentially with one request-scoped database session. Insight panels and `AgentQuickAction` receive that initial data as props instead of launching a browser fan-out. Individual panel endpoints remain available for focused refreshes after a mutation.
+- The HQ launchpad delegates workflow-specific commands to `frontend/src/components/AgentQuickAction.tsx`. It uses the readiness included in the command-center projection before exposing an action, invokes each agent's native command API (upload, run-now, or document creation), and sends configuration failures back to that agent's Settings surface. Generic "run agent" controls are deliberately avoided because Sydekyks have different operating models.
+- Missions owns the operational attention model. `/hq/missions?view=attention` combines standing configuration blockers and Missions flagged for human review into one chronological, responsive queue. `/hq/issues` is a backward-compatible redirect, not a second data surface.
+- Public marketing pages use the same TypeUI contract as authenticated HQ agent-detail surfaces. Product semantics and mission behavior remain independent of the presentation layer.
+- Accessibility guardrails take precedence over decorative direction: WCAG contrast is measured, color is never the only state cue, focus remains visible, targets are at least 44px, layouts reflow at 320px, and motion respects `prefers-reduced-motion`.
 
 ## 3. Themed domain vocabulary
 
@@ -142,7 +154,9 @@ Workflow-mode sydekyks run a **Playbook**: an ordered list of steps (v1 is linea
 - **Gadget call** — invokes a built-in or tenant-linked Gadget, same registry used by chat mode.
 - **Wait** — a delay or a wait-for-external-event pause point.
 
-Because a Playbook run can be long-running (minutes, or waiting on an external event) it does **not** run inline on the request thread like chat does — it's picked up by a background worker:
+Because a Playbook run can be long-running (minutes, or waiting on an external event), it does **not**
+run inline on the request thread. Interactive chat/refine turns follow the same rule: command routes
+enqueue Missions, and a background worker executes them:
 
 - A **Signal** fires (manual click, cron schedule, or inbound webhook) → a `missions` row is created with `mode=workflow_run` and enqueued.
 - A worker process executes each step in order, writing a `mission_steps` row per step (status, input, output, timestamps) as it goes — this is the workflow's audit trail, parallel to `messages` for chat.
@@ -174,7 +188,16 @@ FastAPI  →  Server-Sent Events (SSE)  →  React SPA renders tokens live
   └─ On completion: persist message + usage_records (Power Meter)
 ```
 
-Streaming uses **SSE** (not WebSockets) — simpler over plain HTTP, sufficient since the only server-initiated data is the token stream itself. This flow applies to `mode=chat` Missions only.
+Live observation uses **SSE** (not WebSockets): the browser sends commands over ordinary HTTP and
+subscribes to the resulting Mission independently. Chat may publish human-facing text deltas, while
+all Mission modes publish the shared lifecycle and step protocol described in
+`docs/STREAMING.md`. Structured partial output is never exposed or acted upon.
+
+Browser-issued mission commands also emit the local `sydekyks:mission-activity` signal through
+`frontend/src/lib/missionActivity.ts`. `ActivityProvider` immediately re-reads the authoritative
+active-missions endpoint so global progress UI appears without waiting for background discovery;
+SSE remains responsible for subsequent step and terminal invalidation. The periodic discovery poll
+is retained for missions created outside the browser, such as cron and inbound email.
 
 ## 10. Workflow run flow
 
@@ -191,13 +214,28 @@ Worker (background job queue)
   │    - gadget_call → built-in function or tenant Gadget Link
   │    - wait       → delay or pause for external event
   │  Persist a mission_steps row per step (input/output/status)
+  │  Publish bounded Mission events to Redis Streams
   ▼
 On completion (or failure): update mission.status,
 persist usage_records (Power Meter), notify Hero/Commander in-app
 (and callback the originating system for event-triggered runs, if configured)
+
+Browser (optional observer)
+  │  GET /api/tenant/missions/{mission_id}/events
+  ▼
+FastAPI SSE projection ← Redis Streams ← Worker events
+  │  snapshot / step / optional safe prose delta / terminal event
+  ▼
+React SPA refetches authoritative Mission/domain state on completion
 ```
 
-Unlike chat, workflow runs don't need real-time token streaming to a browser tab — the Hero/Commander checks Mission status/results asynchronously (in-app, or via callback for event-triggered Playbooks).
+Workflow execution never depends on a browser connection. A Hero/Commander may observe any manual,
+upload, email, cron, or retry Mission in real time through the same SSE endpoint, reconnect later, or
+only retrieve its durable status/result. Most workflows publish steps rather than model tokens.
+
+The SSE route uses the database only to authorize the observer and construct its initial snapshot.
+It explicitly releases the request SQLAlchemy session before returning the long-lived stream, so an
+open browser observer does not reserve a PostgreSQL pool connection for the duration of a Mission.
 
 ## 11. Billing & usage metering
 
@@ -214,18 +252,20 @@ Unlike chat, workflow runs don't need real-time token streaming to a browser tab
 ## 13. Frontend architecture
 
 - **Vite + React SPA**, TypeScript.
-- **Tailwind CSS + shadcn/ui** as the component base, themed with a custom dark (black/brown) + gold Tailwind palette for the premium heroic look.
+- **Tailwind CSS + shared React primitives**, mapped to the checked-in TypeUI `dithered` system: dark navy surfaces, teal brand accents, Space Grotesk, 2px accessible boundaries, 4px component radii, and restrained dither/grid texture.
 - Suggested (not yet confirmed) supporting choices:
   - **TanStack Query** for server state (conversations, sydekyk roster, usage data).
-  - **Zustand** or React Context for lightweight local/UI state (active Mission, streaming buffer).
-  - **EventSource** (native) or a small SSE client hook for streaming Mission responses.
-- Route structure sketch: `/login`, `/hq/:tenantSlug/roster`, `/hq/:tenantSlug/missions/:missionId` (chat), `/hq/:tenantSlug/playbooks/:playbookId/runs/:missionId` (workflow run status/results), `/hq/:tenantSlug/settings` (Commander-only), `/hq/:tenantSlug/power-meter` (Commander-only).
+  - **Zustand** or React Context for lightweight local/UI state (active Mission, provisional preview).
+  - The shared authenticated `fetch` + `ReadableStream` Mission SSE client; native `EventSource`
+    cannot send the Bearer authorization header.
+- Current tenant route structure: `/login`, `/hq`, `/hq/roster`, `/hq/roster/:sydekykId`, `/hq/missions`, `/hq/missions?view=attention`, `/hq/gadgets`, `/hq/team`, and `/hq/settings`. Agent editors remain nested under HQ. The legacy `/hq/issues` route redirects into the Missions attention view while preserving deep-link parameters.
 
 ## 14. Deployment & infrastructure
 
 - All services containerized with Docker: `frontend` (static build behind a CDN/reverse proxy), `backend` (FastAPI), `litellm-proxy`, `postgres` (managed), object storage (managed).
 - Single cloud provider, container-based (e.g. ECS/Fargate-style or a PaaS) — no Kubernetes for v1.
-- Background jobs run as a worker process/queue (e.g. FastAPI + Celery/RQ or an async task runner) separate from the request-serving backend, handling: Intel ingestion/embedding, usage aggregation, Stripe overage reporting, **and Playbook step execution**.
+- Background jobs run through arq + Redis in a worker process separate from the request-serving backend, handling Playbook execution and other durable jobs. Bounded, expiring Redis Streams carry replayable Mission observation events between workers and API replicas; Postgres remains the source of truth.
+- SQLAlchemy pools are configured explicitly per process. The production API defaults to 15 persistent connections plus 15 overflow; the worker uses 5 plus 10 overflow. Pool timeout, pre-ping, and recycling are configured through `DATABASE_POOL_*` settings. This is headroom, not a substitute for bounded request concurrency: the command-center aggregate and early SSE session release are the primary safeguards against pool starvation.
 - **Scheduler** component (e.g. Celery beat or equivalent) fires scheduled Signals on their cron expression.
 - **Webhook receiver**: a per-tenant, per-Playbook endpoint (e.g. `/webhooks/{tenant_id}/{playbook_id}`) accepts inbound event Signals; validated via the Playbook's `webhook_secret` before enqueueing a run.
 - Environment separation: dev / staging / production, each with its own Postgres, LiteLLM proxy config, and Stripe test/live keys.

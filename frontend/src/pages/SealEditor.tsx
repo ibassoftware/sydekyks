@@ -5,7 +5,6 @@ import {
   type SealAsset,
   type SealChatHistory,
   type SealChatMessage,
-  type SealChatResult,
   type SealContract,
   type SealFinding,
   type SealOpportunity,
@@ -16,6 +15,7 @@ import {
 import { HQShell } from "../components/HQShell";
 import { RichDocEditor } from "../components/RichDocEditor";
 import { Button, Input, Label } from "../components/ui";
+import { streamMission } from "../lib/sse";
 import { toast } from "../lib/toast";
 
 function fmtTokens(n: number): string {
@@ -233,7 +233,7 @@ export default function SealEditor() {
             <ChatPanel
               contractId={contractId!}
               onBusy={setAiBusy}
-              onRewrite={(res) => { undoRef.current = html; setHtml(res.contract.content_html); dirtyRef.current = true; setTokenTotal(res.contract_token_total); setCost(res.contract_cost_usd); }}
+              onRewrite={(next) => { undoRef.current = html; setHtml(next.content_html); dirtyRef.current = false; setTokenTotal(next.token_total); setCost(next.cost_usd); }}
               canUndo={undoRef.current !== null}
               onUndo={undoRevision}
             />
@@ -275,6 +275,7 @@ function GeneratePanel({ contractId, hasContent, onBusy, onGenerated }: {
   const [notes, setNotes] = useState("");
   const [opp, setOpp] = useState<SealOpportunity | null>(null);
   const [busy, setBusy] = useState(false);
+  const [streamHtml, setStreamHtml] = useState("");
   const [expanded, setExpanded] = useState(!hasContent);
 
   useEffect(() => {
@@ -284,18 +285,37 @@ function GeneratePanel({ contractId, hasContent, onBusy, onGenerated }: {
   async function generate() {
     setBusy(true);
     onBusy(true);
+    setStreamHtml("");
+    let acc = "";
+    let settled = false;
     try {
-      const r = await api.post<SealContract>(`/tenant/seal/contracts/${contractId}/generate`, {
-        template_id: templateId || null, notes, odoo_lead_id: opp?.id ?? null,
-      });
-      onGenerated(r.data);
-      toast.success("Draft generated");
-      setExpanded(false);
+      await streamMission(
+        `/tenant/seal/contracts/${contractId}/generate`,
+        { template_id: templateId || null, notes, odoo_lead_id: opp?.id ?? null },
+        {
+          onDelta: (t) => { acc += t; setStreamHtml(acc); },
+          onDone: async () => {
+            settled = true;
+            const fresh = await api.get<SealContract>(`/tenant/seal/contracts/${contractId}`);
+            onGenerated(fresh.data);
+            toast.success("Draft generated");
+            setExpanded(false);
+          },
+          onError: (msg) => {
+            // Failure arrives as an event once the stream is open — nothing was committed to the
+            // editor (we render deltas into a throwaway preview), so there is nothing to roll back.
+            settled = true;
+            toast.error(msg || "Generation failed. Is an AI engine configured?");
+          },
+        },
+      );
+      if (!settled) toast.error("Generation ended unexpectedly. Please try again.");
     } catch (e) {
       toast.error(errMsg(e, "Generation failed. Is an AI engine configured?"));
     } finally {
       setBusy(false);
       onBusy(false);
+      setStreamHtml("");
     }
   }
 
@@ -331,6 +351,15 @@ function GeneratePanel({ contractId, hasContent, onBusy, onGenerated }: {
         </div>
         <OpportunityPicker value={opp} onPick={setOpp} />
         <Button className="mt-1 py-2 text-xs" disabled={busy} onClick={generate}>{busy ? "Writing…" : "Draft contract"}</Button>
+        {busy && (
+          <div>
+            <p className="mb-1 text-[11px] uppercase tracking-wider text-gold-500">Writing live…</p>
+            <div
+              className="max-h-72 overflow-auto rounded-md border border-ink-600 bg-ink-950 px-3 py-2 text-sm leading-relaxed text-[#ede6da] [&_h1]:text-base [&_h1]:font-semibold [&_h2]:mt-2 [&_h2]:font-semibold [&_p]:mt-1"
+              dangerouslySetInnerHTML={{ __html: streamHtml || "<span style=\"color:#8a7f6d\">Preparing…</span>" }}
+            />
+          </div>
+        )}
         <p className="text-[11px] text-[#8a7f6d]">Replaces the current document. Every AI turn is metered against your token allowance.</p>
       </div>
     </section>
@@ -342,7 +371,7 @@ function GeneratePanel({ contractId, hasContent, onBusy, onGenerated }: {
 function ChatPanel({ contractId, onBusy, onRewrite, canUndo, onUndo }: {
   contractId: string;
   onBusy: (b: boolean) => void;
-  onRewrite: (res: SealChatResult) => void;
+  onRewrite: (contract: SealContract) => void;
   canUndo: boolean;
   onUndo: () => void;
 }) {
@@ -361,12 +390,31 @@ function ChatPanel({ contractId, onBusy, onRewrite, canUndo, onUndo }: {
     onBusy(true);
     setInput("");
     setMessages((m) => [...m, { id: `tmp-${m.length}`, seq: m.length, role: "user", content: msg, total_tokens: 0, created_at: "" }]);
+    let completed = false;
+    let reported = false;
     try {
-      const r = await api.post<SealChatResult>(`/tenant/seal/contracts/${contractId}/chat`, { message: msg });
-      onRewrite(r.data);
-      setMessages((m) => [...m, { id: `a-${m.length}`, seq: m.length, role: "assistant", content: r.data.changed_summary, total_tokens: r.data.turn_tokens.total_tokens, created_at: "" }]);
+      await streamMission(
+        `/tenant/seal/contracts/${contractId}/chat`,
+        { message: msg },
+        {
+          onDone: async () => {
+            const [contract, history] = await Promise.all([
+              api.get<SealContract>(`/tenant/seal/contracts/${contractId}`),
+              api.get<SealChatHistory>(`/tenant/seal/contracts/${contractId}/chat`),
+            ]);
+            onRewrite(contract.data);
+            setMessages(history.data.messages);
+            completed = true;
+          },
+          onError: (error) => { reported = true; toast.error(error || "The edit failed."); },
+        },
+      );
+      if (!completed) {
+        setMessages((m) => m.slice(0, -1));
+        setInput(msg);
+      }
     } catch (e) {
-      toast.error(errMsg(e, "The edit failed."));
+      if (!reported) toast.error(errMsg(e, "The edit failed."));
       setMessages((m) => m.slice(0, -1));
       setInput(msg);
     } finally {
@@ -426,12 +474,22 @@ function ReviewPanel({ contractId, onBusy, onApplied }: {
   async function runReview() {
     setBusy(true);
     onBusy(true);
+    let reported = false;
     try {
-      const r = await api.post<SealReview>(`/tenant/seal/contracts/${contractId}/review`);
-      setReview(r.data);
-      toast.success(`${r.data.findings.length} finding${r.data.findings.length === 1 ? "" : "s"}${r.data.high ? ` · ${r.data.high} high` : ""}`);
+      await streamMission(
+        `/tenant/seal/contracts/${contractId}/review`,
+        {},
+        {
+          onDone: async () => {
+            const result = await api.get<SealReview>(`/tenant/seal/contracts/${contractId}/findings`);
+            setReview(result.data);
+            toast.success(`${result.data.findings.length} finding${result.data.findings.length === 1 ? "" : "s"}${result.data.high ? ` · ${result.data.high} high` : ""}`);
+          },
+          onError: (error) => { reported = true; toast.error(error || "Review failed."); },
+        },
+      );
     } catch (e) {
-      toast.error(errMsg(e, "Review failed. Is an AI engine configured?"));
+      if (!reported) toast.error(errMsg(e, "Review failed. Is an AI engine configured?"));
     } finally {
       setBusy(false);
       onBusy(false);

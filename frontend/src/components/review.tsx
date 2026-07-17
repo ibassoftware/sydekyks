@@ -27,7 +27,7 @@ export function formatDuration(startIso: string, endIso: string): string | null 
   return rem ? `${mins} min ${rem} sec` : `${mins} min`;
 }
 
-/** Single source of truth for the review state pill, used on Missions, Issues, and mission detail. */
+/** Single source of truth for the review state pill, used on Missions and mission detail. */
 export function ReviewBadge({ reviewed, needsReview }: { reviewed?: boolean; needsReview?: boolean }) {
   if (reviewed) return <Badge tone="gold">Reviewed</Badge>;
   if (needsReview) return <Badge tone="danger">Needs review</Badge>;
@@ -51,7 +51,7 @@ export interface ReviewTarget {
 
 /**
  * The canonical review action row: the Odoo draft link (or a "not created" note), the
- * Mark reviewed / Undo sign-off, and Retry. Shared by the Issues page and the Mission detail
+ * Mark reviewed / Undo sign-off, and Retry. Shared by the Missions attention view and Mission detail
  * panel so both surfaces behave and look identical. All mutations call `onChanged` so the
  * caller can refresh; the backend enforces the per-Sydekyk Use permission.
  */
@@ -80,7 +80,7 @@ export function ReviewActions({ target, onChanged }: { target: ReviewTarget; onC
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex min-w-0 flex-wrap items-center gap-4">
       {target.needsReview &&
         (target.recordKind === "applicant" ? (
           target.odooRecordUrl && (
@@ -88,7 +88,7 @@ export function ReviewActions({ target, onChanged }: { target: ReviewTarget; onC
               href={target.odooRecordUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-md border border-gold-600/40 bg-gold-500/10 px-3 py-1.5 text-xs font-semibold text-gold-300 hover:bg-gold-500/20"
+              className="inline-flex min-h-11 items-center gap-2 text-base font-medium text-gold-300 hover:text-heading"
             >
               {target.odooRecordLabel ?? "Open in Odoo"} →
             </a>
@@ -98,14 +98,14 @@ export function ReviewActions({ target, onChanged }: { target: ReviewTarget; onC
             href={target.odooBillUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 rounded-md border border-gold-600/40 bg-gold-500/10 px-3 py-1.5 text-xs font-semibold text-gold-300 hover:bg-gold-500/20"
+            className="inline-flex min-h-11 items-center gap-2 text-base font-medium text-gold-300 hover:text-heading"
           >
             Open draft in Odoo →
           </a>
         ) : (
           <span
             title="No Odoo bill was created for this Mission — fix the issue in Odoo, then retry to create it."
-            className="inline-flex items-center gap-1.5 rounded-md border border-ink-600 bg-ink-800/60 px-3 py-1.5 text-xs font-medium text-[#8a7f6d]"
+            className="inline-flex min-h-11 items-center gap-2 rounded-[2px] border-2 border-ink-600 bg-ink-800 px-3 py-2 text-sm font-medium text-body"
           >
             <WarningIcon className="h-3.5 w-3.5" /> Odoo bill not created
           </span>
@@ -113,23 +113,23 @@ export function ReviewActions({ target, onChanged }: { target: ReviewTarget; onC
 
       {target.needsReview &&
         (target.reviewed ? (
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-[#8a7f6d]">
+          <div className="flex min-w-0 flex-wrap items-center gap-4">
+            <span className="min-w-0 break-all text-sm text-body">
               Reviewed by {target.reviewedByEmail ?? "a teammate"}
               {target.reviewedAt ? ` · ${timeAgo(target.reviewedAt)}` : ""}
             </span>
-            <Button variant="ghost" className="px-3 py-1.5 text-xs" disabled={busy === "review"} onClick={() => setReviewed(false)}>
+            <Button variant="ghost" disabled={busy === "review"} onClick={() => setReviewed(false)}>
               {busy === "review" ? "…" : "Undo review"}
             </Button>
           </div>
         ) : (
-          <Button className="px-3 py-1.5 text-xs" disabled={busy === "review"} onClick={() => setReviewed(true)}>
+          <Button disabled={busy === "review"} onClick={() => setReviewed(true)}>
             {busy === "review" ? "…" : "Mark reviewed"}
           </Button>
         ))}
 
       {target.canRetry && (
-        <Button variant="ghost" className="px-3 py-1.5 text-xs" disabled={busy === "retry"} onClick={retry}>
+        <Button variant="ghost" disabled={busy === "retry"} onClick={retry}>
           {busy === "retry" ? "Retrying…" : "Retry mission"}
         </Button>
       )}

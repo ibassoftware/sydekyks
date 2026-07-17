@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api, type Mission, type RunNowResult, type ScoutReadiness, type Sydekyk } from "../../lib/api";
 import { Button } from "../../components/ui";
 import { MissionList } from "../../components/MissionList";
+import { useMissionRefresh } from "../../lib/useMissionRefresh";
 
 /**
  * Scout's operations panel — the batch "Run now" action on top plus a live Recent Missions list.
  * Scout has no upload dropzone (it reads résumés from Odoo itself), so this stands in for Ledger/
  * Decode's DocumentIntakeSection. Running missions surface in the global activity toast just like an
- * upload does; this list polls so they flip to Done in place.
+ * upload does; this list observes active Missions through SSE so they flip to Done in place.
  */
 export function ScoutOperationsSection({ sydekyk, canManage }: { sydekyk: Sydekyk; canManage: boolean }) {
   const [missions, setMissions] = useState<Mission[] | null>(null);
@@ -25,15 +26,10 @@ export function ScoutOperationsSection({ sydekyk, canManage }: { sydekyk: Sydeky
   }, [load]);
 
   const active = missions?.some((m) => m.status === "queued" || m.status === "running");
-  const activeRef = useRef(active);
-  activeRef.current = active;
-  useEffect(() => {
-    if (!active) return;
-    const t = setInterval(() => {
-      if (activeRef.current) load();
-    }, 4000);
-    return () => clearInterval(t);
-  }, [active, load]);
+  useMissionRefresh(
+    active ? (missions ?? []).filter((m) => m.status === "queued" || m.status === "running").map((m) => m.id) : [],
+    load,
+  );
 
   async function runNow() {
     setRunning(true);

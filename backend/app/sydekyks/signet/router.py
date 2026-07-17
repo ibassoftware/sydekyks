@@ -7,8 +7,10 @@ from app.core.deps import require_tenant_member
 from app.db.session import get_db
 from app.models.sydekyk import Sydekyk
 from app.models.user import User
+from app.schemas.mission import MissionStartOut
 from app.services import permissions
-from app.services.missions import create_mission, run_mission
+from app.services.missions import create_mission
+from app.services.queue import enqueue_mission
 
 from app.sydekyks.seal.export import render_contract_pdf
 from app.sydekyks.seal.models import SealContract
@@ -30,7 +32,6 @@ from app.sydekyks.signet.schemas import (
     EnvelopeSummary,
     EventOut,
     HoldIn,
-    SendOut,
     SignetInsightsOut,
     SignetPlaybook,
     SignetReadiness,
@@ -113,29 +114,6 @@ def _envelope_out(db: Session, envelope: SignetEnvelope) -> EnvelopeOut:
         created_by=envelope.created_by, sent_at=envelope.sent_at, completed_at=envelope.completed_at,
         updated_at=envelope.updated_at,
     )
-
-
-def _run_inline(db: Session, sydekyk: Sydekyk, user: User, playbook_key: str, ctx: dict) -> uuid.UUID:
-    mission = create_mission(
-        db, tenant_id=user.tenant_id, sydekyk=sydekyk, user_id=user.id,
-        source="manual", signal_type="manual", trigger_context=ctx,
-    )
-    if mission.playbook_key != playbook_key:
-        mission.playbook_key = playbook_key
-        db.commit()
-    mid = mission.id
-    run_mission(mid)
-    db.expire_all()
-    return mid
-
-
-def _raise_if_mission_failed(db: Session, mission_id: uuid.UUID) -> None:
-    from app.models.mission import Mission
-
-    m = db.get(Mission, mission_id)
-    if m is not None and m.status == "failed":
-        code = status.HTTP_429_TOO_MANY_REQUESTS if m.failure_category == "quota" else status.HTTP_400_BAD_REQUEST
-        raise HTTPException(status_code=code, detail=m.error_message or "Sending failed")
 
 
 # --- Settings / readiness / playbook / insights ----------------------------------------------------
@@ -292,8 +270,12 @@ def get_envelope(envelope_id: uuid.UUID, user: User = Depends(require_tenant_mem
     return _envelope_out(db, _envelope_or_404(db, user, _signet(db, user).id, envelope_id))
 
 
-@router.post("/envelopes/{envelope_id}/send", response_model=SendOut)
-def send_envelope(envelope_id: uuid.UUID, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+@router.post(
+    "/envelopes/{envelope_id}/send",
+    response_model=MissionStartOut,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def send_envelope(envelope_id: uuid.UUID, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
     sydekyk = _signet(db, user)
     permissions.assert_can_use(db, user, sydekyk.id)
     envelope = _envelope_or_404(db, user, sydekyk.id, envelope_id)
@@ -301,29 +283,31 @@ def send_envelope(envelope_id: uuid.UUID, user: User = Depends(require_tenant_me
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This envelope has already been sent")
     if not envelope.source_asset_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Attach a source document before sending")
-    mid = _run_inline(db, sydekyk, user, PLAYBOOK_KEY, {"envelope_id": str(envelope.id)})
-    _raise_if_mission_failed(db, mid)
-    envelope = _envelope_or_404(db, user, sydekyk.id, envelope_id)
-    from app.models.mission import Mission
+    mission = create_mission(
+        db, tenant_id=user.tenant_id, sydekyk=sydekyk, user_id=user.id,
+        source="manual", signal_type="manual", trigger_context={"envelope_id": str(envelope.id)},
+        playbook_key=PLAYBOOK_KEY,
+    )
+    await enqueue_mission(mission.id)
+    return MissionStartOut(mission_id=mission.id)
 
-    m = db.get(Mission, mid)
-    sent = int((m.result_summary or {}).get("sent", 0)) if m else 0
-    return SendOut(envelope=_envelope_out(db, envelope), sent=sent)
 
-
-@router.post("/envelopes/{envelope_id}/remind", response_model=SendOut)
-def remind_envelope(envelope_id: uuid.UUID, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+@router.post(
+    "/envelopes/{envelope_id}/remind",
+    response_model=MissionStartOut,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def remind_envelope(envelope_id: uuid.UUID, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
     sydekyk = _signet(db, user)
     permissions.assert_can_use(db, user, sydekyk.id)
     envelope = _envelope_or_404(db, user, sydekyk.id, envelope_id)
-    mid = _run_inline(db, sydekyk, user, PLAYBOOK_KEY_REMIND, {"envelope_id": str(envelope.id)})
-    _raise_if_mission_failed(db, mid)
-    envelope = _envelope_or_404(db, user, sydekyk.id, envelope_id)
-    from app.models.mission import Mission
-
-    m = db.get(Mission, mid)
-    sent = int((m.result_summary or {}).get("sent", 0)) if m else 0
-    return SendOut(envelope=_envelope_out(db, envelope), sent=sent)
+    mission = create_mission(
+        db, tenant_id=user.tenant_id, sydekyk=sydekyk, user_id=user.id,
+        source="manual", signal_type="manual", trigger_context={"envelope_id": str(envelope.id)},
+        playbook_key=PLAYBOOK_KEY_REMIND,
+    )
+    await enqueue_mission(mission.id)
+    return MissionStartOut(mission_id=mission.id)
 
 
 @router.post("/envelopes/{envelope_id}/hold", response_model=EnvelopeOut)

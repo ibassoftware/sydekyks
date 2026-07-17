@@ -9,10 +9,10 @@ const PAGE = 3;
 
 /** Mirror dashboard card — double-payments prevented ($) up top, then the PAGED review queue of
  * duplicates awaiting a decision (confirm / dismiss / mark-recurring — the learning loop). */
-export function MirrorInsightsSection() {
+export function MirrorInsightsSection({ initialData, initialQueue }: { initialData?: MirrorInsights | null; initialQueue?: MirrorFlagPage | null } = {}) {
   const currency = useTenantCurrency();
-  const [data, setData] = useState<MirrorInsights | null>(null);
-  const [queue, setQueue] = useState<MirrorFlagPage | null>(null);
+  const [data, setData] = useState<MirrorInsights | null>(initialData ?? null);
+  const [queue, setQueue] = useState<MirrorFlagPage | null>(initialQueue ?? null);
   const [offset, setOffset] = useState(0);
 
   const loadStats = useCallback(() => {
@@ -23,8 +23,14 @@ export function MirrorInsightsSection() {
       .then((r) => setQueue(r.data)).catch(() => setQueue(null));
   }, []);
 
-  useEffect(() => loadStats(), [loadStats]);
-  useEffect(() => loadQueue(offset), [loadQueue, offset]);
+  useEffect(() => {
+    if (initialData !== undefined) setData(initialData);
+    else loadStats();
+  }, [initialData, loadStats]);
+  useEffect(() => {
+    if (offset === 0 && initialQueue !== undefined) setQueue(initialQueue);
+    else loadQueue(offset);
+  }, [initialQueue, loadQueue, offset]);
 
   if (!data || !data.activated || data.total_checked === 0) return null;
 
@@ -62,7 +68,7 @@ export function MirrorInsightsSection() {
         </p>
       </div>
 
-      <div className="mt-5 grid max-w-md grid-cols-3 gap-3">
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Stat value={data.duplicates_found.toLocaleString()} label="Duplicates caught" accent />
         <Stat value={data.total_checked.toLocaleString()} label="Bills checked" />
         <Stat value={data.suppressed_count.toLocaleString()} label="Recurring (suppressed)" />
@@ -116,9 +122,9 @@ export function MirrorInsightsSection() {
 
 function Stat({ value, label, accent }: { value: string; label: string; accent?: boolean }) {
   return (
-    <div>
-      <p className={`text-2xl font-bold ${accent ? "text-gold-300" : "text-[#f5eee0]"}`}>{value}</p>
-      <p className="text-[11px] text-[#8a7f6d]">{label}</p>
+    <div className="rounded-[4px] border-2 border-ink-700 bg-ink-900/50 p-4">
+      <p className={`text-2xl font-bold ${accent ? "text-gold-300" : "text-heading"}`}>{value}</p>
+      <p className="mt-1 text-xs text-body">{label}</p>
     </div>
   );
 }

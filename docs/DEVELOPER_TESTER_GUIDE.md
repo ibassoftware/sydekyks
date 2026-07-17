@@ -318,6 +318,8 @@ curl -s -X POST http://127.0.0.1:8000/api/webhooks/email/postmark \
 | Setting | Default | Purpose |
 |---------|---------|---------|
 | `database_url` | `postgresql+psycopg://sydekyks:sydekyks@localhost:5432/sydekyks` | Main DB |
+| `database_pool_size` / `database_max_overflow` | `15` / `15` | Per-process API connection headroom; production workers override this to `5` / `10` |
+| `database_pool_timeout_seconds` / `database_pool_recycle_seconds` | `30` / `1800` | Pool wait timeout and stale-connection recycling |
 | `jwt_secret` / `access_token_expire_minutes` | dev / 60 | Auth |
 | `encryption_key` | dev Fernet key | Encrypts stored secrets (Odoo/provider keys) |
 | `litellm_proxy_url` / `litellm_master_key` | `:4000` / dev key | LiteLLM admin + completions |
@@ -341,10 +343,11 @@ the DB and (for models) in LiteLLM's own store — not in the repo.
 | `alembic: command not found` | `pip install -r requirements.txt` (adds alembic/arq/redis/pillow). |
 | `relation "missions" does not exist` | Ran seed/app before `alembic upgrade head`. Migrate first. |
 | Mission stuck in `queued` | `queue_enabled=true` but no worker running → start `arq worker.WorkerSettings`, or set `queue_enabled=false`. |
+| `QueuePool limit ... connection timed out` | Restarting only clears the symptom. Confirm the dashboard uses `/api/tenant/command-center`, SSE observers release their DB session before streaming, and pool settings are present; then inspect for leaked sessions or unexpected request fan-out. |
 | Upload disabled on Ledger page | Readiness has a `blocked` required item — check the checklist (AI engine / Odoo). |
 | Vision test fails | The model can't read images. Use a vision-capable model (e.g. `gemma3:4b`, `kimi-k2.7-code`, OpenAI `gpt-4o`). |
 | Emailed bill never appears | Check `email_ingest_events` — `no_match` (address), `no_sydekyk` (not assigned), `rejected_size`, `duplicate`. |
-| `queue` enqueue silently runs in-process | Redis unreachable → intentional inline fallback; check `redis_url` + `docker compose up -d redis`. |
+| `queue` enqueue silently runs in-process | Redis unreachable → intentional asynchronous in-process fallback; check `redis_url` + `docker compose up -d redis`. |
 | LiteLLM 4xx on engine test | Provider key/model wrong, or (Ollama Cloud) missing `api_base=https://ollama.com/v1`. |
 
 ---

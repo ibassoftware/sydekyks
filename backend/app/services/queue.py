@@ -5,7 +5,7 @@ whether a durable queue (arq + Redis) or the in-process fallback ran the job. `r
 single worker entry point (it already opens its own DB session), so swapping backends is contained.
 
 - `queue_enabled=True`  → dispatch to the arq worker over Redis (durable, survives restarts, retries).
-- otherwise / on failure → fire-and-forget on the threadpool (demo/dev without Redis).
+- otherwise / on failure → fire-and-forget in-process on the threadpool (demo/dev without Redis).
 
 The arq job id is set to the mission id so the same Mission can't be enqueued twice concurrently.
 """
@@ -19,7 +19,7 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
-def _run_inline(mission_id: uuid.UUID) -> None:
+def _run_in_process(mission_id: uuid.UUID) -> None:
     """Fire-and-forget threadpool execution — the no-Redis fallback. Does not block the request;
     `run_mission` guarantees a terminal Mission status on its own."""
     from app.services.missions import run_mission
@@ -33,7 +33,7 @@ def _run_inline(mission_id: uuid.UUID) -> None:
 
 
 async def enqueue_mission(mission_id: uuid.UUID) -> str:
-    """Schedule a Mission for execution. Returns the backend used: 'queue' or 'inline'."""
+    """Schedule a Mission for execution. Returns the backend used: 'queue' or 'in-process'."""
     if settings.queue_enabled:
         try:
             from arq import create_pool
@@ -44,7 +44,7 @@ async def enqueue_mission(mission_id: uuid.UUID) -> str:
             await pool.aclose()
             return "queue"
         except Exception as exc:  # noqa: BLE001 — degrade gracefully rather than drop the Mission
-            logger.warning("arq enqueue failed (%s); falling back to inline execution", exc)
+            logger.warning("arq enqueue failed (%s); falling back to in-process execution", exc)
 
-    _run_inline(mission_id)
-    return "inline"
+    _run_in_process(mission_id)
+    return "in-process"

@@ -5,6 +5,12 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     database_url: str = "postgresql+psycopg://sydekyks:sydekyks@localhost:5432/sydekyks"
+    # API defaults: enough headroom for normal concurrent traffic after dashboard aggregation.
+    # Production can tune API and worker processes independently through environment variables.
+    database_pool_size: int = 15
+    database_max_overflow: int = 15
+    database_pool_timeout_seconds: int = 30
+    database_pool_recycle_seconds: int = 1800
     jwt_secret: str = "dev-secret-change-me-in-production"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 43200  # 30 days — long-lived "keep me logged in" token

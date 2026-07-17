@@ -1,8 +1,8 @@
 """Seal's playbooks — contract drafting, conversational refinement, and clause-level review.
 
-Three playbook keys, all driven inline by the router (generation/chat/review must return synchronously
-so the editor can load the result), all metered the standard way (usage_guard pre-flight + emit_usage),
-so every token flows through the shared UsageRecord ledger:
+Three playbook keys, all driven by queued Missions and observed through the shared Mission SSE
+endpoint. All are metered the standard way (usage_guard pre-flight + emit_usage), so every token
+flows through the shared UsageRecord ledger:
 
   - ``seal.draft``   — turn a template + the drafter's brief (+ optional grounded Odoo facts) into a
                        polished HTML contract.
@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 
 from app.core.crypto import decrypt_secret
 from app.models.mission import Mission
-from app.services import gadget_links, mission_ai, odoo, odoo_crm, usage_guard
+from app.services import gadget_links, mission_ai, mission_events, odoo, odoo_crm, usage_guard
 from app.services.missions import record_step, register_playbook
 
 from app.sydekyks.seal import extraction
@@ -180,11 +180,16 @@ def run_draft(db: Session, mission: Mission) -> None:
     record_step(db, mission, idx, "check_quota", "internal", "succeeded", output={"allowed": True})
     idx += 1
 
-    ok_ai, msg, draft, meta = extraction.generate_contract(
+    # Prose deltas are safe provisional output. Publish them whether or not a browser is connected;
+    # the bounded event transport makes a late subscriber/reconnect possible.
+    def on_delta(text: str) -> None:
+        mission_events.publish(mission.id, "output.delta", {"text": text})
+
+    ok_ai, msg, draft, meta = extraction.generate_contract_stream(
         virtual_key, model_alias,
         template_body=(template.body if template else None),
         template_format=(template.format if template else "html"),
-        notes=notes, facts=facts,
+        notes=notes, facts=facts, on_delta=on_delta,
     )
     mission_ai.emit_usage(db, mission, llm, meta)
     if not ok_ai or draft is None or not draft.get("html"):

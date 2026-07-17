@@ -3,7 +3,7 @@ import io
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -16,16 +16,16 @@ from app.models.user import User
 from app.services import permissions
 from app.schemas.mission import MissionDetailOut, MissionOut, MissionPage, MissionStepOut
 from app.schemas.tenant_issue import MissionReviewStatusOut
-from app.services import gadget_links
+from app.services import gadget_links, mission_sse
 from app.services.error_display import friendly_message
 from app.services.missions import apply_mission_filters, retry_mission
 from app.services.queue import enqueue_mission
 
 router = APIRouter(prefix="/api/tenant", tags=["missions"], dependencies=[Depends(require_tenant_member)])
 
-# Playbooks that run synchronously inside a user-facing request (the agent's UI shows its own progress),
-# so they're excluded from the global "active missions" activity popup.
-INTERACTIVE_PLAYBOOKS = ["quill.draft", "quill.refine"]
+# Focused workbench playbooks show their own Mission progress, so they are excluded from the global
+# activity popup even though draft generation now uses the same queue and event architecture.
+INTERACTIVE_PLAYBOOKS = ["seal.draft", "seal.refine", "seal.review", "quill.draft", "quill.refine"]
 
 
 def _filename(db: Session, mission_id: uuid.UUID) -> str | None:
@@ -268,6 +268,42 @@ def get_mission(mission_id: uuid.UUID, user: User = Depends(require_tenant_membe
     # surface in the tenant-facing step trail.
     steps = [s.model_copy(update={"error_message": friendly_message(s.error_message)}) for s in steps]
     return MissionDetailOut(**base.model_dump(), steps=steps)
+
+
+@router.get("/missions/{mission_id}/events")
+def mission_event_stream(
+    mission_id: uuid.UUID,
+    after: str | None = Query(default=None, description="Resume after this event id"),
+    last_event_id: str | None = Header(default=None, alias="Last-Event-ID"),
+    user: User = Depends(require_tenant_member),
+    db: Session = Depends(get_db),
+):
+    """Observe any tenant Mission through the shared, replayable SSE protocol."""
+    mission = db.get(Mission, mission_id)
+    if mission is None or mission.tenant_id != user.tenant_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mission not found")
+    permissions.assert_can_use(db, user, mission.sydekyk_id)
+
+    snapshot = {
+        "status": mission.status,
+        "playbook_key": mission.playbook_key,
+        "signal_type": mission.signal_type,
+        "failure_category": mission.failure_category,
+        "created_at": mission.created_at.isoformat() if mission.created_at else None,
+        "started_at": mission.started_at.isoformat() if mission.started_at else None,
+        "completed_at": mission.completed_at.isoformat() if mission.completed_at else None,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    observed_mission_id = mission.id
+    # FastAPI keeps yield-dependency cleanup until a StreamingResponse finishes. This stream can
+    # live for the whole Mission, but it no longer needs the request Session after authorization and
+    # snapshot construction. Close it now so every SSE observer does not pin one pool connection.
+    db.close()
+    return mission_sse.stream_mission_events(
+        observed_mission_id,
+        snapshot=snapshot,
+        last_event_id=last_event_id or after,
+    )
 
 
 @router.post("/missions/{mission_id}/retry", response_model=MissionOut, status_code=status.HTTP_201_CREATED)

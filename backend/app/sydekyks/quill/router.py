@@ -11,8 +11,10 @@ from app.db.session import get_db
 from app.models.sydekyk import Sydekyk
 from app.models.usage_record import UsageRecord
 from app.models.user import User
+from app.schemas.mission import MissionStartOut
 from app.services import gadget_links, odoo, odoo_crm, odoo_sales, permissions
-from app.services.missions import create_mission, run_mission
+from app.services.missions import create_mission
+from app.services.queue import enqueue_mission
 
 from app.sydekyks.quill import insights as insights_svc
 from app.sydekyks.quill import pdf as pdf_svc
@@ -30,7 +32,6 @@ from app.sydekyks.quill.schemas import (
     ChatHistoryOut,
     ChatIn,
     ChatMessageOut,
-    ChatOut,
     GenerateIn,
     OpportunityOut,
     ProposalCreate,
@@ -49,7 +50,6 @@ from app.sydekyks.quill.schemas import (
     TemplateOut,
     TemplateSummary,
     TemplateUpdate,
-    TurnTokens,
 )
 
 router = APIRouter(prefix="/api/tenant/quill", tags=["quill"], dependencies=[Depends(require_tenant_member)])
@@ -142,22 +142,6 @@ def _proposal_out(db: Session, proposal: QuillProposal) -> ProposalOut:
         odoo_sale_order_name=proposal.odoo_sale_order_name, token_total=tokens, cost_usd=cost,
         updated_at=proposal.updated_at,
     )
-
-
-def _run_inline(db: Session, sydekyk: Sydekyk, user: User, playbook_key: str, ctx: dict) -> uuid.UUID:
-    """Create a Mission and run it synchronously (generation/chat must return a result to the editor).
-    Returns the mission id; the caller re-reads the mutated proposal from a fresh query."""
-    mission = create_mission(
-        db, tenant_id=user.tenant_id, sydekyk=sydekyk, user_id=user.id,
-        source="manual", signal_type="manual", trigger_context=ctx,
-    )
-    if mission.playbook_key != playbook_key:
-        mission.playbook_key = playbook_key
-        db.commit()
-    mid = mission.id
-    run_mission(mid)  # opens its own session, drives the mission to a terminal status
-    db.expire_all()
-    return mid
 
 
 # --- Settings / readiness / playbook / insights ----------------------------------------------------
@@ -335,10 +319,15 @@ def delete_proposal(proposal_id: uuid.UUID, user: User = Depends(require_tenant_
     db.commit()
 
 
-# --- AI: generate + chat (metered inline missions) -------------------------------------------------
+# --- AI: generate + chat (metered queued Missions) -------------------------------------------------
 
-@router.post("/proposals/{proposal_id}/generate", response_model=ProposalOut)
-def generate_proposal(proposal_id: uuid.UUID, payload: GenerateIn, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+@router.post(
+    "/proposals/{proposal_id}/generate",
+    response_model=MissionStartOut,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def generate_proposal(proposal_id: uuid.UUID, payload: GenerateIn, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+    """Validate the domain command, enqueue a Mission, and return its observation identity."""
     sydekyk = _quill(db, user)
     permissions.assert_can_use(db, user, sydekyk.id)
     proposal = _proposal_or_404(db, user, _quill(db, user).id, proposal_id)
@@ -347,45 +336,30 @@ def generate_proposal(proposal_id: uuid.UUID, payload: GenerateIn, user: User = 
         ctx["template_id"] = str(payload.template_id)
     if payload.odoo_lead_id:
         ctx["odoo_lead_id"] = payload.odoo_lead_id
-    mid = _run_inline(db, sydekyk, user, PLAYBOOK_KEY, ctx)
-    proposal = _proposal_or_404(db, user, _quill(db, user).id, proposal_id)
-    _raise_if_mission_failed(db, mid)
-    return _proposal_out(db, proposal)
+    mission = create_mission(
+        db, tenant_id=user.tenant_id, sydekyk=sydekyk, user_id=user.id,
+        source="manual", signal_type="manual", trigger_context=ctx, playbook_key=PLAYBOOK_KEY,
+    )
+    await enqueue_mission(mission.id)
+    return MissionStartOut(mission_id=mission.id)
 
 
-@router.post("/proposals/{proposal_id}/chat", response_model=ChatOut)
-def chat(proposal_id: uuid.UUID, payload: ChatIn, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+@router.post(
+    "/proposals/{proposal_id}/chat",
+    response_model=MissionStartOut,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def chat(proposal_id: uuid.UUID, payload: ChatIn, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
     sydekyk = _quill(db, user)
     permissions.assert_can_use(db, user, sydekyk.id)
     proposal = _proposal_or_404(db, user, _quill(db, user).id, proposal_id)
     ctx = {"proposal_id": str(proposal.id), "message": payload.message}
-    mid = _run_inline(db, sydekyk, user, PLAYBOOK_KEY_REFINE, ctx)
-    _raise_if_mission_failed(db, mid)
-    proposal = _proposal_or_404(db, user, _quill(db, user).id, proposal_id)
-
-    # The assistant turn we just wrote carries this turn's token counts.
-    assistant = (
-        db.query(QuillChatMessage)
-        .filter(QuillChatMessage.proposal_id == proposal.id, QuillChatMessage.mission_id == mid,
-                QuillChatMessage.role == "assistant")
-        .order_by(QuillChatMessage.seq.desc())
-        .first()
+    mission = create_mission(
+        db, tenant_id=user.tenant_id, sydekyk=sydekyk, user_id=user.id,
+        source="manual", signal_type="manual", trigger_context=ctx, playbook_key=PLAYBOOK_KEY_REFINE,
     )
-    mission_summary = _mission_summary(db, mid)
-    tokens, cost = _proposal_tokens(db, proposal)
-    return ChatOut(
-        reply=(assistant.content if assistant else "Done."),
-        changed_summary=(mission_summary.get("changed") if mission_summary else "Revised the proposal"),
-        proposal=_proposal_out(db, proposal),
-        turn_tokens=TurnTokens(
-            prompt_tokens=(assistant.prompt_tokens if assistant else 0),
-            completion_tokens=(assistant.completion_tokens if assistant else 0),
-            total_tokens=(assistant.total_tokens if assistant else 0),
-            cost_usd=(assistant.cost_usd if assistant else 0.0),
-        ),
-        proposal_token_total=tokens,
-        proposal_cost_usd=cost,
-    )
+    await enqueue_mission(mission.id)
+    return MissionStartOut(mission_id=mission.id)
 
 
 @router.get("/proposals/{proposal_id}/chat", response_model=ChatHistoryOut)
@@ -403,24 +377,6 @@ def get_chat(proposal_id: uuid.UUID, user: User = Depends(require_tenant_member)
                                  total_tokens=r.total_tokens, created_at=r.created_at) for r in rows],
         proposal_token_total=tokens, proposal_cost_usd=cost,
     )
-
-
-def _mission_summary(db: Session, mission_id: uuid.UUID) -> dict | None:
-    from app.models.mission import Mission
-
-    m = db.get(Mission, mission_id)
-    return (m.result_summary or {}) if m else None
-
-
-def _raise_if_mission_failed(db: Session, mission_id: uuid.UUID) -> None:
-    from app.models.mission import Mission
-
-    m = db.get(Mission, mission_id)
-    if m is None:
-        return
-    if m.status == "failed":
-        code = status.HTTP_429_TOO_MANY_REQUESTS if m.failure_category == "quota" else status.HTTP_400_BAD_REQUEST
-        raise HTTPException(status_code=code, detail=m.error_message or "The AI step failed")
 
 
 # --- Image assets ----------------------------------------------------------------------------------

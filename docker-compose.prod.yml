@@ -60,6 +60,8 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql+psycopg://sydekyks:${POSTGRES_PASSWORD}@postgres:5432/sydekyks
+      DATABASE_POOL_SIZE: "15"
+      DATABASE_MAX_OVERFLOW: "15"
       REDIS_URL: redis://redis:6379/0
       QUEUE_ENABLED: "true"
       RUN_MIGRATIONS: "1"
@@ -101,6 +103,8 @@ services:
     command: ["arq", "worker.WorkerSettings"]
     environment:
       DATABASE_URL: postgresql+psycopg://sydekyks:${POSTGRES_PASSWORD}@postgres:5432/sydekyks
+      DATABASE_POOL_SIZE: "5"
+      DATABASE_MAX_OVERFLOW: "10"
       REDIS_URL: redis://redis:6379/0
       QUEUE_ENABLED: "true"
       RUN_MIGRATIONS: "0"

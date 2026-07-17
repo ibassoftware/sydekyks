@@ -13,7 +13,7 @@ export function MissionDetailPanel({ detail, onChanged }: { detail: MissionDetai
   const isHr = reg?.domain === "hr";
   const needsReview = Boolean(detail.result_summary?.needs_review);
   // Review context (needs-review or failed) routes through the shared control so Missions, the
-  // Mission detail, and the Issues page all offer the exact same review + retry actions.
+  // Mission detail and the Missions attention view offer the exact same review + retry actions.
   const showReview = needsReview || detail.status === "failed";
 
   return (

@@ -144,13 +144,6 @@ class ChatIn(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
 
 
-class TurnTokens(BaseModel):
-    prompt_tokens: int = 0
-    completion_tokens: int = 0
-    total_tokens: int = 0
-    cost_usd: float = 0.0
-
-
 class ChatMessageOut(BaseModel):
     id: uuid.UUID
     seq: int
@@ -158,15 +151,6 @@ class ChatMessageOut(BaseModel):
     content: str
     total_tokens: int = 0
     created_at: datetime
-
-
-class ChatOut(BaseModel):
-    reply: str
-    changed_summary: str
-    contract: ContractOut
-    turn_tokens: TurnTokens
-    contract_token_total: int
-    contract_cost_usd: float
 
 
 class ChatHistoryOut(BaseModel):

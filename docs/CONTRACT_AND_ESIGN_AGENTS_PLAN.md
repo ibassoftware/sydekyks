@@ -16,7 +16,8 @@ especially §14 "interactive-workbench" and §10 "record-monitoring") and
 
 We just shipped **Quill**, our first *interactive-workbench* Sydekyk (§14): a rep drives a full-page
 editor, the AI drafts and co-edits, and the human ships a PDF. Quill proved the workbench pattern
-(full-page route, TipTap `RichDocEditor`, inline-mission AI turns, per-document token badge, optional
+(full-page route, TipTap `RichDocEditor`, queued Mission AI turns observed over shared SSE,
+per-document token badge, optional
 best-effort Odoo). This plan adds two agents that extend that lifecycle to contracts:
 
 1. **Seal** — drafts a contract from a brief + template, then **reviews it clause-by-clause** and
@@ -114,11 +115,11 @@ Odoo stays fully optional (`erp` gadget requirement `is_required=False`). Teach
 | File | Delta for Seal |
 |---|---|
 | `__init__.py` | import `models` + `playbook`; re-export `router` + `seed`. |
-| `playbook.py` | keep `run_draft` / `run_refine`; **add `run_review`** + `PLAYBOOK_KEY_REVIEW="seal.review"` + `PLAYBOOK_STEPS_REVIEW` (`load_contract`, `load_guidelines`, `check_quota`, `analyze`, `save_findings`). `register_playbook` all three. Same inline-mission + `_finish(failure_category=…)` discipline. |
+| `playbook.py` | keep `run_draft` / `run_refine`; **add `run_review`** + `PLAYBOOK_KEY_REVIEW="seal.review"` + `PLAYBOOK_STEPS_REVIEW` (`load_contract`, `load_guidelines`, `check_quota`, `analyze`, `save_findings`). `register_playbook` all three. Same queued-Mission + `_finish(failure_category=…)` discipline. |
 | `extraction.py` | keep generate/refine (contract wording); **add `review_contract(virtual_key, model_alias, *, contract_html, guidelines, timeout)` → `(ok, msg, {findings:[…]}, meta)`** — JSON-only, each finding validated against the taxonomy; drop findings whose `clause_anchor` isn't found in the source. Via `vision_ai.llm_completion`. |
 | `models.py` | mirror the 5 Quill tables (`seal_tenant_settings`, `seal_templates`, `seal_contracts`, `seal_assets`, `seal_chat_messages`) **plus `seal_review_findings`**. Settings adds `review_guidelines` (Text). `seal_contracts` mirrors `quill_proposals` + `odoo_partner_id`, `odoo_sign_request_id`. |
 | `schemas.py` | mirror Quill's groups; add `FindingOut`, `ReviewOut`, `ReviewRunIn`, `FindingDecisionIn{decision: accept\|dismiss}`, `SignRequestIn`. |
-| `router.py` | `APIRouter(prefix="/api/tenant/seal", dependencies=[require_tenant_member])`. All Quill endpoints (settings, readiness, playbook, insights, templates CRUD, contracts CRUD, `/generate`, `/chat`, `/assets`, `/pdf`, opportunities) **plus**: `POST /contracts/{id}/review`, `GET /contracts/{id}/findings`, `POST /contracts/{id}/findings/{fid}/decision`, `POST /contracts/{id}/import`, `POST /contracts/{id}/sign-request` (Odoo Sign or handoff-to-Signet). Same `permissions.assert_can_use` / `assert_can_configure` gates; same `_run_inline` + `_raise_if_mission_failed` (429 on quota). |
+| `router.py` | `APIRouter(prefix="/api/tenant/seal", dependencies=[require_tenant_member])`. All Quill endpoints (settings, readiness, playbook, insights, templates CRUD, contracts CRUD, `/generate`, `/chat`, `/assets`, `/pdf`, opportunities) **plus**: `POST /contracts/{id}/review`, `GET /contracts/{id}/findings`, `POST /contracts/{id}/findings/{fid}/decision`, `POST /contracts/{id}/import`, `POST /contracts/{id}/sign-request` (Odoo Sign or handoff-to-Signet). Same `permissions.assert_can_use` / `assert_can_configure` gates. AI command routes create/enqueue a Mission, return `202 MissionStartOut`, and rely on the shared Mission SSE endpoint; they do not run playbooks inline or expose custom stream twins. |
 | `readiness.py` | `ai_engine` required + `odoo_assigned` optional (never blocks); soft `odoo_sign` info item. |
 | `insights.py` | mirror Quill **+** contracts reviewed, **high-severity findings caught**, redlines accepted (the "what was caught" honesty metric). |
 | `seed.py` | set `Sydekyk.playbook_key="seal.draft"`; one optional `erp` gadget requirement (`is_required=False`); seed built-in contract templates + default `review_guidelines`. |

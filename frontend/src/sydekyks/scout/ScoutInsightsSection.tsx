@@ -12,14 +12,15 @@ function scoreTone(score: number): string {
 
 /** Recruitment (scoring) dashboard card — a triage cockpit: pipeline health by role with an
  * expandable shortlist, the common gaps/strengths themes, and the score distribution. */
-export function ScoutInsightsSection() {
+export function ScoutInsightsSection({ initialData }: { initialData?: ScoutInsights | null } = {}) {
   const currency = useTenantCurrency();
-  const [data, setData] = useState<ScoutInsights | null>(null);
+  const [data, setData] = useState<ScoutInsights | null>(initialData ?? null);
   const [open, setOpen] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    api.get<ScoutInsights>("/tenant/scout/insights").then((r) => setData(r.data)).catch(() => setData(null));
-  }, []);
+    if (initialData !== undefined) setData(initialData);
+    else api.get<ScoutInsights>("/tenant/scout/insights").then((r) => setData(r.data)).catch(() => setData(null));
+  }, [initialData]);
 
   if (!data || !data.activated || data.total_scored === 0) return null;
 
@@ -27,7 +28,8 @@ export function ScoutInsightsSection() {
   const toggle = (job: string) =>
     setOpen((prev) => {
       const next = new Set(prev);
-      next.has(job) ? next.delete(job) : next.add(job);
+      if (next.has(job)) next.delete(job);
+      else next.add(job);
       return next;
     });
 
@@ -49,7 +51,7 @@ export function ScoutInsightsSection() {
         </p>
       </div>
 
-      <div className="mt-5 grid max-w-md grid-cols-3 gap-3">
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Stat value={data.total_scored.toLocaleString()} label="Scored" />
         <Stat value={data.strong_count.toLocaleString()} label="Strong (≥80)" accent />
         <Stat value={String(data.average_score)} label="Avg score" />
@@ -93,9 +95,9 @@ export function ScoutInsightsSection() {
 
 function Stat({ value, label, accent }: { value: string; label: string; accent?: boolean }) {
   return (
-    <div>
-      <p className={`text-2xl font-bold ${accent ? "text-gold-300" : "text-[#f5eee0]"}`}>{value}</p>
-      <p className="text-[11px] text-[#8a7f6d]">{label}</p>
+    <div className="rounded-[4px] border-2 border-ink-700 bg-ink-900/50 p-4">
+      <p className={`text-2xl font-bold ${accent ? "text-gold-300" : "text-heading"}`}>{value}</p>
+      <p className="mt-1 text-xs text-body">{label}</p>
     </div>
   );
 }

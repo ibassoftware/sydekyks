@@ -7,21 +7,25 @@ export function Button({
   variant = "primary",
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" }) {
+  return <button className={buttonClassName(variant, className)} {...props} />;
+}
+
+export function buttonClassName(variant: "primary" | "ghost" = "primary", className = "") {
   const base =
-    "inline-flex items-center justify-center rounded-md px-5 py-2.5 text-sm font-semibold tracking-wide transition-colors disabled:opacity-50 disabled:pointer-events-none";
+    "inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-[4px] border-2 px-5 py-2.5 text-base font-medium transition-colors disabled:pointer-events-none disabled:cursor-not-allowed disabled:border-ink-600 disabled:bg-ink-800 disabled:text-body disabled:opacity-50 disabled:shadow-none";
   const variants = {
     primary:
-      "bg-gradient-to-b from-gold-400 to-gold-600 text-ink-950 hover:from-gold-300 hover:to-gold-500 shadow-[0_0_20px_-4px_rgba(212,168,40,0.6)]",
+      "border-transparent bg-gold-500 text-ink-950 shadow-[var(--shadow-xs),inset_var(--color-1-400)_0_6px_0_-5px,var(--color-1-700)_0_4px_10px_-5px] hover:bg-gold-600",
     ghost:
-      "border border-gold-700/60 text-gold-300 hover:bg-ink-800 hover:border-gold-500",
+      "border-ink-600 bg-ink-800 text-body shadow-[var(--shadow-xs),inset_var(--color-1-400)_0_6px_0_-5px,var(--color-1-700)_0_4px_10px_-5px] hover:border-ink-600 hover:bg-ink-700 hover:text-heading",
   };
-  return <button className={`${base} ${variants[variant]} ${className}`} {...props} />;
+  return `${base} ${variants[variant]} ${className}`;
 }
 
 export function Input({ className = "", ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
-      className={`w-full rounded-md border border-ink-600 bg-ink-900 px-3.5 py-2.5 text-sm text-[#ede6da] placeholder:text-[#8a7f6d] outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500/50 ${className}`}
+      className={`w-full rounded-[4px] border-2 border-ink-600 bg-ink-800 px-4 py-3 text-base text-heading placeholder:text-body focus:border-gold-500 ${className}`}
       {...props}
     />
   );
@@ -30,7 +34,7 @@ export function Input({ className = "", ...props }: InputHTMLAttributes<HTMLInpu
 export function Card({ className = "", children, ...props }: HTMLAttributes<HTMLDivElement> & { className?: string; children: ReactNode }) {
   return (
     <div
-      className={`rounded-xl border border-ink-600 bg-gradient-to-b from-ink-800 to-ink-900 shadow-xl ${className}`}
+      className={`rounded-[4px] border-2 border-ink-600 bg-ink-900 shadow-[var(--shadow-xs)] ${className}`}
       {...props}
     >
       {children}
@@ -39,12 +43,12 @@ export function Card({ className = "", children, ...props }: HTMLAttributes<HTML
 }
 
 export function Label({ children }: { children: ReactNode }) {
-  return <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-gold-400/80">{children}</label>;
+  return <label className="mb-2 block text-sm font-medium text-heading">{children}</label>;
 }
 
 export function PageShell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-ink-950 bg-[radial-gradient(ellipse_at_top,_var(--color-ink-800)_0%,_var(--color-ink-950)_60%)]">
+    <div className="min-h-screen bg-ink-950 text-heading">
       {children}
     </div>
   );
@@ -58,13 +62,13 @@ export function Badge({
   tone?: "gold" | "neutral" | "danger";
 }) {
   const tones = {
-    gold: "border-gold-600/50 bg-gold-500/10 text-gold-300",
-    neutral: "border-ink-600 bg-ink-700/60 text-[#b9ad98]",
+    gold: "border-gold-700 bg-brand-softer text-gold-300",
+    neutral: "border-ink-600 bg-ink-800 text-heading",
     danger: "border-red-700/50 bg-red-500/10 text-red-400",
   };
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${tones[tone]}`}
+      className={`inline-flex items-center rounded-[2px] border-2 px-2 py-1 text-xs font-medium uppercase tracking-[0.4px] ${tones[tone]}`}
     >
       {children}
     </span>

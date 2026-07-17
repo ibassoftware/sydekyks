@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { api, type SignetEnvelope, type SignetEnvelopePage, type SignetSendResult } from "../../lib/api";
+import { api, type SignetEnvelope, type SignetEnvelopePage } from "../../lib/api";
 import { Button, Input, Label } from "../../components/ui";
+import { streamMission } from "../../lib/sse";
 import { toast } from "../../lib/toast";
 import type { OperationsProps } from "../registry";
 
@@ -31,7 +32,8 @@ export function SignetOperationsSection({ canManage }: OperationsProps) {
   // A Seal handoff arrives as ?contract=<id>&title=<...> — open the builder prefilled.
   const contractParam = params.get("contract");
   const titleParam = params.get("title") ?? "";
-  useEffect(() => { if (contractParam) setShowBuilder(true); }, [contractParam]);
+  const newParam = params.get("new");
+  useEffect(() => { if (contractParam || newParam === "1") setShowBuilder(true); }, [contractParam, newParam]);
 
   const load = useCallback(() => {
     api.get<SignetEnvelopePage>("/tenant/signet/envelopes", { params: { limit: 20 } }).then((r) => setPage(r.data)).catch(() => setPage(null));
@@ -39,7 +41,12 @@ export function SignetOperationsSection({ canManage }: OperationsProps) {
   useEffect(() => load(), [load]);
 
   function clearHandoff() {
-    if (contractParam) { params.delete("contract"); params.delete("title"); setParams(params, { replace: true }); }
+    if (contractParam || newParam) {
+      params.delete("contract");
+      params.delete("title");
+      params.delete("new");
+      setParams(params, { replace: true });
+    }
   }
 
   return (
@@ -111,6 +118,7 @@ function EnvelopeBuilder({ initialContractId, initialTitle, onClose, onSent }: {
     if (clean.length === 0) { toast.error("Add at least one signer with a name and email."); return; }
     if (!fromSeal && !file) { toast.error("Attach a PDF, or start from a Seal contract."); return; }
     setBusy(true);
+    let reported = false;
     try {
       const created = await api.post<SignetEnvelope>("/tenant/signet/envelopes", {
         title, message, seal_contract_id: initialContractId, signers: clean, signing_order: order,
@@ -120,11 +128,19 @@ function EnvelopeBuilder({ initialContractId, initialTitle, onClose, onSent }: {
         form.append("file", file);
         await api.post(`/tenant/signet/envelopes/${created.data.id}/source`, form);
       }
-      const sent = await api.post<SignetSendResult>(`/tenant/signet/envelopes/${created.data.id}/send`);
-      toast.success(`Sent to ${sent.data.sent} signer${sent.data.sent === 1 ? "" : "s"}`);
-      onSent();
+      await streamMission(
+        `/tenant/signet/envelopes/${created.data.id}/send`,
+        {},
+        {
+          onDone: () => {
+            toast.success("Signing invitations sent");
+            onSent();
+          },
+          onError: (error) => { reported = true; toast.error(error || "Couldn't send."); },
+        },
+      );
     } catch (e) {
-      toast.error(errMsg(e, "Couldn't send. Is outbound email configured?"));
+      if (!reported) toast.error(errMsg(e, "Couldn't send. Is outbound email configured?"));
     } finally {
       setBusy(false);
     }
@@ -199,6 +215,25 @@ function EnvelopeDetail({ id, canManage, onChange }: { id: string; canManage: bo
     finally { setBusy(false); }
   }
 
+  async function remind() {
+    setBusy(true);
+    let reported = false;
+    try {
+      await streamMission(
+        `/tenant/signet/envelopes/${id}/remind`,
+        {},
+        {
+          onDone: () => { toast.success("Reminders sent"); load(); onChange(); },
+          onError: (error) => { reported = true; toast.error(error || "Reminder failed."); },
+        },
+      );
+    } catch (e) {
+      if (!reported) toast.error(errMsg(e, "Reminder failed."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function downloadSigned() {
     const r = await api.get(`/tenant/signet/envelopes/${id}/signed-pdf`, { responseType: "blob" });
     const url = URL.createObjectURL(r.data as Blob);
@@ -225,7 +260,7 @@ function EnvelopeDetail({ id, canManage, onChange }: { id: string; canManage: bo
 
       {canManage && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          {active && <Button className="px-3 py-1.5 text-xs" variant="ghost" disabled={busy} onClick={() => act(() => api.post(`/tenant/signet/envelopes/${id}/remind`), "Reminders sent")}>Remind now</Button>}
+          {active && <Button className="px-3 py-1.5 text-xs" variant="ghost" disabled={busy} onClick={remind}>Remind now</Button>}
           {active && <Button className="px-3 py-1.5 text-xs" variant="ghost" disabled={busy} onClick={() => act(() => api.post(`/tenant/signet/envelopes/${id}/hold`, { hold: !env.hold }), env.hold ? "Hold released" : "Placed on hold")}>{env.hold ? "Release hold" : "Hold"}</Button>}
           {env.status !== "completed" && env.status !== "voided" && <Button className="px-3 py-1.5 text-xs" variant="ghost" disabled={busy} onClick={() => act(() => api.post(`/tenant/signet/envelopes/${id}/void`), "Envelope voided")}>Void</Button>}
           {env.has_signed_pdf && <Button className="px-3 py-1.5 text-xs" onClick={downloadSigned}>Download signed PDF</Button>}

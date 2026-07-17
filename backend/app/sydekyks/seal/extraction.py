@@ -1,11 +1,14 @@
 """Seal's AI steps — the parts that need a model.
 
-`generate_contract` turns a template + the drafter's brief (+ optional grounded Odoo facts) into a
-polished HTML contract. `refine_contract` is the "Ask Seal" co-editing turn. `review_contract` is the
+`generate_contract_stream` turns a template + the drafter's brief (+ optional grounded Odoo facts) into
+a polished HTML contract. `refine_contract` is the "Ask Seal" co-editing turn. `review_contract` is the
 wow factor: it reads the contract clause-by-clause and returns a list of grounded risk findings, each
 quoting the offending clause text so an accepted redline can be applied deterministically.
 
-All go through the shared, metered `vision_ai.llm_completion` (text-only).
+`generate_contract_stream` rides the shared `vision_ai.llm_stream` transport and emits raw HTML so the
+tokens are meaningful as they arrive (the drafter watches the contract write itself); `refine`/`review`
+stay buffered on `vision_ai.llm_completion` because their outputs are structured (full-document rewrite
++ chat reply; a findings array) where a partial is not renderable.
 
 Grounding discipline (§12): every factual claim about a party must trace to a fact we passed in; if a
 fact isn't supplied, the draft says "confirm" rather than inventing. For review, every finding must
@@ -49,8 +52,9 @@ BRIEF FROM THE DRAFTER:
 GROUNDED FACTS (from Odoo — authoritative, may be empty):
 {facts}
 
-Respond with ONLY a JSON object (no prose, no markdown fences):
-{{"html": "the contract as an HTML fragment", "title": "a short contract title", "counterparty": "the other party/company name or empty string"}}"""
+Respond with ONLY the contract itself as an HTML fragment — begin with a single <h1> holding a short \
+contract title, then the clauses. No JSON, no <html>/<head>/<body> wrapper, no markdown fences, and no \
+commentary before or after the fragment."""
 
 
 _REFINE_TEMPLATE = """You are Seal, editing an in-progress contract for a drafter. You are given the \
@@ -113,24 +117,35 @@ def _fmt_history(history: list[dict]) -> str:
     return "\n".join(lines) or "(no prior turns)"
 
 
-def generate_contract(
-    virtual_key, model_alias, *, template_body, template_format, notes, facts=None, timeout: float = 240.0
+def generate_contract_stream(
+    virtual_key, model_alias, *, template_body, template_format, notes, facts=None,
+    on_delta=None, timeout: float = 240.0,
 ):
-    """Returns (ok, msg, {html, title, counterparty} | None, meta)."""
+    """Stream a draft over the shared `vision_ai.llm_stream` transport. Forwards each token chunk to
+    `on_delta` (for live SSE display; `None` for a buffered/headless run) and returns
+    `(ok, msg, {html, title, counterparty} | None, meta)` once the full HTML fragment is assembled.
+    Title is derived from the leading heading; counterparty is grounded by the playbook, not the model."""
     prompt = _GENERATE_TEMPLATE.format(
         template=(template_body or "(no template — use a standard contract structure)").strip(),
         template_format=template_format or "html",
         notes=(notes or "(no brief supplied)").strip(),
         facts=_fmt_facts(facts),
     )
-    ok, msg, raw, meta = vision_ai.llm_completion(virtual_key, model_alias, prompt, [], timeout)
-    if not ok or raw is None:
-        return ok, msg, None, meta
-    return True, "ok", {
-        "html": str(raw.get("html") or "").strip(),
-        "title": str(raw.get("title") or "").strip(),
-        "counterparty": str(raw.get("counterparty") or "").strip(),
-    }, meta
+    html = ""
+    meta = vision_ai.empty_meta(model_alias)
+    for event in vision_ai.llm_stream(virtual_key, model_alias, prompt, [], timeout):
+        if event["type"] == "delta":
+            if on_delta is not None:
+                on_delta(event["text"])
+        elif event["type"] == "error":
+            return False, event["msg"], None, event["meta"]
+        else:  # done — full assembled text + usage/cost meta
+            html, meta = event["text"], event["meta"]
+
+    html = vision_ai.strip_code_fences(html)
+    if not html:
+        return False, "The AI engine returned an empty draft.", None, meta
+    return True, "ok", {"html": html, "title": vision_ai.title_from_html(html), "counterparty": ""}, meta
 
 
 def refine_contract(virtual_key, model_alias, *, current_html, message, history=None, timeout: float = 240.0):

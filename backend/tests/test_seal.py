@@ -17,16 +17,36 @@ from app.sydekyks.seal.playbook import (
 
 # --- Pure AI-parsing unit tests (no DB, no network) ------------------------------------------------
 
-def test_generate_contract_parses_and_defaults(monkeypatch):
-    monkeypatch.setattr(
-        vision_ai, "llm_completion",
-        lambda *a, **k: (True, "ok",
-                         {"html": "<h1>NDA</h1>", "title": "Mutual NDA", "counterparty": "Acme"}, {}),
+def test_generate_contract_streams_and_derives_title(monkeypatch):
+    chunks = ["<h1>Mutual NDA</h1>", "<p>Between Acme and Beta…</p>"]
+
+    def fake_stream(*_a, **_k):
+        for c in chunks:
+            yield {"type": "delta", "text": c}
+        yield {"type": "done", "text": "".join(chunks), "meta": {"usage": None, "cost_usd": 0.0}}
+
+    monkeypatch.setattr(vision_ai, "llm_stream", fake_stream)
+    seen: list[str] = []
+    ok, _m, draft, _meta = extraction.generate_contract_stream(
+        "v", "m", template_body="<h1>[t]</h1>", template_format="html",
+        notes="mutual nda with acme", on_delta=seen.append,
     )
-    ok, _m, draft, _meta = extraction.generate_contract(
-        "v", "m", template_body="<h1>[t]</h1>", template_format="html", notes="mutual nda with acme",
+    assert ok
+    assert draft["html"] == "<h1>Mutual NDA</h1><p>Between Acme and Beta…</p>"
+    assert draft["title"] == "Mutual NDA"   # derived from the leading <h1>, not a JSON field
+    assert seen == chunks                    # every token chunk was forwarded live
+
+
+def test_generate_contract_stream_propagates_error(monkeypatch):
+    def fake_stream(*_a, **_k):
+        yield {"type": "error", "ok": False,
+               "msg": "Could not reach the LiteLLM proxy: timed out", "meta": {}}
+
+    monkeypatch.setattr(vision_ai, "llm_stream", fake_stream)
+    ok, msg, draft, _meta = extraction.generate_contract_stream(
+        "v", "m", template_body=None, template_format="html", notes="x",
     )
-    assert ok and draft["title"] == "Mutual NDA" and draft["counterparty"] == "Acme"
+    assert ok is False and draft is None and "timed out" in msg
 
 
 def test_review_contract_validates_category_and_severity(monkeypatch):

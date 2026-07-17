@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api, type MirrorReadiness, type Mission, type RunNowResult, type Sydekyk } from "../../lib/api";
 import { Button } from "../../components/ui";
 import { MissionList } from "../../components/MissionList";
+import { useMissionRefresh } from "../../lib/useMissionRefresh";
 
 /** Mirror's operations panel — the batch "Check now" scan on top plus a live Recent Missions list.
  * Mirror reads existing bills from Odoo (no upload), so this stands in for the upload dropzone. */
@@ -21,15 +22,10 @@ export function MirrorOperationsSection({ sydekyk, canManage }: { sydekyk: Sydek
   }, [load]);
 
   const active = missions?.some((m) => m.status === "queued" || m.status === "running");
-  const activeRef = useRef(active);
-  activeRef.current = active;
-  useEffect(() => {
-    if (!active) return;
-    const t = setInterval(() => {
-      if (activeRef.current) load();
-    }, 4000);
-    return () => clearInterval(t);
-  }, [active, load]);
+  useMissionRefresh(
+    active ? (missions ?? []).filter((m) => m.status === "queued" || m.status === "running").map((m) => m.id) : [],
+    load,
+  );
 
   async function runNow() {
     setRunning(true);

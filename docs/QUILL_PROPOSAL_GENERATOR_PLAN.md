@@ -105,12 +105,13 @@ Add all five to `backend/app/models/__init__.py`. Migration is handwritten + ide
 - `GET /templates`, `POST /templates`, `GET/PUT/DELETE /templates/{id}` (built-ins are read-only)
 - `GET /proposals?limit=&offset=` (paged), `POST /proposals` (blank or `from_template_id`),
   `GET/PUT/DELETE /proposals/{id}` (PUT saves edited `content_html`/`title`/`status`)
-- `POST /proposals/{id}/generate` — body `{template_id, notes, odoo_lead_id?}`; creates + runs the
-  `quill.draft` Mission inline, returns the updated proposal. Metered.
-- **`POST /proposals/{id}/chat`** — body `{message}`; creates + runs a `quill.refine` Mission inline;
-  returns `{reply, proposal (updated html), changed_summary, turn_tokens, proposal_token_total}`.
-  Guarded by `assert_can_use`; a `usage_guard` denial returns **429** with the human-readable reason so
-  the editor can toast it and pause the chat.
+- `POST /proposals/{id}/generate` — body `{template_id, notes, odoo_lead_id?}`; validates the command,
+  creates + enqueues the `quill.draft` Mission, and returns `202 MissionStartOut`. The editor observes
+  the shared Mission SSE endpoint and refetches the proposal after completion. Metered.
+- **`POST /proposals/{id}/chat`** — body `{message}`; validates the command, creates + enqueues a
+  `quill.refine` Mission, and returns `202 MissionStartOut`. The editor observes shared Mission SSE,
+  then refetches the proposal and transcript. Guarded by `assert_can_use`; a `usage_guard` denial is a
+  `mission.failed` event with a safe reason the editor can toast.
 - **`GET /proposals/{id}/chat`** — the conversation transcript (from `quill_chat_messages`) + the
   proposal's running token/cost total, for rehydrating the editor on load.
 - `POST /proposals/{id}/assets` (image upload, multipart via `python-multipart`), `GET /assets/{id}`

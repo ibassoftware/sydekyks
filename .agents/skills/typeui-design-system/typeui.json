@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "source": "workspace-visual-schema",
+  "name": "Sydekyks",
+  "slug": "dithered",
+  "project": {
+    "name": "Dithered",
+    "logoUrl": null
+  },
+  "importSource": {
+    "type": "manual",
+    "importedAt": "2026-07-17T19:37:42.585Z",
+    "sourceName": "TypeUI design skill: Dithered"
+  },
+  "components": [
+    "color",
+    "typography",
+    "layout",
+    "radius",
+    "shadow",
+    "borders",
+    "button",
+    "button-group",
+    "card",
+    "input",
+    "alert",
+    "badge",
+    "list",
+    "avatar",
+    "icon-shape",
+    "accordion",
+    "dropdown",
+    "modal",
+    "tabs",
+    "table",
+    "pagination",
+    "sidebar",
+    "radio",
+    "checkbox",
+    "toggle",
+    "tooltip",
+    "popovers",
+    "content"
+  ]
+}

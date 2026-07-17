@@ -7,14 +7,17 @@ import { useTenantCurrency } from "../../lib/useTenantCurrency";
 
 /** Signet dashboard card — a coverage view. Leads with the completion rate and median time-to-sign
  * (the wow metric), then what's in flight and at risk. */
-export function SignetInsightsSection() {
+export function SignetInsightsSection({ initialData }: { initialData?: SignetInsights | null } = {}) {
   const currency = useTenantCurrency();
-  const [data, setData] = useState<SignetInsights | null>(null);
+  const [data, setData] = useState<SignetInsights | null>(initialData ?? null);
 
   const load = useCallback(() => {
     api.get<SignetInsights>("/tenant/signet/insights").then((r) => setData(r.data)).catch(() => setData(null));
   }, []);
-  useEffect(() => load(), [load]);
+  useEffect(() => {
+    if (initialData !== undefined) setData(initialData);
+    else load();
+  }, [initialData, load]);
 
   if (!data || !data.activated) return null;
 
@@ -37,7 +40,7 @@ export function SignetInsightsSection() {
         </p>
       </div>
 
-      <div className="mt-5 grid max-w-md grid-cols-3 gap-3">
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Stat value={data.pending.toLocaleString()} label="In flight" accent />
         <Stat value={data.at_risk.toLocaleString()} label="At risk (overdue)" />
         <Stat value={data.completed.toLocaleString()} label="Completed" />
@@ -48,9 +51,9 @@ export function SignetInsightsSection() {
 
 function Stat({ value, label, accent }: { value: ReactNode; label: string; accent?: boolean }) {
   return (
-    <div className="rounded-lg border border-ink-700 bg-ink-900/50 px-3 py-2">
-      <p className={`text-xl font-bold ${accent ? "text-gold-300" : "text-[#f5eee0]"}`}>{value}</p>
-      <p className="mt-0.5 text-[11px] text-[#8a7f6d]">{label}</p>
+    <div className="rounded-[4px] border-2 border-ink-700 bg-ink-900/50 p-4">
+      <p className={`text-2xl font-bold ${accent ? "text-gold-300" : "text-heading"}`}>{value}</p>
+      <p className="mt-1 text-xs text-body">{label}</p>
     </div>
   );
 }

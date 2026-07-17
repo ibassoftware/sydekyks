@@ -12,8 +12,10 @@ from app.db.session import get_db
 from app.models.sydekyk import Sydekyk
 from app.models.usage_record import UsageRecord
 from app.models.user import User
+from app.schemas.mission import MissionStartOut
 from app.services import gadget_links, odoo, odoo_crm, odoo_sign, permissions, vision_ai
-from app.services.missions import create_mission, run_mission
+from app.services.missions import create_mission
+from app.services.queue import enqueue_mission
 
 from app.sydekyks.seal import export
 from app.sydekyks.seal import insights as insights_svc
@@ -38,7 +40,6 @@ from app.sydekyks.seal.schemas import (
     ChatHistoryOut,
     ChatIn,
     ChatMessageOut,
-    ChatOut,
     ContractCreate,
     ContractOut,
     ContractPage,
@@ -61,7 +62,6 @@ from app.sydekyks.seal.schemas import (
     TemplateOut,
     TemplateSummary,
     TemplateUpdate,
-    TurnTokens,
 )
 
 router = APIRouter(prefix="/api/tenant/seal", tags=["seal"], dependencies=[Depends(require_tenant_member)])
@@ -170,40 +170,6 @@ def _contract_out(db: Session, contract: SealContract) -> ContractOut:
         odoo_partner_id=contract.odoo_partner_id, odoo_sign_request_id=contract.odoo_sign_request_id,
         token_total=tokens, cost_usd=cost, updated_at=contract.updated_at,
     )
-
-
-def _run_inline(db: Session, sydekyk: Sydekyk, user: User, playbook_key: str, ctx: dict) -> uuid.UUID:
-    """Create a Mission and run it synchronously (generation/chat/review must return a result to the
-    editor). Returns the mission id; the caller re-reads the mutated contract from a fresh query."""
-    mission = create_mission(
-        db, tenant_id=user.tenant_id, sydekyk=sydekyk, user_id=user.id,
-        source="manual", signal_type="manual", trigger_context=ctx,
-    )
-    if mission.playbook_key != playbook_key:
-        mission.playbook_key = playbook_key
-        db.commit()
-    mid = mission.id
-    run_mission(mid)
-    db.expire_all()
-    return mid
-
-
-def _mission_summary(db: Session, mission_id: uuid.UUID) -> dict | None:
-    from app.models.mission import Mission
-
-    m = db.get(Mission, mission_id)
-    return (m.result_summary or {}) if m else None
-
-
-def _raise_if_mission_failed(db: Session, mission_id: uuid.UUID) -> None:
-    from app.models.mission import Mission
-
-    m = db.get(Mission, mission_id)
-    if m is None:
-        return
-    if m.status == "failed":
-        code = status.HTTP_429_TOO_MANY_REQUESTS if m.failure_category == "quota" else status.HTTP_400_BAD_REQUEST
-        raise HTTPException(status_code=code, detail=m.error_message or "The AI step failed")
 
 
 # --- Settings / readiness / playbook / insights ----------------------------------------------------
@@ -381,10 +347,15 @@ def delete_contract(contract_id: uuid.UUID, user: User = Depends(require_tenant_
     db.commit()
 
 
-# --- AI: generate + chat + review (metered inline missions) ----------------------------------------
+# --- AI: generate + chat + review (metered queued Missions) ----------------------------------------
 
-@router.post("/contracts/{contract_id}/generate", response_model=ContractOut)
-def generate_contract(contract_id: uuid.UUID, payload: GenerateIn, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+@router.post(
+    "/contracts/{contract_id}/generate",
+    response_model=MissionStartOut,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def generate_contract(contract_id: uuid.UUID, payload: GenerateIn, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+    """Validate the domain command, enqueue a Mission, and return its observation identity."""
     sydekyk = _seal(db, user)
     permissions.assert_can_use(db, user, sydekyk.id)
     contract = _contract_or_404(db, user, sydekyk.id, contract_id)
@@ -393,44 +364,30 @@ def generate_contract(contract_id: uuid.UUID, payload: GenerateIn, user: User = 
         ctx["template_id"] = str(payload.template_id)
     if payload.odoo_lead_id:
         ctx["odoo_lead_id"] = payload.odoo_lead_id
-    mid = _run_inline(db, sydekyk, user, PLAYBOOK_KEY, ctx)
-    _raise_if_mission_failed(db, mid)
-    contract = _contract_or_404(db, user, sydekyk.id, contract_id)
-    return _contract_out(db, contract)
+    mission = create_mission(
+        db, tenant_id=user.tenant_id, sydekyk=sydekyk, user_id=user.id,
+        source="manual", signal_type="manual", trigger_context=ctx, playbook_key=PLAYBOOK_KEY,
+    )
+    await enqueue_mission(mission.id)
+    return MissionStartOut(mission_id=mission.id)
 
 
-@router.post("/contracts/{contract_id}/chat", response_model=ChatOut)
-def chat(contract_id: uuid.UUID, payload: ChatIn, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+@router.post(
+    "/contracts/{contract_id}/chat",
+    response_model=MissionStartOut,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def chat(contract_id: uuid.UUID, payload: ChatIn, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
     sydekyk = _seal(db, user)
     permissions.assert_can_use(db, user, sydekyk.id)
     contract = _contract_or_404(db, user, sydekyk.id, contract_id)
     ctx = {"contract_id": str(contract.id), "message": payload.message}
-    mid = _run_inline(db, sydekyk, user, PLAYBOOK_KEY_REFINE, ctx)
-    _raise_if_mission_failed(db, mid)
-    contract = _contract_or_404(db, user, sydekyk.id, contract_id)
-
-    assistant = (
-        db.query(SealChatMessage)
-        .filter(SealChatMessage.contract_id == contract.id, SealChatMessage.mission_id == mid,
-                SealChatMessage.role == "assistant")
-        .order_by(SealChatMessage.seq.desc())
-        .first()
+    mission = create_mission(
+        db, tenant_id=user.tenant_id, sydekyk=sydekyk, user_id=user.id,
+        source="manual", signal_type="manual", trigger_context=ctx, playbook_key=PLAYBOOK_KEY_REFINE,
     )
-    mission_summary = _mission_summary(db, mid)
-    tokens, cost = _contract_tokens(db, contract)
-    return ChatOut(
-        reply=(assistant.content if assistant else "Done."),
-        changed_summary=(mission_summary.get("changed") if mission_summary else "Revised the contract"),
-        contract=_contract_out(db, contract),
-        turn_tokens=TurnTokens(
-            prompt_tokens=(assistant.prompt_tokens if assistant else 0),
-            completion_tokens=(assistant.completion_tokens if assistant else 0),
-            total_tokens=(assistant.total_tokens if assistant else 0),
-            cost_usd=(assistant.cost_usd if assistant else 0.0),
-        ),
-        contract_token_total=tokens,
-        contract_cost_usd=cost,
-    )
+    await enqueue_mission(mission.id)
+    return MissionStartOut(mission_id=mission.id)
 
 
 @router.get("/contracts/{contract_id}/chat", response_model=ChatHistoryOut)
@@ -469,16 +426,22 @@ def _review_out(db: Session, contract: SealContract) -> ReviewOut:
     )
 
 
-@router.post("/contracts/{contract_id}/review", response_model=ReviewOut)
-def review_contract(contract_id: uuid.UUID, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+@router.post(
+    "/contracts/{contract_id}/review",
+    response_model=MissionStartOut,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def review_contract(contract_id: uuid.UUID, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
     sydekyk = _seal(db, user)
     permissions.assert_can_use(db, user, sydekyk.id)
     contract = _contract_or_404(db, user, sydekyk.id, contract_id)
     ctx = {"contract_id": str(contract.id)}
-    mid = _run_inline(db, sydekyk, user, PLAYBOOK_KEY_REVIEW, ctx)
-    _raise_if_mission_failed(db, mid)
-    contract = _contract_or_404(db, user, sydekyk.id, contract_id)
-    return _review_out(db, contract)
+    mission = create_mission(
+        db, tenant_id=user.tenant_id, sydekyk=sydekyk, user_id=user.id,
+        source="manual", signal_type="manual", trigger_context=ctx, playbook_key=PLAYBOOK_KEY_REVIEW,
+    )
+    await enqueue_mission(mission.id)
+    return MissionStartOut(mission_id=mission.id)
 
 
 @router.get("/contracts/{contract_id}/findings", response_model=ReviewOut)

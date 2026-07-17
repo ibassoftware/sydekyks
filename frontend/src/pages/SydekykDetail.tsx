@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import axios from "axios";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   api,
   type IssuesCount,
@@ -16,6 +16,7 @@ import { Badge, Button, Card, Input, Label } from "../components/ui";
 import { HQShell } from "../components/HQShell";
 import { DocumentIntakeSection } from "../components/DocumentIntakeSection";
 import { ReviewerAssignment } from "../components/ReviewerAssignment";
+import { TypeUIPanel } from "../components/TypeUIPanel";
 import { registryForSlug } from "../sydekyks/registry";
 
 const ENGINE_LABEL: Record<LLMProvider, string> = {
@@ -29,6 +30,7 @@ export default function SydekykDetail() {
   const { sydekykId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isCommander = user?.role === "commander";
   const [sydekyk, setSydekyk] = useState<Sydekyk | null>(null);
   // Per-Sydekyk permissions (a commander has both). Run-actions gate on canUse; settings/engine on
@@ -43,7 +45,7 @@ export default function SydekykDetail() {
   const registryEntry = registryForSlug(sydekyk?.slug);
   // Settings is configured once; Upload Bills + Recent Missions are used constantly — split them
   // into tabs, defaulting to Operations. Only Sydekyks that accept uploads get a tab bar at all.
-  const [activeTab, setActiveTab] = useState<"operations" | "settings">("operations");
+  const [activeTab, setActiveTab] = useState<"operations" | "settings">(searchParams.get("tab") === "settings" ? "settings" : "operations");
 
   useEffect(() => {
     if (!sydekykId) return;
@@ -74,21 +76,21 @@ export default function SydekykDetail() {
 
   return (
     <HQShell>
-      <main className="mx-auto max-w-5xl px-6 py-10">
-        <button onClick={() => navigate("/hq/roster")} className="mb-6 text-sm text-gold-400 hover:text-gold-300">
-          ← Roster
+      <main id="main-content" className="typeui-page mx-auto max-w-5xl px-6 py-12">
+        <button onClick={() => navigate("/hq/roster")} className="mb-8 inline-flex min-h-11 items-center text-sm font-medium text-gold-300 hover:text-heading">
+          ← Back to roster
         </button>
 
         {notFound ? (
-          <Card className="p-10 text-center text-[#b9ad98]">Sydekyk not found.</Card>
+          <Card className="p-10 text-center text-body">Sydekyk not found.</Card>
         ) : !sydekyk ? (
-          <p className="text-sm text-[#b9ad98]">Loading…</p>
+          <p className="text-sm text-body">Loading…</p>
         ) : (
           <div className="grid gap-6">
             {/* Hero */}
-            <Card className="overflow-hidden">
-              <div className="grid gap-6 p-6 sm:grid-cols-[220px_1fr]">
-                <div className="relative mx-auto aspect-[912/1199] w-full max-w-[220px] overflow-hidden rounded-xl bg-ink-950">
+            <Card className="overflow-hidden shadow-[var(--shadow-md)]">
+              <div className="grid gap-8 p-6 md:grid-cols-[240px_1fr] md:p-8">
+                <div className="relative mx-auto aspect-[912/1199] w-full max-w-[240px] overflow-hidden rounded-[4px] border-2 border-ink-600 bg-ink-950">
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_25%,_var(--color-gold-600)_0%,_transparent_70%)] opacity-30" />
                   <img
                     src={sydekyk.avatar_url}
@@ -105,19 +107,19 @@ export default function SydekykDetail() {
                     {sydekyk.chat_enabled && <Badge tone="neutral">Chat</Badge>}
                     {sydekyk.workflow_enabled && <Badge tone="neutral">Workflow</Badge>}
                   </div>
-                  <h1 className="mt-2 text-3xl font-bold text-[#f5eee0]">{sydekyk.name}</h1>
-                  <p className="mt-3 flex-1 text-[#d8cdb9]">{sydekyk.description || sydekyk.tagline}</p>
+                  <h1 className="mt-6">{sydekyk.name}</h1>
+                  <p className="mt-8 max-w-[65ch] flex-1 text-lg text-body">{sydekyk.description || sydekyk.tagline}</p>
 
-                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-ink-700 pt-5">
+                  <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t-2 border-ink-600 pt-6">
                     {sydekyk.is_exclusive ? (
                       <span className="text-sm font-semibold text-gold-400">Always active for your HQ</span>
                     ) : sydekyk.installed ? (
                       <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-gold-400">
-                        <span className="h-1.5 w-1.5 rounded-full bg-gold-400 shadow-[0_0_8px_2px_rgba(234,194,95,0.7)]" />{" "}
+                        <span className="h-2 w-2 rounded-full bg-gold-400 shadow-[var(--shadow-sm)]" />{" "}
                         Installed for your HQ
                       </span>
                     ) : (
-                      <span className="text-sm text-[#8a7f6d]">Not yet activated for your HQ</span>
+                      <span className="text-sm text-body">Not yet activated for your HQ</span>
                     )}
 
                     {!sydekyk.is_exclusive && isCommander && (
@@ -136,14 +138,14 @@ export default function SydekykDetail() {
 
             {active && reviewCount > 0 && (
               <Link
-                to={`/hq/issues?sydekyk_id=${sydekyk.id}`}
-                className="flex items-center justify-between gap-3 rounded-xl border border-amber-600/40 bg-amber-500/10 px-5 py-3 transition-colors hover:bg-amber-500/15"
+                to={`/hq/missions?view=attention&sydekyk_id=${sydekyk.id}`}
+                className="flex items-center justify-between gap-3 rounded-[4px] border-2 border-amber-600/40 bg-amber-500/10 px-5 py-4 transition-colors hover:bg-amber-500/15"
               >
                 <div className="flex items-center gap-3">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-400">
                     ⚠
                   </span>
-                  <p className="text-sm font-semibold text-[#f5eee0]">
+                  <p className="text-sm font-semibold text-heading">
                     {reviewCount}{" "}
                     {reviewCount === 1
                       ? `${registryEntry?.reviewNoun?.one ?? "item"} needs`
@@ -157,15 +159,17 @@ export default function SydekykDetail() {
 
             {active && sydekyk.accepts_document_uploads ? (
               <>
-                <div className="flex gap-1 border-b border-ink-700">
+                <div role="tablist" aria-label={`${sydekyk.name} sections`} className="flex border-b-2 border-ink-600">
                   {(["operations", "settings"] as const).map((tab) => (
                     <button
                       key={tab}
+                      role="tab"
+                      aria-selected={activeTab === tab}
                       onClick={() => setActiveTab(tab)}
-                      className={`px-4 py-2.5 text-sm font-semibold capitalize transition-colors ${
+                      className={`min-h-11 rounded-t-[4px] border-b-[3px] px-4 py-3 text-sm font-medium capitalize transition-colors ${
                         activeTab === tab
-                          ? "border-b-2 border-gold-500 text-gold-300"
-                          : "text-[#8a7f6d] hover:text-[#b9ad98]"
+                          ? "border-gold-500 text-gold-300"
+                          : "border-transparent text-body hover:border-ink-600 hover:text-heading"
                       }`}
                     >
                       {tab === "operations" ? "Upload" : "Settings"}
@@ -229,13 +233,14 @@ export default function SydekykDetail() {
                 )}
               </>
             ) : (
-              <Card className="p-6 text-center text-sm text-[#8a7f6d]">
+              <Card className="p-6 text-center text-sm text-body">
                 Install this Sydekyk to configure its AI engine and put it to work.
               </Card>
             )}
           </div>
         )}
       </main>
+      <TypeUIPanel />
     </HQShell>
   );
 }
@@ -253,7 +258,7 @@ function EngineStatusBadge({ status }: { status: SydekykLLMConfig["status"] }) {
   if (status === "connected") {
     return (
       <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold-400">
-        <span className="h-1.5 w-1.5 rounded-full bg-gold-400 shadow-[0_0_8px_2px_rgba(234,194,95,0.7)]" /> Connected
+        <span className="h-2 w-2 rounded-full bg-gold-400 shadow-[var(--shadow-sm)]" /> Connected
       </span>
     );
   }
@@ -312,15 +317,15 @@ function AIEngineSection({ sydekyk, canManage }: { sydekyk: Sydekyk; canManage: 
       />
 
       {!config ? (
-        <p className="mt-2 text-sm text-[#8a7f6d]">Loading…</p>
+        <p className="mt-2 text-sm text-body">Loading…</p>
       ) : editing ? (
         <EngineForm sydekyk={sydekyk} config={config} credentials={credentials} onCancel={() => setEditing(false)} onSaved={handleSaved} />
       ) : (
         <div className="mt-3">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-[#ede6da]">{ENGINE_LABEL[config.provider]}</p>
-              {config.model && <p className="text-xs text-[#8a7f6d]">{config.model}</p>}
+              <p className="text-sm font-semibold text-heading">{ENGINE_LABEL[config.provider]}</p>
+              {config.model && <p className="text-xs text-body">{config.model}</p>}
             </div>
             <div className="flex items-center gap-2">
               <EngineStatusBadge status={config.status} />
@@ -410,7 +415,7 @@ function EngineForm({
   }
 
   const selectClass =
-    "w-full rounded-md border border-ink-600 bg-ink-900 px-3.5 py-2.5 text-sm text-[#ede6da] outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500/50";
+    "w-full rounded-[4px] border-2 border-ink-600 bg-ink-800 px-4 py-3 text-base text-heading focus:border-gold-500";
 
   return (
     <form onSubmit={handleSubmit} className="mt-3 grid gap-3">
@@ -476,4 +481,3 @@ function EngineForm({
     </form>
   );
 }
-

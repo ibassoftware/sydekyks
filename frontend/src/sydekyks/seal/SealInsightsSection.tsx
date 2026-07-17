@@ -14,16 +14,19 @@ function fmtTokens(n: number): string {
 
 /** Seal dashboard card — leads with tokens + AI cost, then the AI-only value: contracts reviewed and
  * high-severity clauses caught (the risk a template tool would have shipped unnoticed). */
-export function SealInsightsSection() {
+export function SealInsightsSection({ initialData }: { initialData?: SealInsights | null } = {}) {
   const currency = useTenantCurrency();
   const navigate = useNavigate();
-  const [data, setData] = useState<SealInsights | null>(null);
+  const [data, setData] = useState<SealInsights | null>(initialData ?? null);
   const [creating, setCreating] = useState(false);
 
   const load = useCallback(() => {
     api.get<SealInsights>("/tenant/seal/insights").then((r) => setData(r.data)).catch(() => setData(null));
   }, []);
-  useEffect(() => load(), [load]);
+  useEffect(() => {
+    if (initialData !== undefined) setData(initialData);
+    else load();
+  }, [initialData, load]);
 
   if (!data || !data.activated) return null;
 
@@ -56,7 +59,7 @@ export function SealInsightsSection() {
         </p>
       </div>
 
-      <div className="mt-5 grid max-w-md grid-cols-3 gap-3">
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Stat value={data.contracts_reviewed.toLocaleString()} label="Reviewed" accent />
         <Stat value={data.high_severity_caught.toLocaleString()} label="High-severity caught" />
         <Stat value={data.redlines_accepted.toLocaleString()} label="Redlines accepted" />
@@ -78,9 +81,9 @@ export function SealInsightsSection() {
 
 function Stat({ value, label, accent }: { value: ReactNode; label: string; accent?: boolean }) {
   return (
-    <div className="rounded-lg border border-ink-700 bg-ink-900/50 px-3 py-2">
-      <p className={`text-xl font-bold ${accent ? "text-gold-300" : "text-[#f5eee0]"}`}>{value}</p>
-      <p className="mt-0.5 text-[11px] text-[#8a7f6d]">{label}</p>
+    <div className="rounded-[4px] border-2 border-ink-700 bg-ink-900/50 p-4">
+      <p className={`text-2xl font-bold ${accent ? "text-gold-300" : "text-heading"}`}>{value}</p>
+      <p className="mt-1 text-xs text-body">{label}</p>
     </div>
   );
 }

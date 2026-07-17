@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api, type Mission, type NudgeReadiness, type RunNowResult, type Sydekyk } from "../../lib/api";
 import { Button } from "../../components/ui";
 import { MissionList } from "../../components/MissionList";
+import { useMissionRefresh } from "../../lib/useMissionRefresh";
 
 /** Nudge's operations panel — the batch "Check pipeline now" scan on top plus a live Recent Missions
  * list. Nudge has no upload; it works the Odoo pipeline on a schedule or on demand. */
@@ -21,15 +22,10 @@ export function NudgeOperationsSection({ sydekyk, canManage }: { sydekyk: Sydeky
   }, [load]);
 
   const active = missions?.some((m) => m.status === "queued" || m.status === "running");
-  const activeRef = useRef(active);
-  activeRef.current = active;
-  useEffect(() => {
-    if (!active) return;
-    const t = setInterval(() => {
-      if (activeRef.current) load();
-    }, 4000);
-    return () => clearInterval(t);
-  }, [active, load]);
+  useMissionRefresh(
+    active ? (missions ?? []).filter((m) => m.status === "queued" || m.status === "running").map((m) => m.id) : [],
+    load,
+  );
 
   async function runNow() {
     setRunning(true);
