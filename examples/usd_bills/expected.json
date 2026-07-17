@@ -1,0 +1,908 @@
+[
+  {
+    "filename": "usd_bill_01.pdf",
+    "vendor_name": "Redwood Legal Support",
+    "invoice_number": "US-2509-9263",
+    "invoice_date": "2025-09-29",
+    "currency": "USD",
+    "subtotal": 3167.87,
+    "tax_amount": 324.71,
+    "total": 3492.58,
+    "line_items": [
+      {
+        "description": "Document review",
+        "quantity": 4,
+        "unit_price": 468.27,
+        "amount": 1873.08
+      },
+      {
+        "description": "Courier disbursement",
+        "quantity": 1,
+        "unit_price": 29.84,
+        "amount": 29.84
+      },
+      {
+        "description": "Research services",
+        "quantity": 3,
+        "unit_price": 421.65,
+        "amount": 1264.95
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_02.pdf",
+    "vendor_name": "Blue Ridge IT Services",
+    "invoice_number": "BILL-2603-8804",
+    "invoice_date": "2026-03-07",
+    "currency": "USD",
+    "subtotal": 1579.95,
+    "tax_amount": 0.0,
+    "total": 1579.95,
+    "line_items": [
+      {
+        "description": "Network configuration",
+        "quantity": 5,
+        "unit_price": 147.59,
+        "amount": 737.95
+      },
+      {
+        "description": "Cloud backup service",
+        "quantity": 5,
+        "unit_price": 160.35,
+        "amount": 801.75
+      },
+      {
+        "description": "Endpoint security license",
+        "quantity": 1,
+        "unit_price": 40.25,
+        "amount": 40.25
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_03.pdf",
+    "vendor_name": "CloudPeak Software, Inc.",
+    "invoice_number": "BILL-2509-6595",
+    "invoice_date": "2025-09-01",
+    "currency": "USD",
+    "subtotal": 1859.2,
+    "tax_amount": 134.79,
+    "total": 1993.99,
+    "line_items": [
+      {
+        "description": "Team software subscription",
+        "quantity": 5,
+        "unit_price": 283.41,
+        "amount": 1417.05
+      },
+      {
+        "description": "Data storage add-on",
+        "quantity": 5,
+        "unit_price": 88.43,
+        "amount": 442.15
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_04.pdf",
+    "vendor_name": "Northstar Office Supply",
+    "invoice_number": "US-2601-8637",
+    "invoice_date": "2026-01-30",
+    "currency": "USD",
+    "subtotal": 532.65,
+    "tax_amount": 0.0,
+    "total": 532.65,
+    "line_items": [
+      {
+        "description": "Black toner cartridge",
+        "quantity": 5,
+        "unit_price": 78.87,
+        "amount": 394.35
+      },
+      {
+        "description": "Shipping labels, 1,000 pack",
+        "quantity": 5,
+        "unit_price": 27.66,
+        "amount": 138.3
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_05.pdf",
+    "vendor_name": "Metro Print & Mail",
+    "invoice_number": "BILL-2605-9233",
+    "invoice_date": "2026-05-16",
+    "currency": "USD",
+    "subtotal": 574.62,
+    "tax_amount": 35.91,
+    "total": 610.53,
+    "line_items": [
+      {
+        "description": "Postage and handling",
+        "quantity": 2,
+        "unit_price": 56.79,
+        "amount": 113.58
+      },
+      {
+        "description": "Color brochures, 500",
+        "quantity": 2,
+        "unit_price": 230.52,
+        "amount": 461.04
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_06.pdf",
+    "vendor_name": "Silver Oak Consulting",
+    "invoice_number": "AR-2602-9495",
+    "invoice_date": "2026-02-14",
+    "currency": "USD",
+    "subtotal": 9146.42,
+    "tax_amount": 754.58,
+    "total": 9901.0,
+    "line_items": [
+      {
+        "description": "Implementation support",
+        "quantity": 2,
+        "unit_price": 903.62,
+        "amount": 1807.24
+      },
+      {
+        "description": "Strategy workshop",
+        "quantity": 1,
+        "unit_price": 1825.65,
+        "amount": 1825.65
+      },
+      {
+        "description": "Process assessment",
+        "quantity": 4,
+        "unit_price": 1274.95,
+        "amount": 5099.8
+      },
+      {
+        "description": "Travel expenses",
+        "quantity": 3,
+        "unit_price": 137.91,
+        "amount": 413.73
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_07.pdf",
+    "vendor_name": "Greenfield Janitorial Co.",
+    "invoice_number": "INV-2603-1361",
+    "invoice_date": "2026-03-18",
+    "currency": "USD",
+    "subtotal": 435.41,
+    "tax_amount": 0.0,
+    "total": 435.41,
+    "line_items": [
+      {
+        "description": "Floor treatment",
+        "quantity": 1,
+        "unit_price": 208.45,
+        "amount": 208.45
+      },
+      {
+        "description": "Window cleaning",
+        "quantity": 1,
+        "unit_price": 226.96,
+        "amount": 226.96
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_08.pdf",
+    "vendor_name": "Pioneer Packaging Corp.",
+    "invoice_number": "INV-2601-3473",
+    "invoice_date": "2026-01-15",
+    "currency": "USD",
+    "subtotal": 702.91,
+    "tax_amount": 57.99,
+    "total": 760.9,
+    "line_items": [
+      {
+        "description": "Custom inserts, 250",
+        "quantity": 2,
+        "unit_price": 157.84,
+        "amount": 315.68
+      },
+      {
+        "description": "Corrugated cartons, bundle",
+        "quantity": 3,
+        "unit_price": 85.09,
+        "amount": 255.27
+      },
+      {
+        "description": "Packing tape, case",
+        "quantity": 2,
+        "unit_price": 65.98,
+        "amount": 131.96
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_09.pdf",
+    "vendor_name": "Summit Safety Equipment",
+    "invoice_number": "AR-2606-4625",
+    "invoice_date": "2026-06-29",
+    "currency": "USD",
+    "subtotal": 718.3,
+    "tax_amount": 52.08,
+    "total": 770.38,
+    "line_items": [
+      {
+        "description": "Nitrile gloves, case",
+        "quantity": 2,
+        "unit_price": 67.26,
+        "amount": 134.52
+      },
+      {
+        "description": "Safety glasses, 12 pack",
+        "quantity": 1,
+        "unit_price": 50.22,
+        "amount": 50.22
+      },
+      {
+        "description": "High-visibility vest",
+        "quantity": 2,
+        "unit_price": 30.88,
+        "amount": 61.76
+      },
+      {
+        "description": "First aid refill kit",
+        "quantity": 5,
+        "unit_price": 94.36,
+        "amount": 471.8
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_10.pdf",
+    "vendor_name": "Atlas Business Travel",
+    "invoice_number": "BILL-2604-8066",
+    "invoice_date": "2026-04-30",
+    "currency": "USD",
+    "subtotal": 634.9,
+    "tax_amount": 39.68,
+    "total": 674.58,
+    "line_items": [
+      {
+        "description": "Hotel reservation",
+        "quantity": 2,
+        "unit_price": 229.3,
+        "amount": 458.6
+      },
+      {
+        "description": "Ground transportation",
+        "quantity": 1,
+        "unit_price": 62.06,
+        "amount": 62.06
+      },
+      {
+        "description": "Agency service fee",
+        "quantity": 4,
+        "unit_price": 28.56,
+        "amount": 114.24
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_11.pdf",
+    "vendor_name": "Brightline Creative Studio",
+    "invoice_number": "AR-2606-6055",
+    "invoice_date": "2026-06-13",
+    "currency": "USD",
+    "subtotal": 6359.1,
+    "tax_amount": 564.37,
+    "total": 6923.47,
+    "line_items": [
+      {
+        "description": "Digital ad creative set",
+        "quantity": 3,
+        "unit_price": 384.28,
+        "amount": 1152.84
+      },
+      {
+        "description": "Brand template package",
+        "quantity": 2,
+        "unit_price": 477.6,
+        "amount": 955.2
+      },
+      {
+        "description": "Campaign design services",
+        "quantity": 4,
+        "unit_price": 1019.55,
+        "amount": 4078.2
+      },
+      {
+        "description": "Image licensing",
+        "quantity": 2,
+        "unit_price": 86.43,
+        "amount": 172.86
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_12.pdf",
+    "vendor_name": "Ironwood Maintenance LLC",
+    "invoice_number": "US-2511-8098",
+    "invoice_date": "2025-11-16",
+    "currency": "USD",
+    "subtotal": 2591.8,
+    "tax_amount": 161.99,
+    "total": 2753.79,
+    "line_items": [
+      {
+        "description": "Preventive maintenance visit",
+        "quantity": 5,
+        "unit_price": 480.51,
+        "amount": 2402.55
+      },
+      {
+        "description": "Emergency call-out fee",
+        "quantity": 1,
+        "unit_price": 189.25,
+        "amount": 189.25
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_13.pdf",
+    "vendor_name": "Cedar & Stone Interiors",
+    "invoice_number": "AR-2603-3661",
+    "invoice_date": "2026-03-04",
+    "currency": "USD",
+    "subtotal": 3897.12,
+    "tax_amount": 282.54,
+    "total": 4179.66,
+    "line_items": [
+      {
+        "description": "Installation labor",
+        "quantity": 5,
+        "unit_price": 167.22,
+        "amount": 836.1
+      },
+      {
+        "description": "LED task lamp",
+        "quantity": 5,
+        "unit_price": 90.74,
+        "amount": 453.7
+      },
+      {
+        "description": "Conference room table",
+        "quantity": 2,
+        "unit_price": 891.34,
+        "amount": 1782.68
+      },
+      {
+        "description": "Ergonomic desk chair",
+        "quantity": 3,
+        "unit_price": 274.88,
+        "amount": 824.64
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_14.pdf",
+    "vendor_name": "Lakeside Catering Group",
+    "invoice_number": "INV-2511-7161",
+    "invoice_date": "2025-11-02",
+    "currency": "USD",
+    "subtotal": 530.82,
+    "tax_amount": 47.11,
+    "total": 577.93,
+    "line_items": [
+      {
+        "description": "Beverage service",
+        "quantity": 1,
+        "unit_price": 95.76,
+        "amount": 95.76
+      },
+      {
+        "description": "Team lunch catering",
+        "quantity": 1,
+        "unit_price": 435.06,
+        "amount": 435.06
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_15.pdf",
+    "vendor_name": "Harborview Logistics",
+    "invoice_number": "BILL-2606-6784",
+    "invoice_date": "2026-06-02",
+    "currency": "USD",
+    "subtotal": 417.05,
+    "tax_amount": 26.07,
+    "total": 443.12,
+    "line_items": [
+      {
+        "description": "Pallet handling",
+        "quantity": 3,
+        "unit_price": 21.67,
+        "amount": 65.01
+      },
+      {
+        "description": "Fuel surcharge",
+        "quantity": 4,
+        "unit_price": 88.01,
+        "amount": 352.04
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_16.pdf",
+    "vendor_name": "Redwood Legal Support",
+    "invoice_number": "INV-2509-4058",
+    "invoice_date": "2025-09-17",
+    "currency": "USD",
+    "subtotal": 3245.85,
+    "tax_amount": 332.7,
+    "total": 3578.55,
+    "line_items": [
+      {
+        "description": "Research services",
+        "quantity": 3,
+        "unit_price": 278.0,
+        "amount": 834.0
+      },
+      {
+        "description": "Document review",
+        "quantity": 5,
+        "unit_price": 482.37,
+        "amount": 2411.85
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_17.pdf",
+    "vendor_name": "Blue Ridge IT Services",
+    "invoice_number": "US-2509-7729",
+    "invoice_date": "2025-09-05",
+    "currency": "USD",
+    "subtotal": 2025.27,
+    "tax_amount": 179.74,
+    "total": 2205.01,
+    "line_items": [
+      {
+        "description": "Managed support - monthly",
+        "quantity": 1,
+        "unit_price": 1216.23,
+        "amount": 1216.23
+      },
+      {
+        "description": "Endpoint security license",
+        "quantity": 2,
+        "unit_price": 27.5,
+        "amount": 55.0
+      },
+      {
+        "description": "Network configuration",
+        "quantity": 4,
+        "unit_price": 188.51,
+        "amount": 754.04
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_18.pdf",
+    "vendor_name": "CloudPeak Software, Inc.",
+    "invoice_number": "INV-2508-4838",
+    "invoice_date": "2025-08-04",
+    "currency": "USD",
+    "subtotal": 3632.54,
+    "tax_amount": 0.0,
+    "total": 3632.54,
+    "line_items": [
+      {
+        "description": "Data storage add-on",
+        "quantity": 3,
+        "unit_price": 123.73,
+        "amount": 371.19
+      },
+      {
+        "description": "Team software subscription",
+        "quantity": 3,
+        "unit_price": 760.68,
+        "amount": 2282.04
+      },
+      {
+        "description": "Priority support plan",
+        "quantity": 2,
+        "unit_price": 390.43,
+        "amount": 780.86
+      },
+      {
+        "description": "Additional user license",
+        "quantity": 5,
+        "unit_price": 39.69,
+        "amount": 198.45
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_19.pdf",
+    "vendor_name": "Northstar Office Supply",
+    "invoice_number": "INV-2602-3560",
+    "invoice_date": "2026-02-28",
+    "currency": "USD",
+    "subtotal": 427.59,
+    "tax_amount": 26.72,
+    "total": 454.31,
+    "line_items": [
+      {
+        "description": "Shipping labels, 1,000 pack",
+        "quantity": 3,
+        "unit_price": 31.92,
+        "amount": 95.76
+      },
+      {
+        "description": "Desk organizer set",
+        "quantity": 2,
+        "unit_price": 34.12,
+        "amount": 68.24
+      },
+      {
+        "description": "Black toner cartridge",
+        "quantity": 2,
+        "unit_price": 100.79,
+        "amount": 201.58
+      },
+      {
+        "description": "Copy paper, 10-ream case",
+        "quantity": 1,
+        "unit_price": 62.01,
+        "amount": 62.01
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_20.pdf",
+    "vendor_name": "Metro Print & Mail",
+    "invoice_number": "BILL-2605-4872",
+    "invoice_date": "2026-05-20",
+    "currency": "USD",
+    "subtotal": 583.95,
+    "tax_amount": 0.0,
+    "total": 583.95,
+    "line_items": [
+      {
+        "description": "Business cards, 250",
+        "quantity": 2,
+        "unit_price": 83.94,
+        "amount": 167.88
+      },
+      {
+        "description": "Presentation folders, 100",
+        "quantity": 3,
+        "unit_price": 138.69,
+        "amount": 416.07
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_21.pdf",
+    "vendor_name": "Silver Oak Consulting",
+    "invoice_number": "BILL-2604-9152",
+    "invoice_date": "2026-04-02",
+    "currency": "USD",
+    "subtotal": 11136.58,
+    "tax_amount": 0.0,
+    "total": 11136.58,
+    "line_items": [
+      {
+        "description": "Travel expenses",
+        "quantity": 5,
+        "unit_price": 110.04,
+        "amount": 550.2
+      },
+      {
+        "description": "Process assessment",
+        "quantity": 4,
+        "unit_price": 1284.29,
+        "amount": 5137.16
+      },
+      {
+        "description": "Implementation support",
+        "quantity": 1,
+        "unit_price": 1006.06,
+        "amount": 1006.06
+      },
+      {
+        "description": "Strategy workshop",
+        "quantity": 4,
+        "unit_price": 1110.79,
+        "amount": 4443.16
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_22.pdf",
+    "vendor_name": "Greenfield Janitorial Co.",
+    "invoice_number": "AR-2509-2675",
+    "invoice_date": "2025-09-16",
+    "currency": "USD",
+    "subtotal": 1961.45,
+    "tax_amount": 0.0,
+    "total": 1961.45,
+    "line_items": [
+      {
+        "description": "Evening cleaning service",
+        "quantity": 1,
+        "unit_price": 538.07,
+        "amount": 538.07
+      },
+      {
+        "description": "Restroom supply refill",
+        "quantity": 4,
+        "unit_price": 155.82,
+        "amount": 623.28
+      },
+      {
+        "description": "Window cleaning",
+        "quantity": 3,
+        "unit_price": 266.7,
+        "amount": 800.1
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_23.pdf",
+    "vendor_name": "Pioneer Packaging Corp.",
+    "invoice_number": "US-2605-5358",
+    "invoice_date": "2026-05-04",
+    "currency": "USD",
+    "subtotal": 1362.55,
+    "tax_amount": 98.78,
+    "total": 1461.33,
+    "line_items": [
+      {
+        "description": "Corrugated cartons, bundle",
+        "quantity": 1,
+        "unit_price": 77.66,
+        "amount": 77.66
+      },
+      {
+        "description": "Custom inserts, 250",
+        "quantity": 5,
+        "unit_price": 147.08,
+        "amount": 735.4
+      },
+      {
+        "description": "Protective mailers, 100",
+        "quantity": 4,
+        "unit_price": 114.41,
+        "amount": 457.64
+      },
+      {
+        "description": "Packing tape, case",
+        "quantity": 1,
+        "unit_price": 91.85,
+        "amount": 91.85
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_24.pdf",
+    "vendor_name": "Summit Safety Equipment",
+    "invoice_number": "INV-2606-2574",
+    "invoice_date": "2026-06-12",
+    "currency": "USD",
+    "subtotal": 725.19,
+    "tax_amount": 45.32,
+    "total": 770.51,
+    "line_items": [
+      {
+        "description": "High-visibility vest",
+        "quantity": 3,
+        "unit_price": 18.02,
+        "amount": 54.06
+      },
+      {
+        "description": "Nitrile gloves, case",
+        "quantity": 2,
+        "unit_price": 113.16,
+        "amount": 226.32
+      },
+      {
+        "description": "First aid refill kit",
+        "quantity": 4,
+        "unit_price": 96.04,
+        "amount": 384.16
+      },
+      {
+        "description": "Safety glasses, 12 pack",
+        "quantity": 1,
+        "unit_price": 60.65,
+        "amount": 60.65
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_25.pdf",
+    "vendor_name": "Atlas Business Travel",
+    "invoice_number": "US-2601-9532",
+    "invoice_date": "2026-01-10",
+    "currency": "USD",
+    "subtotal": 876.61,
+    "tax_amount": 0.0,
+    "total": 876.61,
+    "line_items": [
+      {
+        "description": "Hotel reservation",
+        "quantity": 4,
+        "unit_price": 210.55,
+        "amount": 842.2
+      },
+      {
+        "description": "Agency service fee",
+        "quantity": 1,
+        "unit_price": 34.41,
+        "amount": 34.41
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_26.pdf",
+    "vendor_name": "Brightline Creative Studio",
+    "invoice_number": "US-2605-8718",
+    "invoice_date": "2026-05-11",
+    "currency": "USD",
+    "subtotal": 5081.19,
+    "tax_amount": 0.0,
+    "total": 5081.19,
+    "line_items": [
+      {
+        "description": "Brand template package",
+        "quantity": 2,
+        "unit_price": 876.44,
+        "amount": 1752.88
+      },
+      {
+        "description": "Image licensing",
+        "quantity": 5,
+        "unit_price": 104.67,
+        "amount": 523.35
+      },
+      {
+        "description": "Campaign design services",
+        "quantity": 4,
+        "unit_price": 701.24,
+        "amount": 2804.96
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_27.pdf",
+    "vendor_name": "Ironwood Maintenance LLC",
+    "invoice_number": "AR-2601-5221",
+    "invoice_date": "2026-01-19",
+    "currency": "USD",
+    "subtotal": 2711.54,
+    "tax_amount": 277.93,
+    "total": 2989.47,
+    "line_items": [
+      {
+        "description": "Replacement parts",
+        "quantity": 4,
+        "unit_price": 100.18,
+        "amount": 400.72
+      },
+      {
+        "description": "Preventive maintenance visit",
+        "quantity": 3,
+        "unit_price": 459.91,
+        "amount": 1379.73
+      },
+      {
+        "description": "Emergency call-out fee",
+        "quantity": 5,
+        "unit_price": 163.87,
+        "amount": 819.35
+      },
+      {
+        "description": "Technician labor",
+        "quantity": 1,
+        "unit_price": 111.74,
+        "amount": 111.74
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_28.pdf",
+    "vendor_name": "Cedar & Stone Interiors",
+    "invoice_number": "INV-2603-8519",
+    "invoice_date": "2026-03-13",
+    "currency": "USD",
+    "subtotal": 5709.7,
+    "tax_amount": 413.95,
+    "total": 6123.65,
+    "line_items": [
+      {
+        "description": "LED task lamp",
+        "quantity": 5,
+        "unit_price": 42.62,
+        "amount": 213.1
+      },
+      {
+        "description": "Conference room table",
+        "quantity": 4,
+        "unit_price": 1080.95,
+        "amount": 4323.8
+      },
+      {
+        "description": "Ergonomic desk chair",
+        "quantity": 5,
+        "unit_price": 202.84,
+        "amount": 1014.2
+      },
+      {
+        "description": "Installation labor",
+        "quantity": 1,
+        "unit_price": 158.6,
+        "amount": 158.6
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_29.pdf",
+    "vendor_name": "Lakeside Catering Group",
+    "invoice_number": "AR-2601-4336",
+    "invoice_date": "2026-01-27",
+    "currency": "USD",
+    "subtotal": 2736.14,
+    "tax_amount": 0.0,
+    "total": 2736.14,
+    "line_items": [
+      {
+        "description": "Team lunch catering",
+        "quantity": 2,
+        "unit_price": 576.21,
+        "amount": 1152.42
+      },
+      {
+        "description": "Equipment rental",
+        "quantity": 3,
+        "unit_price": 120.04,
+        "amount": 360.12
+      },
+      {
+        "description": "Beverage service",
+        "quantity": 4,
+        "unit_price": 75.4,
+        "amount": 301.6
+      },
+      {
+        "description": "Service staff",
+        "quantity": 5,
+        "unit_price": 184.4,
+        "amount": 922.0
+      }
+    ]
+  },
+  {
+    "filename": "usd_bill_30.pdf",
+    "vendor_name": "Harborview Logistics",
+    "invoice_number": "INV-2607-7040",
+    "invoice_date": "2026-07-03",
+    "currency": "USD",
+    "subtotal": 686.71,
+    "tax_amount": 70.39,
+    "total": 757.1,
+    "line_items": [
+      {
+        "description": "Fuel surcharge",
+        "quantity": 1,
+        "unit_price": 62.89,
+        "amount": 62.89
+      },
+      {
+        "description": "Regional freight service",
+        "quantity": 2,
+        "unit_price": 311.91,
+        "amount": 623.82
+      }
+    ]
+  }
+]
