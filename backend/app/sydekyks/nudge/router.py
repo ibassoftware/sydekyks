@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import or_
@@ -70,12 +70,21 @@ def _thresholds_out(s: NudgeTenantSettings) -> list[StageThreshold]:
 
 
 def _settings_out(s: NudgeTenantSettings) -> NudgeSettingsOut:
+    now = datetime.now(timezone.utc)
+    candidates = [now.replace(minute=minute, second=0, microsecond=0) for minute in (12, 42)]
+    next_run = next((candidate for candidate in candidates if candidate > now), None)
+    if next_run is None:
+        next_run = (now + timedelta(hours=1)).replace(minute=12, second=0, microsecond=0)
     return NudgeSettingsOut(
         default_stale_days=s.default_stale_days, stage_thresholds=_thresholds_out(s),
         cadence_days=s.cadence_days, activity_days=s.activity_days,
         estimated_hourly_wage=s.estimated_hourly_wage,
         estimated_minutes_per_followup=s.estimated_minutes_per_followup,
         cron_enabled=s.cron_enabled, cron_poll_limit=s.cron_poll_limit,
+        cron_schedule_label="Twice an hour, at :12 and :42",
+        cron_next_run_at=next_run.isoformat() if s.cron_enabled else None,
+        cron_last_checked_at=s.cron_last_checked_at,
+        skip_tag_name=s.skip_tag_name,
     )
 
 
@@ -106,6 +115,7 @@ def update_settings(payload: NudgeSettingsUpdate, user: User = Depends(require_t
     s.estimated_minutes_per_followup = payload.estimated_minutes_per_followup
     s.cron_enabled = payload.cron_enabled
     s.cron_poll_limit = payload.cron_poll_limit
+    s.skip_tag_name = payload.skip_tag_name.strip()
     db.commit()
     db.refresh(s)
     return _settings_out(s)
@@ -165,7 +175,7 @@ def get_insights(user: User = Depends(require_tenant_member), db: Session = Depe
 
 @router.get("/queue", response_model=NudgeQueuePage)
 def get_queue(limit: int = 8, offset: int = 0, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
-    """Paged follow-up queue — drafted nudges awaiting the rep's send / dismiss."""
+    """Paged follow-up queue - drafted nudges awaiting the rep's send / dismiss."""
     sydekyk = _nudge(db, user)
     limit = max(1, min(limit, 50))
     return NudgeQueuePage(**insights_svc.pending_nudges(db, user.tenant_id, sydekyk.id, limit=limit, offset=max(0, offset)))
@@ -180,14 +190,14 @@ async def run_now(user: User = Depends(require_tenant_member), db: Session = Dep
     queued, breakdown = await lead_poll.enqueue_stale_opportunities(
         db, tenant_id=user.tenant_id, sydekyk_id=sydekyk.id, store_model=NudgeFinding,
         snooze_model=NudgeSnooze, cadence_days=s.cadence_days, min_stale_days=s.default_stale_days,
-        limit=s.cron_poll_limit,
+        limit=s.cron_poll_limit, skip_tag_name=s.skip_tag_name,
     )
     if breakdown is not None:
         s.last_open_total = breakdown["open_total"]
     s.cron_last_checked_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     db.commit()
 
-    # Always leave a visible "sweep" Mission — the run's receipt — carrying the full disposition of the
+    # Always leave a visible "sweep" Mission - the run's receipt - carrying the full disposition of the
     # pipeline so a check accounts for EVERY open opp (handled / recently-nudged / queued), not silence.
     sweep = create_mission(
         db, tenant_id=user.tenant_id, sydekyk=sydekyk, user_id=user.id,
@@ -198,7 +208,7 @@ async def run_now(user: User = Depends(require_tenant_member), db: Session = Dep
     db.commit()
     mission_events.publish(sweep.id, "mission.started", {"playbook_key": sweep.playbook_key})
     sweep.status = "succeeded"
-    sweep.result_summary = {"mode": "nudge_sweep", **(breakdown or {"open_total": 0, "scheduled": 0,
+    sweep.result_summary = {"mode": "nudge_sweep", **(breakdown or {"open_total": 0, "scheduled": 0, "tagged_skip": 0,
                                                                      "snoozed": 0, "recently_nudged": 0,
                                                                      "enqueued": queued})}
     sweep.completed_at = datetime.now(timezone.utc)

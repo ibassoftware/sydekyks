@@ -59,12 +59,14 @@ export function Badge({
   tone = "gold",
 }: {
   children: ReactNode;
-  tone?: "gold" | "neutral" | "danger";
+  tone?: "gold" | "neutral" | "success" | "danger" | "warning";
 }) {
   const tones = {
     gold: "border-gold-700 bg-brand-softer text-gold-300",
     neutral: "border-ink-600 bg-ink-800 text-heading",
-    danger: "border-red-700/50 bg-red-500/10 text-red-400",
+    success: "border-success bg-success-soft text-success-strong",
+    danger: "border-danger bg-danger-soft text-danger-strong",
+    warning: "border-warning bg-warning-soft text-warning-fg",
   };
   return (
     <span

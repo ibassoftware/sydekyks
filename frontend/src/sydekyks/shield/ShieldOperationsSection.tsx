@@ -4,7 +4,7 @@ import { Button } from "../../components/ui";
 import { MissionList } from "../../components/MissionList";
 import { useMissionRefresh } from "../../lib/useMissionRefresh";
 
-/** Shield's operations panel — the batch "Assess now" scan on top plus a live Recent Missions list. */
+/** Shield's operations panel - the batch "Assess now" scan on top plus a live Recent Missions list. */
 export function ShieldOperationsSection({ sydekyk, canManage }: { sydekyk: Sydekyk; canManage: boolean }) {
   const [missions, setMissions] = useState<Mission[] | null>(null);
   const [ready, setReady] = useState(false);
@@ -33,7 +33,7 @@ export function ShieldOperationsSection({ sydekyk, canManage }: { sydekyk: Sydek
       const r = await api.post<RunNowResult>("/tenant/shield/run-now");
       setRunMsg(
         r.data.queued === 0
-          ? "No new bills to assess — all caught up."
+          ? "No new bills to assess - all caught up."
           : `Assessing ${r.data.queued} bill${r.data.queued === 1 ? "" : "s"} for risk…`,
       );
       load();
@@ -54,7 +54,7 @@ export function ShieldOperationsSection({ sydekyk, canManage }: { sydekyk: Sydek
           </p>
         </div>
         {canManage && (
-          <Button className="px-4 py-2 text-xs" disabled={running || !ready} onClick={runNow}>
+          <Button disabled={running || !ready} onClick={runNow}>
             {running ? "Starting…" : "Assess bills now"}
           </Button>
         )}
@@ -67,9 +67,9 @@ export function ShieldOperationsSection({ sydekyk, canManage }: { sydekyk: Sydek
         {!missions ? (
           <p className="mt-2 text-sm text-[#8a7f6d]">Loading…</p>
         ) : missions.length === 0 ? (
-          <p className="mt-2 text-sm text-[#8a7f6d]">No assessments yet — run Shield to scan your bills.</p>
+          <p className="mt-2 text-sm text-[#8a7f6d]">No assessments yet - run Shield to scan your bills.</p>
         ) : (
-          <div className="mt-2 overflow-hidden rounded-lg border border-ink-700">
+          <div className="mt-2 min-w-0">
             <MissionList missions={missions} onReload={load} showSydekyk={false} />
           </div>
         )}

@@ -39,11 +39,11 @@ export function DecodeUploadContext({ value, onChange }: UploadContextProps) {
       </select>
       {jobs && !jobs.connected && (
         <p className="mt-1 text-xs text-amber-400/90">
-          {jobs.message ?? "Odoo not connected"} — Decode will infer the position from each résumé.
+          {jobs.message ?? "Odoo not connected"} - Decode will infer the position from each résumé.
         </p>
       )}
       {jobs && jobs.connected && jobs.jobs.length === 0 && (
-        <p className="mt-1 text-xs text-[#8a7f6d]">No open positions in Odoo — applicants will be inferred or pooled.</p>
+        <p className="mt-1 text-xs text-[#8a7f6d]">No open positions in Odoo - applicants will be inferred or pooled.</p>
       )}
     </div>
   );

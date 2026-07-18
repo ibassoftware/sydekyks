@@ -1,9 +1,9 @@
-"""Shield's fraud-risk playbook — registered under 'shield.risk_assess'.
+"""Shield's fraud-risk playbook - registered under 'shield.risk_assess'.
 
 Risk-assesses ONE existing Odoo vendor bill (id in `mission.trigger_context`) against a set of
 deterministic rules (bank-change-before-payment, employee↔vendor collision, segregation-of-duties,
-phantom vendor, amount-above-norm, round number, off-hours), scores it, and — when the score clears
-the threshold — raises an auditor review-queue issue with the evidence. An AI step writes the
+phantom vendor, amount-above-norm, round number, off-hours), scores it, and - when the score clears
+the threshold - raises an auditor review-queue issue with the evidence. An AI step writes the
 advisory 'warrants review' narrative. Shield never accuses and defers duplicate detection to Mirror.
 """
 
@@ -30,10 +30,10 @@ PLAYBOOK_STEPS = [
      "likely_failures": "The bill was deleted or isn't a vendor bill."},
     {"key": "gather_context", "title": "Gather signals",
      "description": "Collect bank history, employee cross-references, payment and vendor history.",
-     "likely_failures": "None fatal — missing modules just skip a check."},
+     "likely_failures": "None fatal - missing modules just skip a check."},
     {"key": "assess", "title": "Assess risk",
      "description": "Run the fraud-risk rules, score them, and write an advisory review briefing.",
-     "likely_failures": "None fatal — a clean bill scores 0."},
+     "likely_failures": "None fatal - a clean bill scores 0."},
     {"key": "record", "title": "Log the assessment",
      "description": "Post the result to the bill's chatter and queue high-risk bills for the auditor.",
      "likely_failures": "Best-effort writes to Odoo."},
@@ -73,9 +73,9 @@ def _vendor(bill: dict) -> tuple[int | None, str | None]:
 def _build_note(risk_score, hold, flags, summary) -> str:
     rows = ["<p><b>Shield risk-assessed this bill.</b></p>"]
     if not flags:
-        rows.append("<p>No risk signals — this bill looks normal.</p>")
+        rows.append("<p>No risk signals - this bill looks normal.</p>")
     else:
-        head = "HARD-HOLD — " if hold else ""
+        head = "HARD-HOLD - " if hold else ""
         rows.append(f"<p><b>{head}Risk {risk_score}/100.</b> This warrants a review (advisory only).</p>")
         if summary:
             rows.append(f"<p>{summary}</p>")
@@ -161,7 +161,7 @@ def run(db: Session, mission: Mission) -> None:
 
         summary = "; ".join(f["label"] for f in flags) or None
         if flags:
-            # AI reasons holistically over the grounded signals + context — the primary risk verdict.
+            # AI reasons holistically over the grounded signals + context - the primary risk verdict.
             llm, virtual_key, model_alias = mission_ai.get_llm(db, mission)
             if llm is not None:
                 allowed, _deny = usage_guard.check_allowed(db, mission.tenant_id, mission.sydekyk_id, model_alias)
@@ -194,19 +194,19 @@ def run(db: Session, mission: Mission) -> None:
             risk_score=risk_score, hold=hold, flags=flags or None, summary=summary,
         ))
         if flagged:
-            title = ("HARD-HOLD: " if hold else "") + f"Review this bill — {vendor_name or 'vendor'} (risk {risk_score})"
+            title = ("HARD-HOLD: " if hold else "") + f"Review this bill - {vendor_name or 'vendor'} (risk {risk_score})"
             tenant_issues.report_issue(
                 db, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id, kind="shield_risk",
-                title=title, detail=(summary or "") + " — advisory; auditor review recommended.", mission_id=mission.id,
+                title=title, detail=(summary or "") + " - advisory; auditor review recommended.", mission_id=mission.id,
             )
             steps = []
             if hold:
-                steps.append("Hold payment until this is reviewed — do not release funds yet.")
+                steps.append("Hold payment until this is reviewed - do not release funds yet.")
             steps += [
                 "Review each risk signal listed on this bill and its evidence.",
                 "Verify the vendor's bank details are correct and any recent change was requested through a trusted channel.",
                 "Confirm the bill was approved/paid by someone other than whoever entered it.",
-                "If it checks out, clear it on Shield's dashboard; if not, escalate per your controls. Advisory only — this is not an accusation.",
+                "If it checks out, clear it on Shield's dashboard; if not, escalate per your controls. Advisory only - this is not an accusation.",
             ]
             review_assignment.assign_on_flag(
                 db, client, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id,

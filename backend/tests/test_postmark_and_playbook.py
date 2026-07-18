@@ -4,6 +4,7 @@ import base64
 
 from app.services.email_ingest.providers.postmark import parse_postmark_payload
 from app.sydekyks.ledger.playbook import PLAYBOOK_STEPS
+from app.sydekyks.ledger import extraction, odoo_bills
 
 
 def test_postmark_parses_recipient_message_id_and_attachment():
@@ -84,6 +85,7 @@ def test_playbook_steps_metadata_matches_expected_keys():
         "connect_odoo",
         "lookup_vendor",
         "duplicate_check",
+        "purchase_order_check",
         "infer_account",
         "resolve_currency",
         "resolve_tax",
@@ -93,3 +95,33 @@ def test_playbook_steps_metadata_matches_expected_keys():
     ]
     for step in PLAYBOOK_STEPS:
         assert step["title"] and step["description"] and step["likely_failures"]
+
+
+def test_bill_extraction_reads_po_and_source_references():
+    bill = extraction._coerce({
+        "vendor_name": "Azure Interior", "total": 2880.75,
+        "purchase_order_reference": " P00010 ", "sales_order_reference": "S00042",
+    })
+    assert bill.purchase_order_reference == "P00010"
+    assert bill.sales_order_reference == "S00042"
+
+
+def test_purchase_order_check_catches_business_mismatches():
+    class Client:
+        def execute_kw(self, *_args, **_kwargs):
+            return [{"product_qty": 2}, {"product_qty": 1}]
+
+    po = {"partner_id": [27, "Azure Interior"], "amount_total": 2880.75,
+          "currency_id": [1, "USD"], "order_line": [1, 2]}
+    ok, mismatches = odoo_bills.check_purchase_order(
+        po, partner_id=27, total=2880.75, currency="USD",
+        line_items=[{"quantity": 3}], client=Client(),
+    )
+    assert ok is True and mismatches == []
+
+    ok, mismatches = odoo_bills.check_purchase_order(
+        po, partner_id=99, total=2000, currency="EUR",
+        line_items=[{"quantity": 4}], client=Client(),
+    )
+    assert ok is False
+    assert len(mismatches) == 4

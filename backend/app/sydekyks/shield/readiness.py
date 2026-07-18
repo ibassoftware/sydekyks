@@ -1,4 +1,4 @@
-"""Shield readiness — Odoo is required; the AI engine is OPTIONAL (only writes the advisory review
+"""Shield readiness - Odoo is required; the AI engine is OPTIONAL (only writes the advisory review
 briefing; the rules and scoring run without it)."""
 
 import uuid

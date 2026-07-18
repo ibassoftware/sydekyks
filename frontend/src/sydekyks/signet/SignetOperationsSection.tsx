@@ -29,7 +29,7 @@ export function SignetOperationsSection({ canManage }: OperationsProps) {
   const [open, setOpen] = useState<string | null>(null);
   const [showBuilder, setShowBuilder] = useState(false);
 
-  // A Seal handoff arrives as ?contract=<id>&title=<...> — open the builder prefilled.
+  // A Seal handoff arrives as ?contract=<id>&title=<...> - open the builder prefilled.
   const contractParam = params.get("contract");
   const titleParam = params.get("title") ?? "";
   const newParam = params.get("new");
@@ -73,7 +73,7 @@ export function SignetOperationsSection({ canManage }: OperationsProps) {
         {!page ? (
           <p className="mt-2 text-sm text-[#8a7f6d]">Loading…</p>
         ) : page.items.length === 0 ? (
-          <p className="mt-2 text-sm text-[#8a7f6d]">No envelopes yet — create one to send a contract for signature.</p>
+          <p className="mt-2 text-sm text-[#8a7f6d]">No envelopes yet - create one to send a contract for signature.</p>
         ) : (
           <div className="mt-2 grid gap-2">
             {page.items.map((e) => (
@@ -185,8 +185,8 @@ function EnvelopeBuilder({ initialContractId, initialTitle, onClose, onSent }: {
         <div>
           <Label>Signing order</Label>
           <select value={order} onChange={(e) => setOrder(e.target.value as "parallel" | "sequential")} className="w-full rounded-md border border-ink-600 bg-ink-900 px-3 py-2.5 text-sm text-[#ede6da] outline-none focus:border-gold-500">
-            <option value="parallel">Parallel — everyone signs at once</option>
-            <option value="sequential">Sequential — one after another, in order</option>
+            <option value="parallel">Parallel - everyone signs at once</option>
+            <option value="sequential">Sequential - one after another, in order</option>
           </select>
         </div>
         <div>
@@ -272,7 +272,7 @@ function EnvelopeDetail({ id, canManage, onChange }: { id: string; canManage: bo
           <p className="text-[10px] font-semibold uppercase tracking-wider text-[#7a7060]">Activity</p>
           <div className="mt-1 grid gap-0.5">
             {env.events.slice().reverse().slice(0, 12).map((ev) => (
-              <p key={ev.id} className="text-[11px] text-[#8a7f6d]"><span className="text-[#b9ad98]">{ev.event_type}</span>{ev.detail ? ` — ${ev.detail}` : ""}</p>
+              <p key={ev.id} className="text-[11px] text-[#8a7f6d]"><span className="text-[#b9ad98]">{ev.event_type}</span>{ev.detail ? ` - ${ev.detail}` : ""}</p>
             ))}
           </div>
         </div>

@@ -65,7 +65,8 @@ export default function Gadgets() {
 
   return (
     <HQShell>
-      <main className="mx-auto max-w-6xl px-6 py-12">
+      <div className="hq-command-background min-h-screen">
+      <main className="relative mx-auto max-w-6xl px-6 py-12">
         <div className="relative overflow-hidden rounded-2xl border border-gold-700/30 bg-gradient-to-br from-ink-800 via-ink-900 to-ink-950 px-8 py-10">
           <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-gold-500/10 blur-3xl" />
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-500">Gadget Links</p>
@@ -182,6 +183,7 @@ export default function Gadgets() {
           </Card>
         </section>
       </main>
+      </div>
 
       <Modal open={!!addingGadget} onClose={() => setAddingGadget(null)}>
         {addingGadget && (

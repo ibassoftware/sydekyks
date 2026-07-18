@@ -5,6 +5,7 @@ class LedgerSettingsOut(BaseModel):
     auto_create_partner: bool
     auto_post_enabled: bool
     auto_post_threshold: int
+    purchase_order_match_enabled: bool
     ledger_vision_ok: bool | None = None
     ledger_vision_tested_at: str | None = None
     estimated_hourly_wage: float = 15.0
@@ -15,6 +16,7 @@ class LedgerSettingsUpdate(BaseModel):
     auto_create_partner: bool
     auto_post_enabled: bool
     auto_post_threshold: int = Field(ge=0, le=100)
+    purchase_order_match_enabled: bool = False
     estimated_hourly_wage: float = Field(default=15.0, ge=0)
     estimated_minutes_per_bill: float = Field(default=5.0, ge=0)
 
@@ -65,6 +67,8 @@ class LedgerDailyTrend(BaseModel):
     date: str
     succeeded: int
     failed: int
+    needs_review: int = 0
+    posted: int = 0
 
 
 class LedgerInsightsOut(BaseModel):

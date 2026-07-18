@@ -177,6 +177,7 @@ async def poll_nudge(ctx: dict) -> int:
                 db, tenant_id=st.tenant_id, sydekyk_id=sydekyk.id, store_model=NudgeFinding,
                 snooze_model=NudgeSnooze, cadence_days=st.cadence_days,
                 min_stale_days=st.default_stale_days, limit=st.cron_poll_limit,
+                skip_tag_name=st.skip_tag_name,
             )
             if breakdown is not None:
                 st.last_open_total = breakdown["open_total"]

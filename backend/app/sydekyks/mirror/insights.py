@@ -1,4 +1,4 @@
-"""Mirror dashboard — duplicates caught, double-payments prevented ($), and a queue of the latest
+"""Mirror dashboard - duplicates caught, double-payments prevented ($), and a queue of the latest
 flags to act on. Gated on Mirror being installed. Reads the MirrorFinding store."""
 
 import uuid

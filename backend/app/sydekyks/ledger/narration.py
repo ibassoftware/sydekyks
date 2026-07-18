@@ -9,6 +9,6 @@ def build_narration(confidence: int, account_source: str, posted: bool) -> str:
     )
     return (
         f"⚡ Filed by Ledger, your finance Sydekyk.\n"
-        f"Confidence: {confidence}% — {account_note}.\n"
+        f"Confidence: {confidence}% - {account_note}.\n"
         f"This bill was {verdict}. Give it a once-over, Commander."
     )

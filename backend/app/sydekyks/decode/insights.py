@@ -1,4 +1,4 @@
-"""Decode recruitment dashboard — parsing throughput + candidate insights, from the DecodeApplicant
+"""Decode recruitment dashboard - parsing throughput + candidate insights, from the DecodeApplicant
 store. Gated on the Sydekyk being installed (mirrors Ledger's `ledger_activated`)."""
 
 import uuid

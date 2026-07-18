@@ -120,7 +120,7 @@ def _contract_or_404(db: Session, user: User, sydekyk_id: uuid.UUID, contract_id
 
 
 def _contract_tokens(db: Session, contract: SealContract) -> tuple[int, float]:
-    """Total tokens + AI cost spent on this contract — its draft mission + every refine/review mission."""
+    """Total tokens + AI cost spent on this contract - its draft mission + every refine/review mission."""
     mission_ids = set()
     if contract.mission_id:
         mission_ids.add(contract.mission_id)
@@ -500,7 +500,7 @@ async def import_contract(contract_id: uuid.UUID, file: UploadFile, user: User =
     if mode != "text" or not value:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=err or "Could not read text from this file — paste the contract text into the editor instead.",
+            detail=err or "Could not read text from this file - paste the contract text into the editor instead.",
         )
     # Wrap the extracted plaintext as simple HTML paragraphs.
     import html as _html
@@ -592,18 +592,18 @@ def sign_request(contract_id: uuid.UUID, user: User = Depends(require_tenant_mem
     try:
         client = _connect(db, user.tenant_id, _seal(db, user).id)
     except HTTPException:
-        return SignRequestOut(path="signet", detail="No Odoo Sign available — use Signet to send for signature.")
+        return SignRequestOut(path="signet", detail="No Odoo Sign available - use Signet to send for signature.")
     if not odoo_sign.sign_available(client):
-        return SignRequestOut(path="signet", detail="Odoo Sign is not installed — use Signet to send for signature.")
+        return SignRequestOut(path="signet", detail="Odoo Sign is not installed - use Signet to send for signature.")
 
     pdf_bytes = _render_pdf(db, user, contract)
     template_id = odoo_sign.create_sign_template(client, name=(contract.title or "Contract"), pdf_bytes=pdf_bytes)
     if template_id is None:
-        return SignRequestOut(path="signet", detail="Odoo Sign template creation failed — use Signet instead.")
+        return SignRequestOut(path="signet", detail="Odoo Sign template creation failed - use Signet instead.")
     signers = [contract.odoo_partner_id] if contract.odoo_partner_id else []
     request_id = odoo_sign.request_signature(client, template_id=template_id, signer_partner_ids=signers)
     if request_id is None:
-        return SignRequestOut(path="signet", detail="Odoo Sign request creation failed — use Signet instead.")
+        return SignRequestOut(path="signet", detail="Odoo Sign request creation failed - use Signet instead.")
     contract.odoo_sign_request_id = request_id
     db.commit()
     base_url = gadget_links.assigned_odoo_base_url(db, tenant_id=user.tenant_id, sydekyk_id=_seal(db, user).id)

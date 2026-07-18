@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sydekyks · Implementation Partner Brief</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0b1a2b;
+    --navy-2:#12283d;
+    --teal:#0d9488;        /* text-safe teal */
+    --teal-br:#14b8a6;     /* bright accent */
+    --ink:#26333f;         /* body text */
+    --ink-2:#5a6b78;       /* muted */
+    --paper:#ffffff;
+    --wash:#f5f7f7;        /* teal-tinted panel */
+    --wash-2:#f8f7f3;      /* warm panel */
+    --line:#dfe3e2;        /* light border */
+    --line-strong:#0b1a2b;
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+
+  body{
+    font-family:'Inter', system-ui, -apple-system, sans-serif;
+    color:var(--ink);
+    background:#e8ebec;
+    line-height:1.62;
+    font-size:15.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .page{
+    position:relative;
+    width:210mm;
+    min-height:296mm;
+    margin:0 auto;
+    background:var(--paper);
+    padding:15mm 22mm 14mm;
+    overflow:hidden;
+  }
+  .page + .page{ margin-top:9mm; }
+  .page.content::before{
+    content:""; position:absolute; top:0; left:0; right:0; height:6px;
+    background:var(--teal-br);
+  }
+
+  /* ---------- typography ---------- */
+  h1,h2,h3,.display{ font-family:'Space Grotesk', sans-serif; color:var(--navy); }
+  .kicker{
+    font-family:'Space Mono', monospace; font-size:11px; letter-spacing:.22em;
+    text-transform:uppercase; color:var(--teal); font-weight:700;
+    display:flex; align-items:center; gap:10px; margin-bottom:14px;
+  }
+  .kicker::before{ content:""; width:26px; height:2px; background:var(--teal-br); }
+  h2{ font-size:29px; line-height:1.12; font-weight:700; letter-spacing:-.015em; margin-bottom:12px; }
+  h3{ font-size:16px; font-weight:600; margin-bottom:4px; }
+  p{ margin-bottom:11px; }
+  .lead{ font-size:17px; color:var(--ink); }
+  .muted{ color:var(--ink-2); }
+  .teal{ color:var(--teal); font-weight:600; }
+  strong{ font-weight:700; color:var(--navy); }
+  .rule{ height:2px; background:var(--line); margin:18px 0; border:none; }
+
+  .pagefoot{
+    position:absolute; bottom:12mm; left:22mm; right:22mm;
+    display:flex; justify-content:space-between;
+    font-family:'Space Mono', monospace; font-size:10px;
+    letter-spacing:.06em; color:#9aa7ad; text-transform:uppercase;
+    border-top:1px solid var(--line); padding-top:8px;
+  }
+
+  /* ---------- cover ---------- */
+  .cover{ background:var(--navy); color:#eef5f4; padding:0; display:flex; flex-direction:column; }
+  .cover .inner{ flex:1; padding:16mm 22mm 0; position:relative; z-index:2; display:flex; flex-direction:column; }
+  .cover::before{
+    content:""; position:absolute; right:-140px; top:-140px; width:560px; height:560px;
+    border-radius:50%; background:radial-gradient(circle at center, #14b8a622, transparent 62%);
+    z-index:1;
+  }
+  .cover .brandbar{ display:flex; align-items:center; gap:12px; letter-spacing:.28em; font-family:'Space Mono',monospace; font-size:12px; font-weight:700; text-transform:uppercase; color:var(--teal-br); }
+  .cover .brandbar .mk{ width:13px; height:13px; background:var(--teal-br); box-shadow:3px 3px 0 #0f5563; }
+  .cover .hero{ width:100%; border:2px solid var(--teal-br); border-radius:10px; overflow:hidden; margin:14px 0 2px; box-shadow:0 12px 34px #00000055; }
+  .cover .hero img{ display:block; width:100%; height:auto; }
+  .cover h1{ font-size:40px; line-height:1.05; font-weight:700; letter-spacing:-.02em; margin-top:16px; color:#fff; }
+  .cover h1 .ac{ color:var(--teal-br); }
+  .cover .sub{ margin-top:11px; font-size:16px; max-width:46ch; color:#c2d4d3; }
+  .cover .meta{ margin-top:18px; display:flex; gap:26px; flex-wrap:wrap; font-family:'Space Mono',monospace; font-size:11px; color:#8aa9a8; }
+  .cover .meta b{ display:block; color:#eef5f4; font-size:13px; margin-top:2px; }
+  .cover .by{ margin-top:14px; padding-top:13px; border-top:1px solid #ffffff1f; font-size:12.5px; color:#b7cbca; }
+  .cover .by b{ color:#fff; }
+  .cover .strip{ margin-top:30px; height:13mm; background:var(--teal-br); display:flex; align-items:center; padding:0 22mm; margin-left:-22mm; margin-right:-22mm; font-family:'Space Mono',monospace; font-weight:700; color:var(--navy); letter-spacing:.12em; font-size:11px; position:relative; z-index:2; }
+
+  /* ---------- letter ---------- */
+  .letter p{ font-size:15.5px; }
+  .greet{ font-weight:600; font-size:16px; margin-bottom:14px; }
+  .sig{ margin-top:22px; }
+  .sig .nm{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:16px; color:var(--navy); }
+  .sig .rl{ font-family:'Space Mono',monospace; font-size:12px; color:var(--ink-2); }
+
+  /* ---------- stat cards ---------- */
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:16px 0; }
+  .card{ border:1px solid var(--line); border-radius:6px; background:#fff; padding:16px 18px; }
+  .card.accent{ border-left:4px solid var(--teal-br); }
+  .stat .big{ font-family:'Space Grotesk',sans-serif; font-size:33px; font-weight:700; color:var(--navy); line-height:1; letter-spacing:-.02em; }
+  .stat .big .u{ color:var(--teal); }
+  .stat .cap{ font-size:12.5px; color:var(--ink-2); margin-top:7px; line-height:1.45; }
+  .stat .cap b{ color:var(--navy); }
+  .sub-h{ font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--teal); font-weight:700; margin:16px 0 8px; }
+
+  /* ---------- venn ---------- */
+  .venn-wrap{ border:1px solid var(--line); border-radius:8px; background:var(--wash); padding:16px; margin:14px 0 6px; }
+  .venn-wrap svg{ display:block; width:100%; height:auto; }
+
+  /* ---------- big number ---------- */
+  .bignum{ border-radius:8px; background:var(--navy); color:#eef5f4; padding:22px 26px; margin:16px 0; }
+  .bignum .n{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:44px; letter-spacing:-.02em; color:var(--teal-br); }
+  .bignum .c{ font-size:13.5px; color:#c2d4d3; margin-top:4px; max-width:60ch; }
+  .bignum .c b{ color:#fff; }
+
+  /* ---------- platform roadmap ---------- */
+  .roadmap{ border:1px solid var(--line); border-radius:8px; overflow:hidden; margin:14px 0; }
+  .roadmap .rh{ background:var(--wash-2); padding:12px 16px; font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-2); border-bottom:1px solid var(--line); }
+  .roadmap .body{ display:grid; grid-template-columns:auto 1fr; gap:0; }
+  .roadmap .now, .roadmap .next{ padding:16px 18px; }
+  .roadmap .now{ border-right:1px solid var(--line); background:#fff; }
+  .roadmap .lbl{ font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; margin-bottom:10px; }
+  .roadmap .now .lbl{ color:var(--teal); }
+  .roadmap .next .lbl{ color:var(--ink-2); }
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .chip{ font-size:13px; font-weight:600; padding:6px 12px; border-radius:100px; border:1.5px solid var(--line); color:var(--ink-2); background:#fff; }
+  .chip.live{ border-color:var(--teal); color:#fff; background:var(--teal); }
+  .chip.live::before{ content:"●"; font-size:9px; vertical-align:middle; margin-right:6px; color:#a7f3e6; }
+
+  /* ---------- callout ---------- */
+  .callout{ border-radius:8px; background:var(--wash); border:1px solid #cdeae6; border-left:4px solid var(--teal-br); padding:15px 18px; margin:15px 0; }
+  .callout .h{ font-family:'Space Grotesk',sans-serif; font-weight:700; color:var(--navy); margin-bottom:3px; }
+  .callout p{ margin:0; font-size:14px; color:var(--ink); }
+
+  /* ---------- about / credentials ---------- */
+  .creds{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin:16px 0; }
+  .cred{ border:1px solid var(--line); border-radius:6px; padding:14px 16px; background:#fff; }
+  .cred .ic{ font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--teal); font-weight:700; }
+  .cred .t{ font-family:'Space Grotesk',sans-serif; font-weight:600; color:var(--navy); font-size:15px; margin-top:3px; }
+  .cred .d{ font-size:12.5px; color:var(--ink-2); margin-top:3px; }
+  .offices{ display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
+  .office{ border:1px solid var(--line); border-radius:6px; padding:10px 14px; flex:1; min-width:120px; background:var(--wash-2); }
+  .office .cty{ font-family:'Space Grotesk',sans-serif; font-weight:700; color:var(--navy); }
+  .office .cnt{ font-family:'Space Mono',monospace; font-size:11px; color:var(--teal); letter-spacing:.08em; }
+
+  /* ---------- roster ---------- */
+  .domain{ font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--teal); font-weight:700; margin:9px 0 4px; }
+  .agent{ display:flex; gap:14px; padding:5px 0; border-bottom:1px solid var(--line); align-items:baseline; }
+  .agent:last-child{ border-bottom:none; }
+  .agent .nm{ flex:0 0 80px; font-family:'Space Grotesk',sans-serif; font-weight:700; color:var(--navy); font-size:15px; }
+  .agent .ds{ font-size:13px; color:var(--ink-2); }
+  .agent .ds b{ color:var(--navy); }
+  .momentum{ display:grid; grid-template-columns:repeat(3,1fr); border:1px solid var(--line); border-radius:8px; overflow:hidden; margin:14px 0 6px; }
+  .momentum > div{ padding:12px 16px; border-left:1px solid var(--line); }
+  .momentum > div:first-child{ border-left:none; }
+  .momentum b{ font-family:'Space Grotesk',sans-serif; font-size:24px; color:var(--teal); display:block; line-height:1; }
+  .momentum span{ font-size:11.5px; color:var(--ink-2); display:block; margin-top:4px; }
+  .plan-list{ border:1px solid var(--line); border-radius:8px; overflow:hidden; margin:14px 0; }
+  .prow{ display:grid; grid-template-columns:150px 1fr; border-top:1px solid var(--line); }
+  .prow:first-child{ border-top:none; }
+  .pdom{ padding:11px 14px; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--teal); font-weight:700; background:var(--wash-2); border-right:1px solid var(--line); }
+  .pnames{ padding:11px 14px; font-size:12.5px; color:var(--ink-2); }
+  .pnames b{ color:var(--navy); font-weight:700; }
+
+  /* ---------- split ---------- */
+  .split{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .split .col{ border:1px solid var(--line); border-radius:8px; padding:16px 18px; }
+  .split .col.you{ border-color:var(--teal); background:var(--wash); }
+  .split .tag{ font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.1em; padding:3px 8px; border-radius:4px; background:var(--navy); color:#fff; }
+  .split .tag.you{ background:var(--teal); }
+  .split h3{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .split ul{ list-style:none; }
+  .split li{ font-size:13px; padding:4px 0 4px 16px; position:relative; color:var(--ink); }
+  .split li::before{ content:""; position:absolute; left:2px; top:11px; width:5px; height:5px; border-radius:50%; background:var(--teal-br); }
+
+  /* ---------- pricing ---------- */
+  .plans{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .plan{ border:1px solid var(--line); border-radius:8px; padding:18px 16px; background:#fff; }
+  .plan.feat{ border:2px solid var(--teal); box-shadow:0 6px 20px #0d948814; }
+  .pname{ font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--teal); font-weight:700; }
+  .price{ font-family:'Space Grotesk',sans-serif; font-size:30px; font-weight:700; color:var(--navy); margin:6px 0 2px; letter-spacing:-.01em; }
+  .price small{ font-size:13px; font-weight:400; color:var(--ink-2); }
+  .who{ font-size:12px; color:var(--ink-2); min-height:34px; }
+  .plan ul{ list-style:none; margin-top:12px; }
+  .plan li{ font-size:12.5px; padding:5px 0 5px 18px; position:relative; border-top:1px solid var(--line); color:var(--ink); }
+  .plan li::before{ content:"→"; position:absolute; left:0; color:var(--teal); font-weight:700; }
+  .ribbon{ display:inline-block; background:var(--teal); color:#fff; font-family:'Space Mono',monospace; font-size:9px; font-weight:700; padding:3px 8px; border-radius:4px; letter-spacing:.08em; margin-bottom:8px; }
+
+  /* ---------- versus ---------- */
+  .versus{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:18px 0 14px; }
+  .vcol{ border:1px solid var(--line); border-radius:8px; padding:18px; background:#fff; }
+  .vcol.win{ border:2px solid var(--teal); background:var(--wash); }
+  .vhead{ font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; margin-bottom:4px; color:var(--ink-2); }
+  .vcol.win .vhead{ color:var(--teal); }
+  .vtitle{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:17px; color:var(--navy); }
+  .vcost{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:25px; color:var(--navy); margin:8px 0 2px; letter-spacing:-.01em; }
+  .vcost small{ font-size:12px; font-weight:400; color:var(--ink-2); }
+  .vcol.win .vcost{ color:var(--teal); }
+  .vsub{ font-size:12px; color:var(--ink-2); margin-bottom:6px; }
+  .vlist{ list-style:none; margin-top:6px; }
+  .vlist li{ font-size:12.5px; padding:5px 0 5px 20px; position:relative; border-top:1px solid var(--line); color:var(--ink); }
+  .vlist li::before{ position:absolute; left:1px; top:5px; font-weight:700; font-size:12px; }
+  .vcol .vlist li::before{ content:"\00d7"; color:var(--ink-2); }
+  .vcol.win .vlist li::before{ content:"\2713"; color:var(--teal); }
+  .vbanner{ border-radius:8px; background:var(--navy); color:#eef5f4; padding:18px 22px; font-size:14px; }
+  .vbanner b{ color:var(--teal-br); }
+
+  /* ---------- ladder ---------- */
+  .ladder{ border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .lrow{ display:grid; grid-template-columns:82px 1fr 150px; align-items:center; border-top:1px solid var(--line); }
+  .lrow:first-child{ border-top:none; }
+  .lrow.head{ background:var(--navy); color:#fff; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; }
+  .lrow.head > div{ padding:11px 16px; }
+  .lpct{ font-family:'Space Grotesk',sans-serif; font-size:25px; font-weight:700; color:var(--teal); padding:12px 16px; }
+  .lband{ padding:12px 16px; font-size:13px; }
+  .lband b{ color:var(--navy); }
+  .lnote{ padding:12px 16px; font-size:12px; color:var(--ink-2); border-left:1px solid var(--line); }
+
+  .example{ border:1px solid var(--line); border-radius:8px; overflow:hidden; margin:12px 0; }
+  .erow{ display:grid; grid-template-columns:1fr 100px 130px; padding:9px 16px; border-top:1px solid var(--line); font-size:13px; }
+  .erow:first-child{ border-top:none; background:var(--wash-2); font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-2); }
+  .erow .r{ text-align:right; }
+  .erow.tot{ background:var(--navy); color:#fff; font-weight:700; }
+  .erow.tot .r.hl{ color:var(--teal-br); }
+
+  /* ---------- steps ---------- */
+  .steps{ margin:12px 0; }
+  .step{ display:flex; gap:14px; padding:6px 0; border-top:1px solid var(--line); align-items:flex-start; }
+  .step:first-child{ border-top:none; }
+  .step .n{ flex:0 0 28px; height:28px; border-radius:6px; background:var(--navy); color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Space Mono',monospace; font-weight:700; font-size:13px; }
+  .step .t{ font-size:13.5px; }
+
+  /* ---------- cta ---------- */
+  .cta{ border-radius:8px; background:var(--navy); color:#eef5f4; padding:24px 26px; margin-top:16px; }
+  .cta h2{ color:#fff; }
+  .cta p{ color:#c2d4d3; }
+  .cta .contact{ margin-top:14px; font-family:'Space Mono',monospace; font-size:13px; display:flex; gap:26px; flex-wrap:wrap; }
+  .cta .contact b{ color:var(--teal-br); }
+
+  .fnote{ font-family:'Space Mono',monospace; font-size:9.5px; color:#9aa7ad; margin-top:10px; line-height:1.5; }
+
+  @media print{
+    body{ background:#fff; }
+    .page{ margin:0 !important; page-break-after:always; break-after:page; }
+    .page:last-child{ page-break-after:auto; break-after:auto; }
+  }
+  @page{ size:A4; margin:0; }
+</style>
+</head>
+<body>
+
+<!-- ============ COVER ============ -->
+<section class="page cover">
+  <div class="inner">
+    <div class="brandbar"><span class="mk"></span> SYDEKYKS &nbsp;·&nbsp; AI SIDEKICKS FOR BUSINESS SOFTWARE</div>
+    <div class="hero"><img src="cover.png" alt="Sydekyks AI sidekicks"></div>
+    <h1>Partner with the <span class="ac">AI layer</span> for the tools business already runs on.</h1>
+    <p class="sub">A confidential invitation to sell, grow, and earn recurring revenue on a category that is only just beginning.</p>
+    <div class="meta">
+      <div>Prepared for<b>Prospective Partner</b></div>
+      <div>Document<b>Implementation Partner Brief</b></div>
+      <div>Date<b>July 2026</b></div>
+      <div>Status<b>Confidential</b></div>
+    </div>
+    <div class="by">A venture of <b>iBAS Software FR</b> &nbsp;·&nbsp; Paris · Rouen · Manila</div>
+  </div>
+  <div class="strip">WE BUILD THE TECHNOLOGY. YOU OWN THE MARKET.</div>
+</section>
+
+<!-- ============ LETTER ============ -->
+<section class="page content letter">
+  <div class="kicker">An open letter</div>
+  <h2>Two waves are cresting at once.<br>Let's ride them together.</h2>
+  <hr class="rule">
+
+  <p class="greet">Dear Partner,</p>
+
+  <p>You already feel both of these in every client conversation. AI has stopped being a demo and become a line item: businesses want the hype turned into work done, a vendor bill posted, a candidate scored, a stalled deal saved. And Odoo has quietly become the fastest-growing ERP on earth, with millions of companies sitting on structured data that is begging for an AI layer on top.</p>
+
+  <p>Those two waves meet in one place: <span class="teal">AI agents that integrate with the software a company already runs and do the real operational work.</span> That is Sydekyks, a roster of AI sidekicks that connect to a company's systems and take over the tedious, expensive work no one wants to do by hand. We start with Odoo because we know it better than almost anyone, but it is the beginning, not the destination: the same engine will go after QuickBooks, Salesforce, Shopify, and every platform businesses run on.</p>
+
+  <p>Here is the honest part. <strong>We cannot do everything, and we don't want to.</strong> We are relentless about one thing: research and development, building the best AI agents in the ecosystem and keeping them there. The sales team in your city, the implementer who knows your client's chart of accounts, the advisor who picks up the phone in the local language, that is you.</p>
+
+  <p>So we're opening our <strong>Implementation Partner</strong> program to a small group of firms who already sell, deploy, and support Odoo. The economics are generous and <strong>recurring</strong>: commissions that climb to <span class="teal">40%</span> for the life of every account, plus the implementation, training, and support revenue you price and keep. It is early enough that founding partners help shape what we build next. In time the program will carry certification and formal requirements; for now we keep it open, and the bar will never be lower than today.</p>
+
+  <p>We built something worth putting your name next to. We'd like it to carry yours.</p>
+
+  <div class="sig">
+    <div class="nm">The Sydekyks Team</div>
+    <div class="rl">iBAS Software FR</div>
+  </div>
+
+  <div class="pagefoot"><span>Sydekyks · Implementation Partner Brief</span><span>01</span></div>
+</section>
+
+<!-- ============ ABOUT US ============ -->
+<section class="page content">
+  <div class="kicker">Who is behind this</div>
+  <h2>Not a startup guessing at Odoo.<br>An official partner who lives in it.</h2>
+  <p class="lead muted">Sydekyks is the latest brainchild of <strong>iBAS Software FR</strong>. We didn't arrive at this category from the outside. We got here by implementing Odoo for real businesses, every day, for years.</p>
+
+  <div class="creds">
+    <div class="cred">
+      <div class="ic">Credential</div>
+      <div class="t">Official Odoo Partner</div>
+      <div class="d">Certified partner in the Philippines with heavy, real-world references. We know this space inside and out.</div>
+    </div>
+    <div class="cred">
+      <div class="ic">Mandate</div>
+      <div class="t">Invited to build in France</div>
+      <div class="d">iBAS began in the Philippines and was invited by a French government body to expand and invest in tech initiatives in France.</div>
+    </div>
+    <div class="cred">
+      <div class="ic">Domain depth</div>
+      <div class="t">We speak Odoo natively</div>
+      <div class="d">Every Sydekyk is designed by people who understand vendor bills, CRM pipelines, and recruitment records as they actually live in Odoo.</div>
+    </div>
+    <div class="cred">
+      <div class="ic">Footprint</div>
+      <div class="t">Two continents, one team</div>
+      <div class="d">A European presence and an established Asian engineering base, giving partners both proximity and scale.</div>
+    </div>
+  </div>
+
+  <div class="sub-h">Where we are</div>
+  <div class="offices">
+    <div class="office"><div class="cty">Paris</div><div class="cnt">FRANCE</div></div>
+    <div class="office"><div class="cty">Rouen</div><div class="cnt">FRANCE</div></div>
+    <div class="office"><div class="cty">Manila</div><div class="cnt">PHILIPPINES</div></div>
+  </div>
+
+  <div class="callout">
+    <div class="h">Why this matters to you</div>
+    <p>You are not betting on a lab that has never filed a tax report. You are partnering with an operating Odoo partner that already carries client references, government backing, and offices on two continents, now turning that expertise into an AI product you can sell.</p>
+  </div>
+
+  <div class="pagefoot"><span>Sydekyks · Implementation Partner Brief · About</span><span>02</span></div>
+</section>
+
+<!-- ============ THE WAVES ============ -->
+<section class="page content">
+  <div class="kicker">The wave, in numbers</div>
+  <h2>AI is booming. Odoo is booming.<br>We sit in the overlap.</h2>
+  <p class="muted">These aren't projections we invented to sell you. They're the market you already sell into every day.</p>
+
+  <div class="sub-h">Wave one · Artificial Intelligence</div>
+  <div class="grid2">
+    <div class="card accent stat"><div class="big">$1.8<span class="u">T</span>+</div><div class="cap">Projected global AI market by 2030, up from ~$390B in 2025: roughly a 30% compound annual growth rate.</div></div>
+    <div class="card stat"><div class="big">76<span class="u">%</span></div><div class="cap">of companies already use AI in at least one business function; 87% rank it a top business priority.</div></div>
+    <div class="card accent stat"><div class="big">$46<span class="u">B</span></div><div class="cap"><b>The category we're in.</b> Enterprise <b>agentic</b> AI by 2030, up from ~$6.8B in 2025, a ~47% CAGR. Agents that do work, not chat.</div></div>
+    <div class="card stat"><div class="big">$15.7<span class="u">T</span></div><div class="cap">Estimated contribution of AI to global GDP by 2030. A once-in-a-generation shift, not a trend.</div></div>
+  </div>
+
+  <div class="sub-h">Wave two · Odoo</div>
+  <div class="grid2">
+    <div class="card stat"><div class="big">16<span class="u">M</span>+</div><div class="cap">Users across 170,000+ paying businesses, and growing by <b>13,000+ new customers every month</b>.</div></div>
+    <div class="card accent stat"><div class="big">~40<span class="u">%</span></div><div class="cap"><b>Fastest-growing ERP.</b> Sustained year-over-year growth, outpacing SAP, Oracle and Microsoft Dynamics in the SME segment.</div></div>
+    <div class="card stat"><div class="big">$7<span class="u">B</span></div><div class="cap">Company valuation on ~$550M+ ARR, targeting €1B in billings by 2027. This ecosystem is compounding.</div></div>
+    <div class="card stat"><div class="big">$13<span class="u">B</span></div><div class="cap">New spend flowing into <b>AI-inside-ERP</b> between 2025 and 2029 alone, at a ~27% CAGR.</div></div>
+  </div>
+
+  <div class="pagefoot"><span>Sydekyks · Implementation Partner Brief · Market</span><span>03</span></div>
+</section>
+
+<!-- ============ INTERSECTION ============ -->
+<section class="page content">
+  <div class="kicker">Where we play</div>
+  <h2>The intersection is the opportunity.</h2>
+  <p>An AI market racing toward trillions. An ERP ecosystem adding a mid-sized city of businesses every month. The value is created precisely where they overlap.</p>
+
+  <div class="venn-wrap">
+    <svg viewBox="0 0 660 300" font-family="'Space Grotesk', sans-serif" role="img" aria-label="Venn diagram: AI and Odoo overlap to create Sydekyks">
+      <!-- left circle: AI -->
+      <circle cx="250" cy="150" r="132" fill="#14b8a6" fill-opacity="0.12" stroke="#0d9488" stroke-width="2.5"/>
+      <!-- right circle: Odoo -->
+      <circle cx="410" cy="150" r="132" fill="#0b1a2b" fill-opacity="0.08" stroke="#0b1a2b" stroke-width="2.5"/>
+      <!-- labels -->
+      <text x="160" y="120" text-anchor="middle" font-size="26" font-weight="700" fill="#0d9488">AI</text>
+      <text x="160" y="150" text-anchor="middle" font-size="12.5" fill="#5a6b78" font-family="Inter, sans-serif">Booming.</text>
+      <text x="160" y="168" text-anchor="middle" font-size="12.5" fill="#5a6b78" font-family="Inter, sans-serif">Wants a job.</text>
+
+      <text x="500" y="120" text-anchor="middle" font-size="26" font-weight="700" fill="#0b1a2b">Odoo</text>
+      <text x="500" y="150" text-anchor="middle" font-size="12.5" fill="#5a6b78" font-family="Inter, sans-serif">16M+ users.</text>
+      <text x="500" y="168" text-anchor="middle" font-size="12.5" fill="#5a6b78" font-family="Inter, sans-serif">Data-rich.</text>
+
+      <!-- overlap badge -->
+      <rect x="285" y="128" width="90" height="44" rx="8" fill="#0d9488"/>
+      <text x="330" y="150" text-anchor="middle" font-size="14.5" font-weight="700" fill="#ffffff">SYDEKYKS</text>
+      <text x="330" y="166" text-anchor="middle" font-size="9.5" fill="#a7f3e6" font-family="'Space Mono', monospace" letter-spacing="1">THE OVERLAP</text>
+    </svg>
+  </div>
+  <p class="muted" style="font-size:13px; text-align:center; margin-top:0;">Practical AI agents that integrate with Odoo, sold and supported locally. Nobody owns this layer yet.</p>
+
+  <div class="bignum">
+    <div class="n">$850,000,000</div>
+    <div class="c">A conservative, serviceable market <b>within today's Odoo base alone</b>: 170,000+ businesses adopting even a modest AI operations layer at ~$5,000/year. That base grows by 150,000+ businesses annually, so this is a floor, not a ceiling.</div>
+  </div>
+
+  <p class="fnote">Sources: Grand View Research, Statista, MarketsandMarkets, Technavio (AI &amp; agentic-AI sizing, 2025–2030); PwC (AI GDP contribution); Odoo S.A., GetLatka, Tracxn (Odoo users, growth, ARR &amp; valuation). Figures rounded; the $850M figure is illustrative math on Odoo's disclosed customer base.</p>
+
+  <div class="pagefoot"><span>Sydekyks · Implementation Partner Brief · Opportunity</span><span>04</span></div>
+</section>
+
+<!-- ============ BEYOND ODOO ============ -->
+<section class="page content">
+  <div class="kicker">The bigger game</div>
+  <h2>Odoo is where we start,<br>not where we stop.</h2>
+  <p>The hard part of Sydekyks is not the Odoo connector. It is the engine underneath: agents that read messy real-world documents, reason about a business process, and act safely inside a system of record. That engine is deliberately built to be <strong>platform-agnostic.</strong></p>
+  <p>Once it is proven in Odoo, we will move aggressively into the other platforms businesses live in. Every new platform we add multiplies the market you can sell into, using the same Sydekyks, the same brand, and the same partnership.</p>
+
+  <div class="roadmap">
+    <div class="rh">The platform roadmap</div>
+    <div class="body">
+      <div class="now">
+        <div class="lbl">Live today</div>
+        <div class="chips"><span class="chip live">Odoo</span></div>
+      </div>
+      <div class="next">
+        <div class="lbl">Aggressively next</div>
+        <div class="chips">
+          <span class="chip">QuickBooks</span>
+          <span class="chip">Salesforce</span>
+          <span class="chip">Shopify</span>
+          <span class="chip">Xero</span>
+          <span class="chip">HubSpot</span>
+          <span class="chip">and more</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="h">What this means for a partner</div>
+    <p>You are not signing up to resell one ERP add-on. You are getting in early on the AI layer for business software as a whole. The partners who build a book on Odoo now are the ones positioned to ride every platform we add next.</p>
+  </div>
+
+  <div class="pagefoot"><span>Sydekyks · Implementation Partner Brief · Platforms</span><span>05</span></div>
+</section>
+
+<!-- ============ ROSTER ============ -->
+<section class="page content">
+  <div class="kicker">What you'd be selling</div>
+  <h2>A shipping roster, and we're only getting started.</h2>
+  <p class="muted">The nine Sydekyks below are live and working today, not slideware, a snapshot of the roster as of 18 July 2026. Each connects to the customer's Odoo, takes over a specific job, and reports the exact time and money it saved. They are only the opening lineup: the full roadmap is on the next page.</p>
+
+  <div class="domain">Finance &amp; Accounts Payable</div>
+  <div class="agent"><div class="nm">Ledger</div><div class="ds">Reads uploaded or emailed <b>supplier invoices</b> and creates draft vendor bills in Odoo (vendor, totals, taxes, line items, original attached). Auto-posts when confident. Kills manual AP data entry.</div></div>
+  <div class="agent"><div class="nm">Mirror</div><div class="ds">A <b>duplicate-bill watchdog</b>. Catches invoices entered twice, even across vendor records that share a Tax ID or bank account, before they get paid twice.</div></div>
+  <div class="agent"><div class="nm">Shield</div><div class="ds">An AP <b>fraud-risk detector</b>. Flags bank details changing right before payment, vendor accounts matching employees, and same-person entry-and-approval, then can hold payment for a human auditor.</div></div>
+
+  <div class="domain">Sales &amp; CRM</div>
+  <div class="agent"><div class="nm">Nudge</div><div class="ds">Watches open <b>opportunities</b>, flags deals gone quiet, drafts a context-aware follow-up grounded in the last real conversation, and reminds the rep, giving managers a ranked value-at-risk queue.</div></div>
+  <div class="agent"><div class="nm">Quill</div><div class="ds">An AI <b>proposal &amp; SOW writer</b>. Turns rough notes plus a template into a polished, ready-to-edit document grounded in real Odoo deal facts, refined conversationally and exported to PDF.</div></div>
+
+  <div class="domain">Recruiting &amp; HR</div>
+  <div class="agent"><div class="nm">Decode</div><div class="ds">Reads incoming <b>résumés</b> and turns each into a complete, structured applicant record in Odoo, matched to the right role, résumé attached, review flags raised. Zero data entry.</div></div>
+  <div class="agent"><div class="nm">Scout</div><div class="ds">An AI <b>résumé scorer</b>. Grades each applicant against the job's own requirements and writes a star rating plus a plain-language strengths and weaknesses note: an instant, consistent shortlist.</div></div>
+
+  <div class="domain">Documents &amp; Contracts</div>
+  <div class="agent"><div class="nm">Seal</div><div class="ds">Drafts <b>contracts</b> from a template and brief, then runs a clause-by-clause risk review flagging uncapped liability, auto-renewal traps, and weak payment terms. Ships with NDA/MSA/SOW starters.</div></div>
+  <div class="agent"><div class="nm">Signet</div><div class="ds">An <b>e-signature</b> agent. Emails each signer a secure link, chases stragglers with timed reminders, and files the signed PDF back onto the right Odoo record. Pairs with Seal.</div></div>
+
+  <div class="pagefoot"><span>Sydekyks · Implementation Partner Brief · Product</span><span>06</span></div>
+</section>
+
+<!-- ============ ROADMAP / PLANNED ROSTER ============ -->
+<section class="page content">
+  <div class="kicker">The roadmap</div>
+  <h2>This is only the beginning.</h2>
+  <p>Here is the part that should get your attention. What we have built is not nine hand-crafted apps, it is an <strong>AI agent framework</strong>. A new Sydekyk is a new specialist configured on a proven platform, so adding one is a matter of scaling, not inventing from scratch. We are shipping roughly <strong>three to seven new Sydekyks every two weeks</strong>, which is exactly why the count below is only a snapshot, current as of 18 July 2026. Partner interest is already strong, and we are closing the founding cohort accordingly.</p>
+
+  <div class="momentum">
+    <div><b>9</b><span>live &amp; working today</span></div>
+    <div><b>33</b><span>in the build queue</span></div>
+    <div><b>42</b><span>specialists on the roadmap</span></div>
+  </div>
+
+  <p class="muted" style="font-size:13px; margin-bottom:4px">Each planned Sydekyk backs up a specific back-office role, across eight business areas:</p>
+  <div class="plan-list">
+    <div class="prow"><div class="pdom">Finance</div><div class="pnames"><b>Chase</b>, <b>Balance</b>, <b>Match</b>, <b>Audit</b>, <b>Beacon</b></div></div>
+    <div class="prow"><div class="pdom">Recruitment</div><div class="pnames"><b>Echo</b>, <b>Launch</b>, <b>Verify</b>, <b>Pulse</b></div></div>
+    <div class="prow"><div class="pdom">Sales</div><div class="pnames"><b>Spark</b>, <b>Forecast</b>, <b>Coach</b>, <b>Reply</b></div></div>
+    <div class="prow"><div class="pdom">Purchasing</div><div class="pnames"><b>Source</b>, <b>Comparex</b>, <b>Gauge</b>, <b>Renew</b></div></div>
+    <div class="prow"><div class="pdom">Inventory</div><div class="pnames"><b>Stocker</b>, <b>Sentinel</b>, <b>Locate</b>, <b>Cycle</b></div></div>
+    <div class="prow"><div class="pdom">Manufacturing</div><div class="pnames"><b>Vector</b>, <b>Prism</b>, <b>Delay</b>, <b>Predict</b></div></div>
+    <div class="prow"><div class="pdom">CRM &amp; Support</div><div class="pnames"><b>Halo</b>, <b>Switch</b>, <b>Scribe</b>, <b>Mood</b></div></div>
+    <div class="prow"><div class="pdom">Data Quality</div><div class="pnames"><b>Cleanse</b>, <b>Twin</b>, <b>Fixer</b>, <b>Guardian</b></div></div>
+  </div>
+
+  <div class="callout">
+    <div class="h">What this means for you</div>
+    <p>Your product line compounds. You are not selling a fixed set of apps, you are selling an ever-growing bench of specialists into the same accounts. Every month there is something new to cross-sell, at no extra cost or effort to you, and every new agent deepens why a customer stays.</p>
+  </div>
+
+  <div class="pagefoot"><span>Sydekyks · Implementation Partner Brief · Roadmap</span><span>07</span></div>
+</section>
+
+<!-- ============ DIVISION OF LABOR ============ -->
+<section class="page content">
+  <div class="kicker">The deal, plainly</div>
+  <h2>We do the hard technology.<br>You own the relationship.</h2>
+  <p>This works because neither side tries to do the other's job. Here is the clean line down the middle.</p>
+
+  <div class="split">
+    <div class="col">
+      <h3><span class="tag">SYDEKYKS</span> We bring</h3>
+      <ul>
+        <li>The full roster of AI Sydekyks, and a steady stream of new ones</li>
+        <li>All research &amp; development, model operations, and reliability</li>
+        <li>The multi-tenant platform, hosting, and security</li>
+        <li>Deep integrations, starting with Odoo and expanding outward</li>
+        <li>Partner enablement: demos, materials, and technical backup</li>
+        <li>Usage metering, billing infrastructure, and the customer dashboard</li>
+      </ul>
+    </div>
+    <div class="col you">
+      <h3><span class="tag you">PARTNER</span> You bring</h3>
+      <ul>
+        <li>Your market, your language, your trusted local relationships</li>
+        <li>Sales: finding customers and closing them</li>
+        <li>First-line support and account success</li>
+        <li>Implementation know-how your clients already lean on</li>
+        <li>Feedback from the field that shapes what we build next</li>
+        <li>The reputation that makes a customer say yes</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="h">The result</div>
+    <p>You add a high-margin, recurring AI product to your existing client base, with none of the cost or risk of building and maintaining AI yourself. We get reach we could never build alone. Both sides do only what they're best at.</p>
+  </div>
+
+  <div class="pagefoot"><span>Sydekyks · Implementation Partner Brief · Partnership</span><span>08</span></div>
+</section>
+
+<!-- ============ POSITIONING ============ -->
+<section class="page content">
+  <div class="kicker">How to think about the price</div>
+  <h2>This isn't software.<br>It's your next hire.</h2>
+  <p class="lead muted">The right way to price a Sydekyk is not against other apps. It is against the person your customer would otherwise hire to do the same work, because that is exactly what it stands in for: an employee that never gets tired and never sleeps, at a fraction of the cost.</p>
+
+  <div class="versus">
+    <div class="vcol">
+      <div class="vhead">Option A · A new human hire</div>
+      <div class="vtitle">One back-office employee</div>
+      <div class="vcost">A full salary<small>+ overhead</small></div>
+      <div class="vsub">Salary, benefits, taxes, tools, space, and management, at whatever it costs in your market.</div>
+      <ul class="vlist">
+        <li>Works about 160 hours a month, one role at a time</li>
+        <li>Sick days, vacation, turnover, and re-hiring</li>
+        <li>Weeks of recruiting and months of ramp-up</li>
+        <li>Slower and more error-prone when tired or busy</li>
+        <li>The knowledge walks out the door when they leave</li>
+      </ul>
+    </div>
+    <div class="vcol win">
+      <div class="vhead">Option B · A Sydekyk</div>
+      <div class="vtitle">A whole team of specialists</div>
+      <div class="vcost">from $400<small>/mo</small></div>
+      <div class="vsub">One plan, the full roster, no hidden costs.</div>
+      <ul class="vlist">
+        <li>Works 24/7/365, never gets tired, never sleeps</li>
+        <li>Many jobs at once: AP, sales, hiring, contracts</li>
+        <li>Live in days, no recruiting, no ramp-up</li>
+        <li>Consistent, auditable, and improving over time</li>
+        <li>The knowledge stays, and the roster keeps growing</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="vbanner">
+    <b>A fraction of one salary, doing the work of many.</b> For less than the cost of a single part-time hire, your customer gets a tireless team that starts on day one and never asks for a raise. That is what makes the plans on the next page an easy yes.
+  </div>
+
+  <div class="pagefoot"><span>Sydekyks · Implementation Partner Brief · Positioning</span><span>09</span></div>
+</section>
+
+<!-- ============ PRICING ============ -->
+<section class="page content">
+  <div class="kicker">What your customers pay</div>
+  <h2>Three clear plans. You sell them; you earn on every one.</h2>
+  <p class="muted">Transparent monthly pricing customers understand instantly. Every plan includes a monthly AI capacity allowance; heavier use is simple metered overage.</p>
+
+  <div class="plans">
+    <div class="plan">
+      <div class="pname">Squad</div>
+      <div class="price">$400<small>/mo</small></div>
+      <div class="who">The default. For a growing business putting its first AI sidekicks to work.</div>
+      <ul>
+        <li>Full shared roster of Sydekyks</li>
+        <li>Core Odoo integration</li>
+        <li>Standard AI capacity allowance</li>
+        <li>Team seats for everyday users</li>
+        <li>Email support</li>
+      </ul>
+    </div>
+    <div class="plan feat">
+      <div class="ribbon">MOST POPULAR</div>
+      <div class="pname">Command</div>
+      <div class="price">$900<small>/mo</small></div>
+      <div class="who">For teams running AI across finance, sales, and hiring at once.</div>
+      <ul>
+        <li>Everything in Squad, plus:</li>
+        <li>Higher AI capacity &amp; more seats</li>
+        <li>All premium Sydekyks &amp; integrations</li>
+        <li>Workflow automations (Playbooks &amp; schedules)</li>
+        <li>Priority support</li>
+      </ul>
+    </div>
+    <div class="plan">
+      <div class="pname">Fleet · Enterprise</div>
+      <div class="price">from $2,000<small>/mo</small></div>
+      <div class="who">For larger organizations that need AI built around their own workflows.</div>
+      <ul>
+        <li>Everything in Command, plus:</li>
+        <li><b>3 Exclusive Sydekyks</b> custom-built and included, more on demand by quotation</li>
+        <li>Highest capacity &amp; dedicated success</li>
+        <li>Advanced security &amp; SLA</li>
+        <li>Custom-scoped pricing</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="h">These are the customer's prices, set by you at point of sale</div>
+    <p>Squad is the entry point; Command is where most customers land; Fleet is where enterprises graduate. Every dollar of it is recurring, and every dollar of it earns you commission on the ladder overleaf.</p>
+  </div>
+  <p class="fnote">Enterprise "Fleet" is a floor price, scoped per engagement based on exclusive agents, capacity, and security requirements. AI capacity allowances and seat counts per tier are finalized at partner onboarding.</p>
+
+  <div class="pagefoot"><span>Sydekyks · Implementation Partner Brief · Pricing</span><span>10</span></div>
+</section>
+
+<!-- ============ ECONOMICS ============ -->
+<section class="page content">
+  <div class="kicker">What you earn</div>
+  <h2>Recurring commission that climbs to 40%.</h2>
+  <p>You earn a percentage of <strong>all recurring revenue you bring</strong>, every month, for the life of the account. As your book grows past each threshold, your rate steps up across your entire book. You're not starting over each year; you're compounding.</p>
+
+  <div class="ladder">
+    <div class="lrow head"><div>Rate</div><div>Your recurring book (annual)</div><div>Tier</div></div>
+    <div class="lrow"><div class="lpct">25%</div><div class="lband">Up to <b>$20,000</b> ARR</div><div class="lnote">Starting tier</div></div>
+    <div class="lrow"><div class="lpct">30%</div><div class="lband">$20,000 to <b>$100,000</b> ARR</div><div class="lnote">Growth tier</div></div>
+    <div class="lrow"><div class="lpct">35%</div><div class="lband">$100,000 to <b>$500,000</b> ARR</div><div class="lnote">Premier tier</div></div>
+    <div class="lrow"><div class="lpct">40%</div><div class="lband">$500,000 to <b>$1,000,000+</b> ARR</div><div class="lnote">Elite tier</div></div>
+  </div>
+
+  <p style="margin-top:14px">A worked example, a partner who has grown into the Elite tier:</p>
+  <div class="example">
+    <div class="erow"><div>Book of business</div><div class="r">Monthly</div><div class="r">Annual recurring</div></div>
+    <div class="erow"><div>25 customers on Squad ($400)</div><div class="r">$10,000</div><div class="r">$120,000</div></div>
+    <div class="erow"><div>40 customers on Command ($900)</div><div class="r">$36,000</div><div class="r">$432,000</div></div>
+    <div class="erow"><div>5 customers on Fleet (from $2,000)</div><div class="r">$10,000</div><div class="r">$120,000</div></div>
+    <div class="erow tot"><div>Total book → 40% Elite rate</div><div class="r">$56,000</div><div class="r hl">$672,000</div></div>
+  </div>
+  <div class="callout">
+    <div class="h">Your take-home on that book: ~$268,800 per year, recurring.</div>
+    <p>40% of $672,000. It renews every year the customers stay, and it grows every time you add one. This is a book of business you own, not a one-time finder's fee.</p>
+  </div>
+  <p class="fnote">Illustrative. Commission tiers are based on total active annual recurring revenue and, once a threshold is reached, apply across your full book. Exact terms, payment cadence, and qualification rules are set in the partner agreement.</p>
+
+  <div class="pagefoot"><span>Sydekyks · Implementation Partner Brief · Economics</span><span>11</span></div>
+</section>
+
+<!-- ============ SERVICES / OTHER REVENUE ============ -->
+<section class="page content">
+  <div class="kicker">More ways to earn</div>
+  <h2>The commission is only the recurring layer.</h2>
+  <p>Recurring commission is the engine, but it is not the whole car. Around every Sydekyks deployment sits a band of services that are <strong>yours to price, deliver, and keep</strong>. This is where an implementation partner's real margin lives, and none of it is shared with us.</p>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0">
+    <div class="card accent">
+      <div class="sub-h" style="margin-top:0">01 · Implementation</div>
+      <h3>Stand it up</h3>
+      <p style="font-size:13px;color:var(--ink-2);margin:0">Scoping, Odoo connection, agent configuration, data mapping, and go-live. You own the setup engagement and bill it as a project.</p>
+    </div>
+    <div class="card accent">
+      <div class="sub-h" style="margin-top:0">02 · Training</div>
+      <h3>Make them fluent</h3>
+      <p style="font-size:13px;color:var(--ink-2);margin:0">Onboarding sessions, workshops, and enablement so a customer's team works confidently with their Sydekyks. Repeatable, and easy to package.</p>
+    </div>
+    <div class="card accent">
+      <div class="sub-h" style="margin-top:0">03 · Support</div>
+      <h3>Keep them running</h3>
+      <p style="font-size:13px;color:var(--ink-2);margin:0">First-line support, managed service, and success retainers. Recurring service income that sits right alongside your recurring commission.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="h">This is greenfield, and you set the prices</div>
+    <p>There is no established market rate for implementing, training on, or supporting AI agents inside Odoo, because the category is brand new. Nobody has drawn the line yet, so you are not squeezed into someone else's margin: <strong>you decide what this work is worth in your market.</strong> Two profit engines, recurring commission and services you own outright, both on ground nobody has claimed.</p>
+  </div>
+
+  <div class="pagefoot"><span>Sydekyks · Implementation Partner Brief · Services</span><span>12</span></div>
+</section>
+
+<!-- ============ PATH AHEAD + CTA ============ -->
+<section class="page content">
+  <div class="kicker">The path ahead</div>
+  <h2>It starts with selling. It doesn't end there.</h2>
+  <p>Today the partnership is simple: you sell and support, we build and host, you earn recurring commission. But we're building toward something bigger for partners who prove they can move.</p>
+
+  <div class="callout">
+    <div class="h">For selected, high-performing partners, from year two</div>
+    <p>We intend to open the platform to top partners: host your own instance and build your own Sydekyks on our engine, much like Odoo's own partner model. Invitation-only, earned through performance. The partners who build their book now are first in line.</p>
+  </div>
+  <div class="callout">
+    <div class="h">Help us shape what we build next</div>
+    <p>Founding partners get a direct line into the roadmap: which Sydekyks your market needs, how they behave, which platform we tackle after Odoo. You are not selling a finished product at arm's length; you are helping decide what it becomes.</p>
+  </div>
+
+  <div class="kicker" style="margin-top:22px">Getting started</div>
+  <div class="steps">
+    <div class="step"><div class="n">1</div><div class="t"><b>A conversation.</b> A 30-minute call to see the roster live against a real Odoo and confirm the fit.</div></div>
+    <div class="step"><div class="n">2</div><div class="t"><b>Onboarding.</b> We enable your partner account and hand you demo environments, materials, and pricing tools.</div></div>
+    <div class="step"><div class="n">3</div><div class="t"><b>Your first customers.</b> Introduce Sydekyks to your existing Odoo base, the warmest audience there is.</div></div>
+    <div class="step"><div class="n">4</div><div class="t"><b>Grow the book.</b> Add accounts, climb the commission ladder, and compound your recurring revenue.</div></div>
+  </div>
+
+  <div class="cta">
+    <h2>Let's plant your flag before the crowd arrives.</h2>
+    <p>The two biggest waves in software are cresting together, in a space nobody owns yet. We've built the product and we carry the R&amp;D. We'd like you to own the market with us as a founding partner, on the ground floor of the AI layer for business software.</p>
+    <div class="contact">
+      <span>Email &nbsp;<b>partners@sydekyks.com</b></span>
+      <span>Web &nbsp;<b>sydekyks.com/partners</b></span>
+    </div>
+  </div>
+
+  <div class="pagefoot"><span>Sydekyks · Implementation Partner Brief · Confidential</span><span>13</span></div>
+</section>
+
+</body>
+</html>

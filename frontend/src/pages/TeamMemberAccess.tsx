@@ -39,7 +39,8 @@ export default function TeamMemberAccess() {
 
   return (
     <HQShell>
-      <main className="mx-auto max-w-4xl px-6 py-10">
+      <div className="hq-command-background min-h-screen">
+      <main className="relative mx-auto max-w-4xl px-6 py-10">
         <Link to="/hq/team" className="text-xs font-semibold text-gold-400 hover:text-gold-300">
           ← Back to Team
         </Link>
@@ -118,6 +119,7 @@ export default function TeamMemberAccess() {
           </Link>
         </div>
       </main>
+      </div>
     </HQShell>
   );
 }

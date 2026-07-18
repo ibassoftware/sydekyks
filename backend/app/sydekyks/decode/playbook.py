@@ -1,4 +1,4 @@
-"""Decode's résumé-parsing playbook — registered under 'decode.resume_parse'.
+"""Decode's résumé-parsing playbook - registered under 'decode.resume_parse'.
 
 Reads a résumé (text-first, vision fallback), then writes structured data onto an Odoo hr.applicant:
 matched job (or pooling), AI-mapped fields, skills, a Note, and the processed tag. For Email/Manual
@@ -23,7 +23,7 @@ PLAYBOOK_KEY = "decode.resume_parse"
 PLAYBOOK_STEPS = [
     {"key": "classify_document", "title": "Check it's a résumé",
      "description": "Confirm the uploaded/emailed document is a candidate résumé before parsing.",
-     "likely_failures": "The document isn't a résumé (e.g. a random file) — Mission stops."},
+     "likely_failures": "The document isn't a résumé (e.g. a random file) - Mission stops."},
     {"key": "extract_resume", "title": "Extract résumé data",
      "description": "Read the résumé with the assigned AI engine and pull name, contact, skills, experience.",
      "likely_failures": "AI engine not configured, or the model can't read the document."},
@@ -32,16 +32,16 @@ PLAYBOOK_STEPS = [
      "likely_failures": "No Odoo assigned, wrong credentials, or Odoo unreachable."},
     {"key": "resolve_position", "title": "Determine the position",
      "description": "Use the job you picked on upload; otherwise infer it from the email/résumé, or add the applicant to the pool.",
-     "likely_failures": "No job selected and none could be inferred — the applicant is pooled (flagged for review)."},
+     "likely_failures": "No job selected and none could be inferred - the applicant is pooled (flagged for review)."},
     {"key": "upsert_applicant", "title": "Create / find the applicant",
      "description": "Create a new hr.applicant (email/manual) or use the existing one (cron).",
      "likely_failures": "Odoo rejects required fields."},
     {"key": "map_fields", "title": "Fill applicant fields",
      "description": "AI-map the parsed data onto the instance's real hr.applicant fields and write them.",
-     "likely_failures": "None fatal — unmappable fields are skipped."},
+     "likely_failures": "None fatal - unmappable fields are skipped."},
     {"key": "attach_resume", "title": "Attach the résumé",
      "description": "Attach the original résumé file to the applicant record as evidence.",
-     "likely_failures": "Best-effort — a failed attachment never fails the Mission."},
+     "likely_failures": "Best-effort - a failed attachment never fails the Mission."},
     {"key": "skills", "title": "Add skills",
      "description": "Map résumé skills to Odoo's skill taxonomy (creating missing ones only if enabled).",
      "likely_failures": "Skills not in the taxonomy are flagged when auto-create is off."},
@@ -111,7 +111,7 @@ def run(db: Session, mission: Mission) -> None:
     if not allowed:
         record_step(db, mission, idx, "quota_check", "internal", "failed", error=deny)
         tenant_issues.report_issue(db, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id,
-                                   kind="quota_exceeded", title="AI usage limit reached — Decode paused",
+                                   kind="quota_exceeded", title="AI usage limit reached - Decode paused",
                                    detail=deny, mission_id=mission.id)
         _finish(db, mission, "failed", {}, deny, failure_category="quota")
         return
@@ -241,7 +241,7 @@ def run(db: Session, mission: Mission) -> None:
         idx += 1
 
         # --- Step 8: skills ---------------------------------------------------------------------
-        # The AI only categorizes each skill into an existing skill TYPE (by name — reliable). We
+        # The AI only categorizes each skill into an existing skill TYPE (by name - reliable). We
         # resolve the hr.skill id + level deterministically here: reuse an existing skill under that
         # type, else create it when auto-create is on; otherwise flag it for the recruiter.
         skill_specs: list[dict] = []
@@ -302,7 +302,7 @@ def run(db: Session, mission: Mission) -> None:
         if flagged and not settings.auto_create_skills:
             review_reason = "Some skills need adding to your Odoo taxonomy."
         elif is_pooling:
-            review_reason = "No matching job — added to the pool."
+            review_reason = "No matching job - added to the pool."
 
         if needs_review:
             steps = []
@@ -314,7 +314,7 @@ def run(db: Session, mission: Mission) -> None:
             review_assignment.assign_on_flag(
                 db, client, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id,
                 model="hr.applicant", res_id=applicant_id,
-                summary=f"Review applicant — {resume.full_name}",
+                summary=f"Review applicant - {resume.full_name}",
                 note=f"<p>Why: {review_reason or 'Flagged by Decode for review.'}</p>", steps=steps,
             )
 

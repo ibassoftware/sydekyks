@@ -92,7 +92,7 @@ export function ReviewerAssignment({ sydekykId, canManage }: { sydekykId: string
             {users === null ? (
               <p className="text-sm text-[#8a7f6d]">Loading…</p>
             ) : users.length === 0 ? (
-              <p className="text-sm text-amber-400/90">No Odoo users found — assign an Odoo instance above first.</p>
+              <p className="text-sm text-amber-400/90">No Odoo users found - assign an Odoo instance above first.</p>
             ) : (
               <div className="mt-1 grid gap-1">
                 {users.length > 8 && (

@@ -1,4 +1,4 @@
-"""Scout's résumé-scoring playbook — registered under 'scout.resume_score'.
+"""Scout's résumé-scoring playbook - registered under 'scout.resume_score'.
 
 Runs over an existing Odoo hr.applicant (id supplied in `mission.trigger_context` by the run-now
 endpoint or the cron poller). Reads the résumé (text-first, vision fallback), scores fitness against
@@ -99,7 +99,7 @@ def run(db: Session, mission: Mission) -> None:
         from app.services import tenant_issues
         record_step(db, mission, idx, "score", "internal", "failed", error=deny)
         tenant_issues.report_issue(db, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id,
-                                   kind="quota_exceeded", title="AI usage limit reached — Scout paused",
+                                   kind="quota_exceeded", title="AI usage limit reached - Scout paused",
                                    detail=deny, mission_id=mission.id)
         _finish(db, mission, "failed", {}, deny, failure_category="quota")
         return
@@ -128,8 +128,8 @@ def run(db: Session, mission: Mission) -> None:
         job_name = job_field[1] if isinstance(job_field, list) and len(job_field) > 1 else None
         job_profile = None
         if job_id:
-            # Everything HR specified on the position — description, requirements, expected degree,
-            # expected skills — becomes the scoring rubric (grounded in Odoo, not a manual field).
+            # Everything HR specified on the position - description, requirements, expected degree,
+            # expected skills - becomes the scoring rubric (grounded in Odoo, not a manual field).
             job_profile = odoo_hr.read_job_profile(client, job_id)
             job_name = job_profile.get("name") or job_name
         record_step(db, mission, idx, "resolve_job", "gadget_call", "succeeded",
@@ -169,7 +169,7 @@ def run(db: Session, mission: Mission) -> None:
                     output={"tag": settings.processed_tag_name})
         idx += 1
 
-        # Scout never flags for human review — scoring is advisory; the stars + Note speak for
+        # Scout never flags for human review - scoring is advisory; the stars + Note speak for
         # themselves and a recruiter decides. It just records the score and moves on.
         db.add(ScoutApplicant(
             tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id, mission_id=mission.id,

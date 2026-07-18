@@ -1,4 +1,4 @@
-"""Seal readiness — the AI engine is REQUIRED (it writes, revises, and reviews the contract). Odoo is
+"""Seal readiness - the AI engine is REQUIRED (it writes, revises, and reviews the contract). Odoo is
 entirely OPTIONAL: linking an opportunity to ground the draft, and handing off to Odoo Sign, are opt-in
 extras; Seal drafts, reviews, edits, and exports a PDF with no Odoo connection at all.
 """

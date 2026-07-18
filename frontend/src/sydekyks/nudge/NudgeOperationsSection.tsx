@@ -4,7 +4,7 @@ import { Button } from "../../components/ui";
 import { MissionList } from "../../components/MissionList";
 import { useMissionRefresh } from "../../lib/useMissionRefresh";
 
-/** Nudge's operations panel — the batch "Check pipeline now" scan on top plus a live Recent Missions
+/** Nudge's operations panel - the batch "Check pipeline now" scan on top plus a live Recent Missions
  * list. Nudge has no upload; it works the Odoo pipeline on a schedule or on demand. */
 export function NudgeOperationsSection({ sydekyk, canManage }: { sydekyk: Sydekyk; canManage: boolean }) {
   const [missions, setMissions] = useState<Mission[] | null>(null);
@@ -34,7 +34,7 @@ export function NudgeOperationsSection({ sydekyk, canManage }: { sydekyk: Sydeky
       const r = await api.post<RunNowResult>("/tenant/nudge/run-now");
       setRunMsg(
         r.data.queued === 0
-          ? "No stale opportunities — your pipeline is being tended."
+          ? "No stale opportunities - your pipeline is being tended."
           : `Drafting follow-ups for ${r.data.queued} opportunit${r.data.queued === 1 ? "y" : "ies"}…`,
       );
       load();
@@ -55,7 +55,7 @@ export function NudgeOperationsSection({ sydekyk, canManage }: { sydekyk: Sydeky
           </p>
         </div>
         {canManage && (
-          <Button className="px-4 py-2 text-xs" disabled={running || !ready} onClick={runNow}>
+          <Button disabled={running || !ready} onClick={runNow}>
             {running ? "Starting…" : "Check pipeline now"}
           </Button>
         )}
@@ -68,9 +68,9 @@ export function NudgeOperationsSection({ sydekyk, canManage }: { sydekyk: Sydeky
         {!missions ? (
           <p className="mt-2 text-sm text-[#8a7f6d]">Loading…</p>
         ) : missions.length === 0 ? (
-          <p className="mt-2 text-sm text-[#8a7f6d]">No follow-ups yet — run Nudge to check your pipeline.</p>
+          <p className="mt-2 text-sm text-[#8a7f6d]">No follow-ups yet - run Nudge to check your pipeline.</p>
         ) : (
-          <div className="mt-2 overflow-hidden rounded-lg border border-ink-700">
+          <div className="mt-2 min-w-0">
             <MissionList missions={missions} onReload={load} showSydekyk={false} />
           </div>
         )}

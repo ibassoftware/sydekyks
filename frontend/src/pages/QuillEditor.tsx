@@ -219,7 +219,7 @@ export default function QuillEditor() {
       {previewUrl && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-sm">
           <div className="flex items-center justify-between border-b border-ink-700 bg-ink-900 px-5 py-3">
-            <p className="font-display text-sm text-[#ede6da]">PDF preview — {title}</p>
+            <p className="font-display text-sm text-[#ede6da]">PDF preview - {title}</p>
             <div className="flex items-center gap-2">
               <Button className="px-3 py-1.5 text-xs" onClick={() => exportPdf(false)}>Download</Button>
               <button onClick={closePreview} className="text-sm text-[#8a7f6d] hover:text-gold-300">Close ✕</button>
@@ -279,7 +279,7 @@ function GeneratePanel({ proposalId, hasContent, onBusy, onGenerated }: {
             setExpanded(false);
           },
           onError: (msg) => {
-            // Failure arrives as an event once the stream is open — deltas render into a throwaway
+            // Failure arrives as an event once the stream is open - deltas render into a throwaway
             // preview, never the editor, so there is nothing to roll back.
             settled = true;
             toast.error(msg || "Generation failed. Is an AI engine configured?");
@@ -324,7 +324,7 @@ function GeneratePanel({ proposalId, hasContent, onBusy, onGenerated }: {
             onChange={(e) => setTemplateId(e.target.value)}
             className="w-full rounded-md border border-ink-600 bg-ink-900 px-3 py-2 text-sm text-[#ede6da] outline-none focus:border-gold-500"
           >
-            <option value="">No template — standard structure</option>
+            <option value="">No template - standard structure</option>
             {templates.map((t) => (
               <option key={t.id} value={t.id}>{t.name}{t.is_builtin ? " (built-in)" : ""}</option>
             ))}
@@ -429,7 +429,7 @@ function ChatPanel({ proposalId, onBusy, onRewrite, canUndo, onUndo }: {
       </div>
       <div className="mt-2 flex-1 space-y-2 overflow-y-auto">
         {messages.length === 0 ? (
-          <p className="text-[11px] text-[#8a7f6d]">Ask Quill to revise the draft — “shorten the intro”, “add a pricing table”, “make the tone more formal”. It edits the document in place.</p>
+          <p className="text-[11px] text-[#8a7f6d]">Ask Quill to revise the draft - “shorten the intro”, “add a pricing table”, “make the tone more formal”. It edits the document in place.</p>
         ) : (
           messages.map((m) => (
             <div key={m.id} className={m.role === "user" ? "text-right" : ""}>

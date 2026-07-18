@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sydekyks · An Invitation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0b1a2b; --navy-2:#12283d;
+    --teal:#0d9488; --teal-br:#14b8a6;
+    --ink:#26333f; --ink-2:#5a6b78;
+    --paper:#ffffff; --wash:#f5f7f7; --wash-2:#f8f7f3;
+    --line:#dfe3e2; --amber:#b7791f; --amber-wash:#fbf6ec;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body{ font-family:'Inter', system-ui, -apple-system, sans-serif; color:var(--ink); background:#e8ebec; line-height:1.62; font-size:15.5px; -webkit-font-smoothing:antialiased; }
+
+  .page{ position:relative; width:210mm; min-height:296mm; margin:0 auto; background:var(--paper); padding:15mm 22mm 14mm; overflow:hidden; }
+  .page + .page{ margin-top:9mm; }
+  .page.content::before{ content:""; position:absolute; top:0; left:0; right:0; height:6px; background:var(--teal-br); }
+  .page.content.trackB::before{ background:var(--amber); }
+
+  h1,h2,h3,.display{ font-family:'Space Grotesk', sans-serif; color:var(--navy); }
+  .kicker{ font-family:'Space Mono', monospace; font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--teal); font-weight:700; display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .kicker::before{ content:""; width:26px; height:2px; background:var(--teal-br); }
+  .kicker.amber{ color:var(--amber); }
+  .kicker.amber::before{ background:var(--amber); }
+  h2{ font-size:29px; line-height:1.12; font-weight:700; letter-spacing:-.015em; margin-bottom:12px; }
+  h3{ font-size:16px; font-weight:600; margin-bottom:4px; }
+  p{ margin-bottom:11px; }
+  .lead{ font-size:17px; color:var(--ink); }
+  .muted{ color:var(--ink-2); }
+  .teal{ color:var(--teal); font-weight:600; }
+  strong{ font-weight:700; color:var(--navy); }
+  .rule{ height:2px; background:var(--line); margin:18px 0; border:none; }
+
+  .pagefoot{ position:absolute; bottom:12mm; left:22mm; right:22mm; display:flex; justify-content:space-between; font-family:'Space Mono', monospace; font-size:10px; letter-spacing:.06em; color:#9aa7ad; text-transform:uppercase; border-top:1px solid var(--line); padding-top:8px; }
+
+  /* cover */
+  .cover{ background:var(--navy); color:#eef5f4; padding:0; display:flex; flex-direction:column; }
+  .cover .inner{ flex:1; padding:16mm 22mm 0; position:relative; z-index:2; display:flex; flex-direction:column; }
+  .cover::before{ content:""; position:absolute; right:-140px; top:-140px; width:560px; height:560px; border-radius:50%; background:radial-gradient(circle at center, #14b8a622, transparent 62%); z-index:1; }
+  .cover .brandbar{ display:flex; align-items:center; gap:12px; letter-spacing:.28em; font-family:'Space Mono',monospace; font-size:12px; font-weight:700; text-transform:uppercase; color:var(--teal-br); }
+  .cover .brandbar .mk{ width:13px; height:13px; background:var(--teal-br); box-shadow:3px 3px 0 #0f5563; }
+  .cover .hero{ width:100%; border:2px solid var(--teal-br); border-radius:10px; overflow:hidden; margin:14px 0 2px; box-shadow:0 12px 34px #00000055; }
+  .cover .hero img{ display:block; width:100%; height:auto; }
+  .cover h1{ font-size:40px; line-height:1.05; font-weight:700; letter-spacing:-.02em; margin-top:16px; color:#fff; }
+  .cover h1 .ac{ color:var(--teal-br); }
+  .cover .sub{ margin-top:11px; font-size:16px; max-width:46ch; color:#c2d4d3; }
+  .cover .meta{ margin-top:18px; display:flex; gap:26px; flex-wrap:wrap; font-family:'Space Mono',monospace; font-size:11px; color:#8aa9a8; }
+  .cover .meta b{ display:block; color:#eef5f4; font-size:13px; margin-top:2px; }
+  .cover .by{ margin-top:14px; padding-top:13px; border-top:1px solid #ffffff1f; font-size:12.5px; color:#b7cbca; }
+  .cover .by b{ color:#fff; }
+  .cover .strip{ margin-top:30px; height:13mm; background:var(--teal-br); display:flex; align-items:center; padding:0 22mm; margin-left:-22mm; margin-right:-22mm; font-family:'Space Mono',monospace; font-weight:700; color:var(--navy); letter-spacing:.12em; font-size:11px; position:relative; z-index:2; }
+
+  /* letter */
+  .letter p{ font-size:15.5px; }
+  .greet{ font-weight:600; font-size:16px; margin-bottom:14px; }
+  .sig{ margin-top:22px; }
+  .sig .nm{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:16px; color:var(--navy); }
+  .sig .rl{ font-family:'Space Mono',monospace; font-size:12px; color:var(--ink-2); }
+
+  /* stat / cards */
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:16px 0; }
+  .card{ border:1px solid var(--line); border-radius:6px; background:#fff; padding:16px 18px; }
+  .card.accent{ border-left:4px solid var(--teal-br); }
+  .stat .big{ font-family:'Space Grotesk',sans-serif; font-size:31px; font-weight:700; color:var(--navy); line-height:1; letter-spacing:-.02em; }
+  .stat .big .u{ color:var(--teal); }
+  .stat .cap{ font-size:12.5px; color:var(--ink-2); margin-top:7px; line-height:1.45; }
+  .stat .cap b{ color:var(--navy); }
+  .sub-h{ font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--teal); font-weight:700; margin:16px 0 8px; }
+
+  .momentum{ display:grid; grid-template-columns:repeat(3,1fr); border:1px solid var(--line); border-radius:8px; overflow:hidden; margin:14px 0 6px; }
+  .momentum > div{ padding:12px 16px; border-left:1px solid var(--line); }
+  .momentum > div:first-child{ border-left:none; }
+  .momentum b{ font-family:'Space Grotesk',sans-serif; font-size:22px; color:var(--teal); display:block; line-height:1; }
+  .momentum span{ font-size:11.5px; color:var(--ink-2); display:block; margin-top:4px; }
+
+  /* venn */
+  .venn-wrap{ border:1px solid var(--line); border-radius:8px; background:var(--wash); padding:14px; margin:14px 0 6px; }
+  .venn-wrap svg{ display:block; width:100%; height:auto; }
+
+  /* big number */
+  .bignum{ border-radius:8px; background:var(--navy); color:#eef5f4; padding:20px 24px; margin:14px 0; }
+  .bignum .n{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:40px; letter-spacing:-.02em; color:var(--teal-br); }
+  .bignum .c{ font-size:13px; color:#c2d4d3; margin-top:4px; }
+  .bignum .c b{ color:#fff; }
+
+  /* roster planned list */
+  .plan-list{ border:1px solid var(--line); border-radius:8px; overflow:hidden; margin:12px 0; }
+  .prow{ display:grid; grid-template-columns:150px 1fr; border-top:1px solid var(--line); }
+  .prow:first-child{ border-top:none; }
+  .pdom{ padding:10px 14px; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--teal); font-weight:700; background:var(--wash-2); border-right:1px solid var(--line); }
+  .pnames{ padding:10px 14px; font-size:12.5px; color:var(--ink-2); }
+  .pnames b{ color:var(--navy); font-weight:700; }
+
+  /* pricing */
+  .plans{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .plan{ border:1px solid var(--line); border-radius:8px; padding:18px 16px; background:#fff; }
+  .plan.feat{ border:2px solid var(--teal); box-shadow:0 6px 20px #0d948814; }
+  .pname{ font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--teal); font-weight:700; }
+  .price{ font-family:'Space Grotesk',sans-serif; font-size:29px; font-weight:700; color:var(--navy); margin:6px 0 2px; letter-spacing:-.01em; }
+  .price small{ font-size:13px; font-weight:400; color:var(--ink-2); }
+  .who{ font-size:12px; color:var(--ink-2); min-height:34px; }
+  .plan ul{ list-style:none; margin-top:12px; }
+  .plan li{ font-size:12.5px; padding:5px 0 5px 18px; position:relative; border-top:1px solid var(--line); color:var(--ink); }
+  .plan li::before{ content:"→"; position:absolute; left:0; color:var(--teal); font-weight:700; }
+  .ribbon{ display:inline-block; background:var(--teal); color:#fff; font-family:'Space Mono',monospace; font-size:9px; font-weight:700; padding:3px 8px; border-radius:4px; letter-spacing:.08em; margin-bottom:8px; }
+
+  /* commission ladder */
+  .ladder{ border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .lrow{ display:grid; grid-template-columns:82px 1fr 150px; align-items:center; border-top:1px solid var(--line); }
+  .lrow:first-child{ border-top:none; }
+  .lrow.head{ background:var(--navy); color:#fff; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; }
+  .lrow.head > div{ padding:11px 16px; }
+  .lpct{ font-family:'Space Grotesk',sans-serif; font-size:25px; font-weight:700; color:var(--teal); padding:12px 16px; }
+  .lband{ padding:12px 16px; font-size:13px; }
+  .lband b{ color:var(--navy); }
+  .lnote{ padding:12px 16px; font-size:12px; color:var(--ink-2); border-left:1px solid var(--line); }
+
+  /* callouts */
+  .callout{ border-radius:8px; background:var(--wash); border:1px solid #cdeae6; border-left:4px solid var(--teal-br); padding:15px 18px; margin:15px 0; }
+  .callout .h{ font-family:'Space Grotesk',sans-serif; font-weight:700; color:var(--navy); margin-bottom:3px; }
+  .callout p{ margin:0; font-size:14px; color:var(--ink); }
+  .callout.amber{ background:var(--amber-wash); border-color:#eBD9B4; border-left-color:var(--amber); }
+  .callout.dark{ background:var(--navy); border:none; color:#eef5f4; }
+  .callout.dark .h{ color:#fff; }
+  .callout.dark p{ color:#c2d4d3; }
+  .callout.dark b, .callout.dark .teal{ color:var(--teal-br); }
+
+  .quote{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:19px; color:var(--navy); line-height:1.3; border-left:4px solid var(--teal-br); padding:4px 0 4px 16px; margin:16px 0; }
+  .quote.amber{ border-left-color:var(--amber); }
+
+  /* two tracks compare */
+  .versus{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:16px 0 12px; }
+  .vcol{ border:1px solid var(--line); border-radius:8px; padding:18px; background:#fff; }
+  .vcol.a{ border-top:5px solid var(--teal-br); }
+  .vcol.b{ border-top:5px solid var(--amber); }
+  .vhead{ font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; margin-bottom:4px; color:var(--ink-2); }
+  .vcol.a .vhead{ color:var(--teal); }
+  .vcol.b .vhead{ color:var(--amber); }
+  .vtitle{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:19px; color:var(--navy); }
+  .vone{ font-size:13px; color:var(--ink-2); margin:6px 0 4px; min-height:38px; }
+  .vlist{ list-style:none; margin-top:6px; }
+  .vlist li{ font-size:12.5px; padding:5px 0 5px 18px; position:relative; border-top:1px solid var(--line); color:var(--ink); }
+  .vlist li::before{ content:""; position:absolute; left:2px; top:11px; width:5px; height:5px; border-radius:50%; background:var(--teal-br); }
+  .vcol.b .vlist li::before{ background:var(--amber); }
+
+  /* reward stack */
+  .stack{ counter-reset:st; }
+  .sitem{ display:flex; gap:14px; padding:12px 0; border-top:1px solid var(--line); align-items:flex-start; }
+  .sitem:first-child{ border-top:none; }
+  .sitem .n{ counter-increment:st; flex:0 0 30px; height:30px; border-radius:6px; background:var(--teal); color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Space Mono',monospace; font-weight:700; font-size:13px; }
+  .sitem .n::before{ content:counter(st); }
+  .sitem .bd h3{ margin-bottom:2px; }
+  .sitem .bd p{ margin:0; font-size:13.5px; color:var(--ink-2); }
+  .sitem .bd p b{ color:var(--navy); }
+  .amount{ font-family:'Space Mono',monospace; font-size:11px; color:var(--teal); background:var(--wash); border:1px solid #cdeae6; border-radius:4px; padding:1px 7px; white-space:nowrap; }
+
+  /* gates */
+  .gate{ display:flex; gap:14px; padding:8px 0; border-top:1px solid var(--line); align-items:flex-start; }
+  .gate:first-child{ border-top:none; }
+  .gate .g{ flex:0 0 66px; }
+  .gate .glab{ font-family:'Space Mono',monospace; font-size:9px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; color:var(--ink-2); }
+  .gate .gno{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:22px; color:var(--amber); }
+  .gate .bd h3{ margin-bottom:2px; }
+  .gate .bd p{ margin:0; font-size:13.5px; color:var(--ink-2); }
+  .gate .bd p b{ color:var(--navy); }
+  .tag-obj{ font-family:'Space Mono',monospace; font-size:9px; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:4px; background:var(--wash); color:var(--teal); border:1px solid #cdeae6; }
+  .tag-dis{ font-family:'Space Mono',monospace; font-size:9px; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:4px; background:var(--amber-wash); color:var(--amber); border:1px solid #eBD9B4; }
+
+  .princ{ list-style:none; margin-top:8px; }
+  .princ li{ font-size:13.5px; padding:7px 0 7px 22px; position:relative; border-top:1px solid var(--line); }
+  .princ li:first-child{ border-top:none; }
+  .princ li::before{ content:"✓"; position:absolute; left:0; top:7px; color:var(--teal); font-weight:700; }
+  .princ li b{ color:var(--navy); }
+
+  .cta{ border-radius:8px; background:var(--navy); color:#eef5f4; padding:24px 26px; margin-top:16px; }
+  .cta h2{ color:#fff; }
+  .cta p{ color:#c2d4d3; }
+  .cta .contact{ margin-top:14px; font-family:'Space Mono',monospace; font-size:13px; display:flex; gap:26px; flex-wrap:wrap; }
+  .cta .contact b{ color:var(--teal-br); }
+
+  .fnote{ font-family:'Space Mono',monospace; font-size:9.5px; color:#9aa7ad; margin-top:10px; line-height:1.5; }
+
+  @media print{ body{ background:#fff; } .page{ margin:0 !important; page-break-after:always; break-after:page; } .page:last-child{ page-break-after:auto; break-after:auto; } }
+  @page{ size:A4; margin:0; }
+</style>
+</head>
+<body>
+
+<!-- ============ COVER ============ -->
+<section class="page cover">
+  <div class="inner">
+    <div class="brandbar"><span class="mk"></span> SYDEKYKS &nbsp;·&nbsp; A PERSONAL INVITATION</div>
+    <div class="hero"><img src="cover.png" alt="Sydekyks AI sidekicks"></div>
+    <h1>Build this with us. <span class="ac">Two ways in.</span></h1>
+    <p class="sub">Not a job posting. An honest framework for joining, from a defined commercial role with real skin in the game, to co-owning the company.</p>
+    <div class="meta">
+      <div>Prepared for<b>You</b></div>
+      <div>Document<b>Personal Invitation</b></div>
+      <div>Date<b>18 July 2026</b></div>
+      <div>Status<b>Confidential</b></div>
+    </div>
+    <div class="by">A venture of <b>iBAS Software FR</b> &nbsp;·&nbsp; Paris · Rouen · Manila</div>
+  </div>
+  <div class="strip">TWO WAYS IN. HONESTLY DIFFERENT.</div>
+</section>
+
+<!-- ============ LETTER ============ -->
+<section class="page content letter">
+  <div class="kicker">A letter, person to person</div>
+  <h2>The interest is here.<br>This is the framework, in writing.</h2>
+  <hr class="rule">
+
+  <p class="greet">Hi,</p>
+
+  <p>This isn't a job posting, and I'm not going to dress it up as one. Interest in Sydekyks is coming in quickly, from partners and from people who want to help build it. Rather than have the same conversation ten different ways and leave everyone with a slightly different understanding, I wrote it down. <strong>This document is the framework:</strong> how joining works, what you would earn, and exactly where the line sits between a commercial role and real co-ownership. Clear from the start, on purpose.</p>
+
+  <p>What we're building: <strong>Sydekyks</strong> is a fast-growing roster of AI sidekicks that integrate with the software businesses already run, starting with Odoo, and do the real operational work no one enjoys doing by hand. Posting vendor bills, scoring résumés, chasing stalled deals, drafting contracts. Not a chatbot. Work done. AI and Odoo are both booming at the same time, so we are not inventing demand, we are standing exactly where two waves meet.</p>
+
+  <p>It's real, not a pitch deck. Sydekyks is a venture of <strong>iBAS Software FR</strong>, an official Odoo partner with heavy references and offices in Paris, Rouen, and Manila. Nine agents are live today, thirty-three more are in the build queue, and because what we have built is a framework, adding the next one is a matter of scaling, not invention.</p>
+
+  <p>It is early enough that the people who join now <strong>help shape what we build next</strong>: which Sydekyks come after these, how they behave, which platform we take on after Odoo. That part is real, and it is one of the best reasons to be here now rather than later.</p>
+
+  <p>Now the honest part, and the whole reason for this document. <strong>There are two real ways to join, and they are genuinely different.</strong> One is a defined commercial role with strong, recurring income and a small slice of upside. The other is co-owning the company. They are not two flavors of the same thing, and I won't blur them to make either sound bigger. Most people belong on the first. A few earn their way to the second. The pages that follow lay out the opportunity, the economics, and both paths, plainly, numbers included.</p>
+
+  <p>Read it, then let's talk about which one fits you.</p>
+
+  <div class="sig">
+    <div class="nm">Rein</div>
+    <div class="rl">Founder · Sydekyks / iBAS Software FR</div>
+  </div>
+
+  <div class="pagefoot"><span>Sydekyks · An Invitation</span><span>01</span></div>
+</section>
+
+<!-- ============ TWO WAVES + INTERSECTION ============ -->
+<section class="page content">
+  <div class="kicker">The wave you'd be riding</div>
+  <h2>AI is booming. Odoo is booming.<br>We sit in the overlap.</h2>
+  <p class="muted">You would not be betting on whether AI matters or whether Odoo is growing. Both are already true. The only open question is who owns the layer in between, and right now, nobody does.</p>
+
+  <div class="grid2">
+    <div class="card accent stat"><div class="big">$46<span class="u">B</span></div><div class="cap"><b>The exact category we're in.</b> Enterprise agentic AI by 2030, up from ~$6.8B in 2025. Agents that do work, not chat.</div></div>
+    <div class="card accent stat"><div class="big">16<span class="u">M</span>+</div><div class="cap"><b>Odoo users</b> across 170,000+ businesses, growing by 13,000+ new customers every month. That's the launch market.</div></div>
+  </div>
+
+  <div class="venn-wrap">
+    <svg viewBox="0 0 660 270" font-family="'Space Grotesk', sans-serif" role="img" aria-label="Venn diagram: AI and Odoo overlap to create Sydekyks">
+      <circle cx="250" cy="135" r="120" fill="#14b8a6" fill-opacity="0.12" stroke="#0d9488" stroke-width="2.5"/>
+      <circle cx="410" cy="135" r="120" fill="#0b1a2b" fill-opacity="0.08" stroke="#0b1a2b" stroke-width="2.5"/>
+      <text x="168" y="128" text-anchor="middle" font-size="24" font-weight="700" fill="#0d9488">AI</text>
+      <text x="168" y="152" text-anchor="middle" font-size="12" fill="#5a6b78" font-family="Inter, sans-serif">Booming.</text>
+      <text x="492" y="128" text-anchor="middle" font-size="24" font-weight="700" fill="#0b1a2b">Odoo</text>
+      <text x="492" y="152" text-anchor="middle" font-size="12" fill="#5a6b78" font-family="Inter, sans-serif">16M+ users.</text>
+      <rect x="286" y="114" width="88" height="42" rx="8" fill="#0d9488"/>
+      <text x="330" y="135" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">SYDEKYKS</text>
+      <text x="330" y="150" text-anchor="middle" font-size="9" fill="#a7f3e6" font-family="'Space Mono', monospace" letter-spacing="1">THE OVERLAP</text>
+    </svg>
+  </div>
+
+  <div class="bignum">
+    <div class="n">$850,000,000</div>
+    <div class="c"><b>The intersection is the opportunity.</b> A conservative, serviceable market within today's Odoo base alone: 170,000+ businesses adopting even a modest AI layer at ~$5,000/year. That base grows by 150,000+ businesses annually, so this is a floor, not a ceiling.</div>
+  </div>
+
+  <p class="fnote">Sources: Grand View Research, Statista, MarketsandMarkets (AI &amp; agentic-AI sizing); Odoo S.A., GetLatka, Tracxn (Odoo users &amp; growth). Figures rounded; the $850M figure is illustrative math on Odoo's disclosed customer base.</p>
+
+  <div class="pagefoot"><span>Sydekyks · An Invitation · The opportunity</span><span>02</span></div>
+</section>
+
+<!-- ============ WHAT YOU'D BE SELLING ============ -->
+<section class="page content">
+  <div class="kicker">What you'd be selling</div>
+  <h2>A real product, and it's only getting started.</h2>
+  <p class="muted">You would not be selling vaporware or a maybe. Nine Sydekyks are live and working inside customers' Odoo today, each one taking over a specific job and reporting the time and money it saved.</p>
+
+  <div class="sub-h">Live today</div>
+  <div class="plan-list">
+    <div class="prow"><div class="pdom">Accounting</div><div class="pnames"><b>Ledger</b> (AP automation), <b>Mirror</b> (duplicate bills), <b>Shield</b> (fraud watch)</div></div>
+    <div class="prow"><div class="pdom">Sales &amp; Contracts</div><div class="pnames"><b>Nudge</b> (follow-ups), <b>Quill</b> (proposals), <b>Seal</b> (contracts), <b>Signet</b> (e-signature)</div></div>
+    <div class="prow"><div class="pdom">HR</div><div class="pnames"><b>Decode</b> (résumé parsing), <b>Scout</b> (candidate scoring)</div></div>
+  </div>
+
+  <p style="margin:14px 0 4px">Here is the part that matters most for you. What we built is not nine hand-crafted apps, it is an <strong>AI agent framework</strong>. A new Sydekyk is a specialist configured on a proven platform, so building one is a matter of scaling, not inventing. We ship roughly <strong>three to seven new Sydekyks every two weeks</strong>, which is why the list is only a snapshot, current as of 18 July 2026.</p>
+
+  <div class="momentum">
+    <div><b>9</b><span>live &amp; working today</span></div>
+    <div><b>33</b><span>in the build queue</span></div>
+    <div><b>42</b><span>specialists on the roadmap</span></div>
+  </div>
+
+  <div class="plan-list">
+    <div class="prow"><div class="pdom">In the queue</div><div class="pnames"><b>Chase</b>, <b>Balance</b>, <b>Match</b>, <b>Spark</b>, <b>Forecast</b>, <b>Source</b>, <b>Stocker</b>, <b>Vector</b>, <b>Halo</b>, <b>Guardian</b> and 23 more, across finance, purchasing, inventory, manufacturing, support and data quality.</div></div>
+  </div>
+
+  <div class="callout">
+    <div class="h">Your catalog compounds</div>
+    <p>Every agent we ship lands in your line automatically. You are not selling a fixed set of apps, you are selling an ever-growing bench into the same accounts. Every month there is more to cross-sell, and more reason for a customer to stay.</p>
+  </div>
+
+  <div class="pagefoot"><span>Sydekyks · An Invitation · The product</span><span>03</span></div>
+</section>
+
+<!-- ============ PRICING ============ -->
+<section class="page content">
+  <div class="kicker">What the customer pays</div>
+  <h2>Three clear plans, priced like a hire.</h2>
+  <p class="muted">The reason this sells is the frame: a Sydekyk is priced against an employee, not against software. An employee that never gets tired and never sleeps, for a fraction of one salary. That makes these plans an easy yes.</p>
+
+  <div class="plans">
+    <div class="plan">
+      <div class="pname">Squad</div>
+      <div class="price">$400<small>/mo</small></div>
+      <div class="who">The default. A growing business putting its first AI sidekicks to work.</div>
+      <ul>
+        <li>Full shared roster of Sydekyks</li>
+        <li>Core Odoo integration</li>
+        <li>Standard AI capacity</li>
+        <li>Email support</li>
+      </ul>
+    </div>
+    <div class="plan feat">
+      <div class="ribbon">MOST POPULAR</div>
+      <div class="pname">Command</div>
+      <div class="price">$900<small>/mo</small></div>
+      <div class="who">Teams running AI across finance, sales, and hiring at once.</div>
+      <ul>
+        <li>Everything in Squad, plus:</li>
+        <li>Higher capacity &amp; more seats</li>
+        <li>All premium Sydekyks &amp; integrations</li>
+        <li>Workflow automations &amp; priority support</li>
+      </ul>
+    </div>
+    <div class="plan">
+      <div class="pname">Fleet · Enterprise</div>
+      <div class="price">from $2,000<small>/mo</small></div>
+      <div class="who">Larger organizations that need AI built around their own workflows.</div>
+      <ul>
+        <li>Everything in Command, plus:</li>
+        <li><b>3 Exclusive Sydekyks</b> custom-built and included, more on demand by quotation</li>
+        <li>Highest capacity &amp; dedicated success</li>
+        <li>Advanced security &amp; SLA</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="h">All recurring, all monthly</div>
+    <p>Squad is the entry point, Command is where most customers land, Fleet is where enterprises graduate. Every dollar is recurring, and on the next page, every dollar earns you commission that climbs to 40%.</p>
+  </div>
+
+  <div class="pagefoot"><span>Sydekyks · An Invitation · Pricing</span><span>04</span></div>
+</section>
+
+<!-- ============ COMMISSION ============ -->
+<section class="page content">
+  <div class="kicker">How you get paid</div>
+  <h2>Recurring commission that climbs to 40%.</h2>
+  <p>However you join, you earn like our very best partners do, because commercially, that is what you are. You keep a percentage of <strong>all recurring revenue you bring</strong>, every month, for the life of the account. As your book grows past each threshold, your rate steps up across your <em>entire</em> book. You are not starting over each year, you are compounding.</p>
+
+  <div class="ladder">
+    <div class="lrow head"><div class="lpct" style="color:#fff;font-size:10px">Rate</div><div class="lband" style="color:#fff">Your recurring book (annual)</div><div class="lnote" style="color:#fff;border-left-color:#ffffff22">Tier</div></div>
+    <div class="lrow"><div class="lpct">25%</div><div class="lband">Up to <b>$20,000</b> ARR</div><div class="lnote">Starting</div></div>
+    <div class="lrow"><div class="lpct">30%</div><div class="lband">$20,000 to <b>$100,000</b> ARR</div><div class="lnote">Growth</div></div>
+    <div class="lrow"><div class="lpct">35%</div><div class="lband">$100,000 to <b>$500,000</b> ARR</div><div class="lnote">Premier</div></div>
+    <div class="lrow"><div class="lpct">40%</div><div class="lband">$500,000 to <b>$1,000,000+</b> ARR</div><div class="lnote">Elite</div></div>
+  </div>
+
+  <div class="callout">
+    <div class="h">What that looks like</div>
+    <p>Build a book of, say, 40 customers on Command and a handful on Fleet, and you are into the Elite tier: a book worth roughly $672,000 a year, earning about <b>$268,800 a year in recurring commission</b>. It renews every year they stay, and grows every time you add one. This is a book you own, not a one-time finder's fee. And on Track B, this is only your near-term income; the equity is on top.</p>
+  </div>
+  <p class="fnote">Illustrative. Commission tiers are based on total active annual recurring revenue and, once a threshold is reached, apply across your full book. Exact terms and payment cadence are set in your agreement.</p>
+
+  <div class="pagefoot"><span>Sydekyks · An Invitation · Commission</span><span>05</span></div>
+</section>
+
+<!-- ============ TWO TRACKS ============ -->
+<section class="page content">
+  <div class="kicker">The choice</div>
+  <h2>Two ways to join, not two tiers of one.</h2>
+  <p>I want this line to be sharp, because a fuzzy version breeds resentment later. <strong>A Growth Partner owns a function:</strong> the commercial engine, sourcing and closing. <strong>A co-founder shares the whole thing:</strong> the entire risk and the entire vision, across every problem, for the long haul. Different jobs. Different rewards. Different levels of say.</p>
+
+  <div class="callout">
+    <div class="h">Why these roles exist, honestly</div>
+    <p>The technology is already strong and shipping, and partners are already onboarding. The scarce thing here is not more engineering, it's commercial reach: the person who builds the sales channel. That is what a Growth Partner owns a piece of, and what a co-founder would own at company level. I'm not looking for someone to help me build the product; I'm looking for the person who takes sales and makes it theirs.</p>
+  </div>
+
+  <div class="versus">
+    <div class="vcol a">
+      <div class="vhead">Track A · Available now</div>
+      <div class="vtitle">Growth Partner</div>
+      <div class="vone">You turn your network into deals. Energized by the bet, you want upside over salary security.</div>
+      <ul class="vlist">
+        <li>Owns the commercial function</li>
+        <li>Recurring commission that climbs to 40%</li>
+        <li>A small equity stake, unlocked at $50k signed ARR</li>
+        <li>No board seat or co-founder decision rights</li>
+        <li>Everything you earn is yours, cleanly</li>
+      </ul>
+    </div>
+    <div class="vcol b">
+      <div class="vhead">Track B · Earned, not granted</div>
+      <div class="vtitle">Co-founder</div>
+      <div class="vone">You share the whole risk and vision. Not offered up front; it's the destination of a path you prove.</div>
+      <ul class="vlist">
+        <li>Co-owns a real slice: 3% to 10%</li>
+        <li>Real decision rights and likely a board seat</li>
+        <li>Reached only through a two-gate model</li>
+        <li>Standard co-founder vesting from promotion</li>
+        <li>Earned by fit and trust, never automatic</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="quote">Everyone starts on Track A. Track B is where a few people earn their way to, by proving it first.</div>
+
+  <div class="pagefoot"><span>Sydekyks · An Invitation · The choice</span><span>06</span></div>
+</section>
+
+<!-- ============ TRACK A ============ -->
+<section class="page content">
+  <div class="kicker">Track A</div>
+  <h2>Growth Partner.<br>Skin in the game, rewarded fast for it.</h2>
+  <p class="muted">For someone who turns their network into deals quickly, is energized by the bet, and would rather back their own upside than settle for salary security. You own the commercial engine: sourcing and closing. It's a commercial role, but not a mercenary one: the people who do well here close because they believe in what they're putting in front of a customer.</p>
+
+  <div class="sub-h">How you're rewarded, in the order I'll always be honest about</div>
+  <div class="stack">
+    <div class="sitem">
+      <div class="n"></div>
+      <div class="bd">
+        <h3>Commission, real and recurring <span class="amount">recurring, climbs to 40%</span></h3>
+        <p>The recurring commission ladder you just saw, on every deal you source and close, <b>paid monthly for the life of the account</b>. It should be real income you can count on, because I'd rather pay you properly than ask you to run on promise and passion alone.</p>
+      </div>
+    </div>
+    <div class="sitem">
+      <div class="n"></div>
+      <div class="bd">
+        <h3>Equity, upside you unlock <span class="amount">proposed: ~0.5%, at $50k signed ARR</span></h3>
+        <p>This opens once you've brought <b>$50,000 in signed ARR</b>: real, paying customers, not introductions. From there it's a defined stake via a <b>signed forward promise</b> that crystallizes into an actual BSA at spin-out or first raise, with vesting counted from your start date. Commission rewards every deal from day one; the equity is what you unlock by proving you can close, and, I hope, because you believe in where this is going.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="h">The protections, both ways</div>
+    <p>Equity vests against milestones and performance where we can define them, with a continued-engagement condition and a lapse clause, so unearned upside doesn't stick to someone who drifts away. No board control or co-founder decision rights; the equity becomes actual shares only when exercised, at a liquidity event. Fair to you, fair to the company.</p>
+  </div>
+
+  <div class="pagefoot"><span>Sydekyks · An Invitation · Track A</span><span>07</span></div>
+</section>
+
+<!-- ============ TRACK B ============ -->
+<section class="page content trackB">
+  <div class="kicker amber">Track B</div>
+  <h2>Co-founder: earned, not granted.</h2>
+  <p class="muted">A real co-founder stake of <strong>3% to 10%</strong>, earned, not granted. Everyone starts as a Growth Partner and proves themselves first; co-founder is a partnership both people choose, not a title handed out. In practice this seat leads the <strong>sales side</strong> of the company: the channel, the partner network, the revenue engine. The technology is already strong, so what's open is commercial ownership. A second co-founder will likely lead marketing, so you would own sales and revenue, not all of go-to-market. Here's the exact mechanic.</p>
+
+  <div class="sub-h" style="color:var(--amber)">The two-gate model</div>
+  <div class="gate">
+    <div class="g"><div class="glab">Gate 1</div><div class="gno">1</div></div>
+    <div class="bd">
+      <h3>Eligibility <span class="tag-obj">Objective · yours</span></h3>
+      <p>A concrete, time-bound performance bar. <b>My proposal: you source and close $200,000 in signed recurring contracts within 6 to 9 months.</b> Clear it and you've proven the commercial thesis. Necessary, but not sufficient on its own.</p>
+    </div>
+  </div>
+  <div class="gate">
+    <div class="g"><div class="glab">Gate 2</div><div class="gno">2</div></div>
+    <div class="bd">
+      <h3>Invitation <span class="tag-dis">Fit &amp; trust</span></h3>
+      <p>Clearing Gate 1 opens the conversation. Whether it becomes an invitation comes down to fit and trust: would we both operate like owners, and trust each other through the hard months. I carry the final say, the same way you should want final say over whose company you tie your name to. It is not ranking you from above; it is both of us deciding we want this for years.</p>
+    </div>
+  </div>
+
+  <div class="quote amber">"Hitting the number opens the door. Walking through it is something we decide together."</div>
+
+  <div class="callout amber">
+    <div class="h">And if it doesn't lead to co-founder</div>
+    <p>Then nothing you've built goes away. You stay a Growth Partner and keep everything you've earned, your commission and your Track A equity, in full. The two phases are separate by design, so a "not now" on co-founder never costs you what you've already won.</p>
+  </div>
+
+  <div class="grid2" style="margin-top:6px">
+    <div class="card"><h3 style="color:var(--amber)">Vesting on the stake</h3><p style="font-size:13px; margin:0; color:var(--ink-2)">A fresh, standard co-founder schedule: <b style="color:var(--navy)">4 years, 1-year cliff</b>, counted from the promotion date, not backdated. Your trial-period work is already paid by Track A commission and equity.</p></div>
+    <div class="card"><h3 style="color:var(--amber)">What the 3 to 10% means</h3><p style="font-size:13px; margin:0; color:var(--ink-2)"><b style="color:var(--navy)">A share of Sydekyks at promotion</b> (pre-raise), diluting in future rounds, not a fixed figure forever. Real say comes here too: shareholders' agreement, decision rights, likely a board seat.</p></div>
+  </div>
+
+  <div class="pagefoot"><span>Sydekyks · An Invitation · Track B</span><span>08</span></div>
+</section>
+
+<!-- ============ HONESTY + PAPERED ============ -->
+<section class="page content">
+  <div class="kicker">The tension I won't hide</div>
+  <h2>Commission is the paycheck.<br>The equity is the dream.</h2>
+  <p>Because that final step comes down to mutual fit and not just a number, co-founder status is, by design, not guaranteed, and it should be. This cuts both ways: by the time we're having that conversation, you should be judging just as hard whether you want to tie yourself to me and this company for years. That honesty puts the weight on the near term: what you earn on Track A has to stand on its own, whether or not the co-founder conversation ever happens. So I'm keeping both real. None of this is only about money; the money just has to be honest before anything else can be. The commission is generous and fast because it's your actual income and because I'd rather respect your time than romanticize it. The 3 to 10% is a genuine, defined destination, not a carrot on a stick. If either were fake, "prove it and we'll talk" would just be a bait-and-switch, and I'm not interested in starting a relationship that way.</p>
+
+  <div class="callout dark">
+    <div class="h">The deal in one breath</div>
+    <p>Start on Track A. You're rewarded well and quickly for the deals you close, on a recurring commission that climbs to 40%, and you earn a stake as you prove yourself. If you perform <b>and</b> we fit as owners, there's a real path to a co-founder stake and a seat at the table. If not, you keep everything you earned and we both walk away clean, no hard feelings.</p>
+  </div>
+
+  <div class="sub-h">How we paper it, cleanly and early</div>
+  <ul class="princ">
+    <li><b>Everything in writing while we're both optimistic:</b> roles, decision rights, equity, vesting, and leaver terms, agreed up front, not left to a handshake.</li>
+    <li><b>Near-term structure:</b> the work runs through iBAS on a commission contract, with a one-page equity promise attached to the future Sydekyks entity, not to iBAS.</li>
+    <li><b>Formalities happen once,</b> at spin-out or first raise, when the actual shares and instruments are issued.</li>
+    <li><b>Sydekyks IP, brand, and platform stay cleanly owned and transferable</b> out of iBAS from the start, so the equity you're promised lives in the thing that actually grows.</li>
+  </ul>
+
+  <div class="pagefoot"><span>Sydekyks · An Invitation · The honest part</span><span>09</span></div>
+</section>
+
+<!-- ============ CLOSE ============ -->
+<section class="page content">
+  <div class="kicker">Next</div>
+  <h2>So, which one is actually you?</h2>
+  <p>You don't have to decide today. But it helps to know where your head is, because the conversation is different depending on the answer.</p>
+
+  <div class="grid2">
+    <div class="card" style="border-top:5px solid var(--teal-br)">
+      <div class="vhead" style="color:var(--teal)">If Track A excites you</div>
+      <p style="font-size:13.5px; margin:6px 0 0; color:var(--ink-2)">Let's talk about your network and where the fast deals are. The next step is simple: a commission agreement and a one-page equity promise, and you can start selling.</p>
+    </div>
+    <div class="card" style="border-top:5px solid var(--amber)">
+      <div class="vhead" style="color:var(--amber)">If you're already thinking Track B</div>
+      <p style="font-size:13.5px; margin:6px 0 0; color:var(--ink-2)">Good. But we still start you at the line, and I'll tell you exactly what Gate 1 looks like for you. Clear it, and we have the real conversation.</p>
+    </div>
+  </div>
+
+  <div class="cta">
+    <h2>Let's build something worth co-owning.</h2>
+    <p>Two waves are cresting together in a space nobody owns yet, the interest is already here, and it's early enough that the people who show up now help decide what it becomes. I've put the whole framework in writing so there are no surprises. If it's landing, let's find a time and go through it, person to person.</p>
+    <div class="contact">
+      <span>Email &nbsp;<b>rein@ibasuite.com</b></span>
+      <span>Let's talk &nbsp;<b>this week</b></span>
+    </div>
+  </div>
+
+  <p class="fnote">This document describes proposed terms for discussion only and is not an offer, contract, or guarantee of employment, engagement, equity, or co-founder status. All amounts, thresholds, and structures are indicative and subject to final written agreement and applicable legal and tax formalities.</p>
+
+  <div class="pagefoot"><span>Sydekyks · An Invitation · Confidential</span><span>10</span></div>
+</section>
+
+</body>
+</html>

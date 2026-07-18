@@ -37,7 +37,7 @@ class MirrorTenantSettings(Base):
 
 
 class MirrorFinding(Base):
-    """One bill Mirror checked — the audit log line + the dashboard/learning-loop store."""
+    """One bill Mirror checked - the audit log line + the dashboard/learning-loop store."""
 
     __tablename__ = "mirror_findings"
 

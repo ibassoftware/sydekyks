@@ -122,7 +122,7 @@ export default function AdminMissions() {
                     <div className="min-w-0">
                       <p className="truncate text-sm text-[#ede6da]">{m.document_filename ?? "document"}</p>
                       <p className="truncate text-xs text-[#8a7f6d]">
-                        {m.tenant_name ?? "—"} · {m.sydekyk_name ?? "—"} · {m.source ?? m.signal_type} ·{" "}
+                        {m.tenant_name ?? " - "} · {m.sydekyk_name ?? " - "} · {m.source ?? m.signal_type} ·{" "}
                         {new Date(m.created_at).toLocaleString()}
                       </p>
                     </div>
@@ -148,7 +148,7 @@ export default function AdminMissions() {
 
         {page && total > 0 && (
           <div className="mt-4 flex items-center justify-between text-sm text-[#8a7f6d]">
-            <span>{offset + 1}–{pageEnd} of {total}</span>
+            <span>{offset + 1}-{pageEnd} of {total}</span>
             <div className="flex gap-2">
               <Button variant="ghost" className="px-3 py-1.5 text-xs" disabled={offset === 0}
                 onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>Previous</Button>
@@ -162,7 +162,7 @@ export default function AdminMissions() {
   );
 }
 
-/** Admin detail view — unlike the tenant MissionDetailPanel, shows raw error text and has no
+/** Admin detail view - unlike the tenant MissionDetailPanel, shows raw error text and has no
  * Retry button (retry is a tenant-scoped action; admins direct the tenant to retry instead). */
 function AdminMissionDetail({ detail }: { detail: MissionDetail }) {
   return (
@@ -221,7 +221,7 @@ function AdminMissionDetail({ detail }: { detail: MissionDetail }) {
                   }`}
                 />
                 <span className="font-medium text-[#ede6da]">{s.step_key}</span>
-                <span className="text-[#8a7f6d]">— {s.status}</span>
+                <span className="text-[#8a7f6d]"> -  {s.status}</span>
               </div>
               {s.error_message && (
                 <pre className="ml-3.5 mt-1 whitespace-pre-wrap break-words rounded border border-red-900/30 bg-red-950/10 p-2 text-[11px] text-red-300">

@@ -5,7 +5,7 @@ import { Card } from "../../components/ui";
 import { AgentCardHeader } from "../../components/AgentCardHeader";
 import { useTenantCurrency } from "../../lib/useTenantCurrency";
 
-/** Signet dashboard card — a coverage view. Leads with the completion rate and median time-to-sign
+/** Signet dashboard card - a coverage view. Leads with the completion rate and median time-to-sign
  * (the wow metric), then what's in flight and at risk. */
 export function SignetInsightsSection({ initialData }: { initialData?: SignetInsights | null } = {}) {
   const currency = useTenantCurrency();

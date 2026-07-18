@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { LedgerDailyTrend } from "../../lib/api";
 
 // Status pair validated against the dark ink surface (OKLCH lightness band 0.48-0.67,
-// CVD deuteranopia ΔE 12.4 — see dataviz skill run). Reused, not eyeballed.
+// CVD deuteranopia ΔE 12.4 - see dataviz skill run). Reused, not eyeballed.
 const SUCCEEDED_COLOR = "#b3891c"; // gold-600
 const FAILED_COLOR = "#ef4444"; // red-500
 
@@ -18,7 +18,7 @@ function formatDay(iso: string): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
 }
 
-/** A rect with rounded top corners and a square baseline — the "data-end" spec applied only to
+/** A rect with rounded top corners and a square baseline - the "data-end" spec applied only to
  * the topmost segment of a stack (interior segments stay square; the surface gap separates them). */
 function TopRoundedRect({
   x, y, width, height, fill, roundTop = true,

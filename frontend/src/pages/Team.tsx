@@ -47,7 +47,8 @@ export default function Team() {
 
   return (
     <HQShell>
-      <main className="mx-auto max-w-5xl px-6 py-10">
+      <div className="hq-command-background min-h-screen">
+      <main className="relative mx-auto max-w-5xl px-6 py-10">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-gold-500">Team</p>
@@ -136,6 +137,7 @@ export default function Team() {
           )}
         </Card>
       </main>
+      </div>
     </HQShell>
   );
 }
@@ -183,8 +185,8 @@ function AddUserForm({ onCancel, onCreated }: { onCancel: () => void; onCreated:
             value={role}
             onChange={(e) => setRole(e.target.value)}
           >
-            <option value="hero">Hero — scoped to granted Sydekyks</option>
-            <option value="commander">Commander — full HQ access</option>
+            <option value="hero">Hero - scoped to granted Sydekyks</option>
+            <option value="commander">Commander - full HQ access</option>
           </select>
         </div>
         {error && <p className="md:col-span-3 text-sm text-red-400">{error}</p>}

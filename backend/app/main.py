@@ -2,8 +2,10 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 
 from app.core.config import settings
 from app.routers import (
@@ -22,6 +24,7 @@ from app.routers import (
     tenant,
 )
 from app.sydekyks import collect_routers
+from app.services import system_incidents
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -57,6 +60,45 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="Sydekyks API", lifespan=lifespan)
+
+
+@app.middleware("http")
+async def capture_failure_responses(request: Request, call_next):
+    """HTTPExceptions are converted to responses before the catch-all handler sees them.
+
+    Recording explicit 5xx responses here closes that observability gap. Unhandled exceptions are
+    recorded by the handler below with their original traceback.
+    """
+    response = await call_next(request)
+    if response.status_code >= 500 and not getattr(request.state, "incident_logged", False):
+        request.state.incident_logged = True
+        await run_in_threadpool(
+            system_incidents.record_failure,
+            source="api",
+            method=request.method,
+            path=request.url.path,
+            status_code=response.status_code,
+            error_type="HTTPErrorResponse",
+            message=f"{request.method} {request.url.path} returned HTTP {response.status_code}",
+        )
+    return response
+
+
+@app.exception_handler(Exception)
+async def capture_unhandled_exception(request: Request, exc: Exception):
+    request.state.incident_logged = True
+    incident_id = await run_in_threadpool(
+        system_incidents.record_exception,
+        exc,
+        source="api",
+        method=request.method,
+        path=request.url.path,
+        status_code=500,
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An unexpected system failure was recorded for Command Center review.", "incident_id": str(incident_id)},
+    )
 
 app.add_middleware(
     CORSMiddleware,

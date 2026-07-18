@@ -1,7 +1,7 @@
 """Ledger's own seed logic, run generically by the discovery loop in app/seed.py.
 
 The shared seed still creates Ledger's *base* catalog row (name/slug/avatar). This adds the
-capability flags + playbook_key + gadget requirements idempotently — everything Ledger-owned.
+capability flags + playbook_key + gadget requirements idempotently - everything Ledger-owned.
 """
 
 from sqlalchemy.orm import Session

@@ -1,4 +1,4 @@
-"""Scout scoring helpers — clamp the AI score and map it to Odoo's priority (Evaluation) stars.
+"""Scout scoring helpers - clamp the AI score and map it to Odoo's priority (Evaluation) stars.
 Kept small and deterministic so the score→stars mapping is auditable and tunable."""
 
 

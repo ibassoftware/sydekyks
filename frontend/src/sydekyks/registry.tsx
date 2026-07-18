@@ -33,7 +33,7 @@ import { SignetSettingsSection } from "./signet/SignetSettingsSection";
 import { SignetOperationsSection } from "./signet/SignetOperationsSection";
 import { SignetMissionSummary } from "./signet/SignetMissionSummary";
 
-/** VS-9: a deliberately plain per-Sydekyk UI registry — mirrors the backend's per-Sydekyk package
+/** VS-9: a deliberately plain per-Sydekyk UI registry - mirrors the backend's per-Sydekyk package
  * structure. No dynamic imports, no plugin framework; it just lets a Sydekyk provide optional UI so
  * shared files (SydekykDetail, DocumentIntakeSection) stay generic. Grow the shape at Sydekyk #2. */
 export interface SydekykSetupProps {
@@ -56,7 +56,7 @@ export interface UploadContextProps {
   onChange: (v: Record<string, unknown>) => void;
 }
 
-/** The headline a Mission row shows instead of the raw filename — the business object the Mission
+/** The headline a Mission row shows instead of the raw filename - the business object the Mission
  * produced (a bill, an applicant). `muted` marks a fallback (still processing, or the document was
  * rejected, e.g. "not a résumé") so the row can render it subdued. */
 export interface MissionRowLabel {
@@ -64,7 +64,7 @@ export interface MissionRowLabel {
   muted?: boolean;
 }
 
-/** The minimal Mission shape the row-label builders read — satisfied by both a full `Mission` (list
+/** The minimal Mission shape the row-label builders read - satisfied by both a full `Mission` (list
  * rows) and a `MissionReviewItem` (the Issues review rows), so both surfaces share one headline. */
 export interface RowLabelInput {
   id?: string; // used to vary the leading verb deterministically (stable per mission)
@@ -85,13 +85,16 @@ export const FUNCTION_GROUPS: { key: FunctionGroup; label: string }[] = [
 
 export interface SydekykRegistryEntry {
   setupSection?: ComponentType<SydekykSetupProps>;
+  /** The setup component supplies its own Card surfaces and should participate directly in the
+   * Settings grid instead of being wrapped in one full-width Card. */
+  setupSectionOwnsLayout?: boolean;
   playbookPanel?: ComponentType;
   missionSummary?: ComponentType<{ summary: Record<string, unknown> }>;
   uploadContext?: ComponentType<UploadContextProps>;
   /** Domain tints the Mission row: HR Sydekyks (Decode/Scout) get a bluish hue; accounting (Ledger)
    * uses the default. */
   domain?: "hr";
-  /** The business function this Sydekyk serves — used to group the roster by department
+  /** The business function this Sydekyk serves - used to group the roster by department
    * (Sales · Accounting · HR). */
   functionGroup?: FunctionGroup;
   /** The business-meaningful row headline (falls back to the filename when absent). */
@@ -100,7 +103,7 @@ export interface SydekykRegistryEntry {
   operationsPanel?: ComponentType<OperationsProps>;
   /** What a needs-review item is called for this Sydekyk (Ledger: bill, Decode: applicant). */
   reviewNoun?: { one: string; many: string };
-  /** Hide the shared "Review Assignment" section — for Sydekyks that never auto-flag a record for
+  /** Hide the shared "Review Assignment" section - for Sydekyks that never auto-flag a record for
    * review (e.g. Quill, which authors documents rather than triaging records). */
   hideReviewerAssignment?: boolean;
 }
@@ -123,7 +126,7 @@ const QUILL_VERBS = ["Drafted", "Wrote", "Composed", "Authored", "Produced", "Pr
 const SEAL_VERBS = ["Drafted", "Wrote", "Prepared", "Composed", "Authored", "Produced"];
 
 /** Fallback headline when a Mission produced no business object yet (queued/running) or was rejected
- * (failed) — the friendly error already reads like "This doesn't look like a résumé…". */
+ * (failed) - the friendly error already reads like "This doesn't look like a résumé…". */
 function fallbackRowLabel(m: RowLabelInput): MissionRowLabel {
   if (m.status === "failed" && m.error_message) return { title: m.error_message, muted: true };
   return { title: m.document_filename ?? "Processing…", muted: true };
@@ -198,10 +201,11 @@ function nudgeRowLabel(m: RowLabelInput): MissionRowLabel {
   const opp = s.opp_name as string | undefined;
   if (!opp) return fallbackRowLabel(m);
   const skipped = s.skipped as string | undefined;
-  if (skipped === "snoozed") return { title: `Left ${opp} alone — paused deal`, muted: true };
-  if (skipped === "cadence") return { title: `Held off on ${opp} — nudged recently`, muted: true };
-  if (skipped === "future_activity") return { title: `${opp} — next touch already scheduled`, muted: true };
-  if (s.stale === false) return { title: `${opp} — still fresh, no nudge needed`, muted: true };
+  if (skipped === "snoozed") return { title: `Left ${opp} alone - paused deal`, muted: true };
+  if (skipped === "odoo_tag") return { title: `Left ${opp} alone - tagged to skip`, muted: true };
+  if (skipped === "cadence") return { title: `Held off on ${opp} - nudged recently`, muted: true };
+  if (skipped === "future_activity") return { title: `${opp} - next touch already scheduled`, muted: true };
+  if (s.stale === false) return { title: `${opp} - still fresh, no nudge needed`, muted: true };
   const verb = pick(NUDGE_VERBS, m.id);
   const days = typeof s.days_stale === "number" ? ` · silent ${s.days_stale as number}d` : "";
   return { title: `${verb} ${opp}${days}` };
@@ -251,6 +255,7 @@ function signetRowLabel(m: RowLabelInput): MissionRowLabel {
 const BY_SLUG: Record<string, SydekykRegistryEntry> = {
   quill: {
     setupSection: QuillSettingsSection,
+    setupSectionOwnsLayout: true,
     operationsPanel: QuillOperationsSection,
     missionSummary: QuillMissionSummary,
     missionRowLabel: quillRowLabel,
@@ -260,6 +265,7 @@ const BY_SLUG: Record<string, SydekykRegistryEntry> = {
   },
   seal: {
     setupSection: SealSettingsSection,
+    setupSectionOwnsLayout: true,
     operationsPanel: SealOperationsSection,
     missionSummary: SealMissionSummary,
     missionRowLabel: sealRowLabel,
@@ -269,6 +275,7 @@ const BY_SLUG: Record<string, SydekykRegistryEntry> = {
   },
   signet: {
     setupSection: SignetSettingsSection,
+    setupSectionOwnsLayout: true,
     operationsPanel: SignetOperationsSection,
     missionSummary: SignetMissionSummary,
     missionRowLabel: signetRowLabel,
@@ -278,6 +285,7 @@ const BY_SLUG: Record<string, SydekykRegistryEntry> = {
   },
   nudge: {
     setupSection: NudgeSettingsSection,
+    setupSectionOwnsLayout: true,
     playbookPanel: NudgePlaybookPanel,
     missionSummary: NudgeMissionSummary,
     operationsPanel: NudgeOperationsSection,
@@ -287,6 +295,7 @@ const BY_SLUG: Record<string, SydekykRegistryEntry> = {
   },
   ledger: {
     setupSection: LedgerSettingsSection,
+    setupSectionOwnsLayout: true,
     playbookPanel: LedgerPlaybookPanel,
     missionSummary: LedgerMissionSummary,
     missionRowLabel: ledgerRowLabel,
@@ -295,6 +304,7 @@ const BY_SLUG: Record<string, SydekykRegistryEntry> = {
   },
   decode: {
     setupSection: DecodeSettingsSection,
+    setupSectionOwnsLayout: true,
     playbookPanel: DecodePlaybookPanel,
     missionSummary: DecodeMissionSummary,
     uploadContext: DecodeUploadContext,
@@ -305,6 +315,7 @@ const BY_SLUG: Record<string, SydekykRegistryEntry> = {
   },
   scout: {
     setupSection: ScoutSettingsSection,
+    setupSectionOwnsLayout: true,
     playbookPanel: ScoutPlaybookPanel,
     missionSummary: ScoutMissionSummary,
     operationsPanel: ScoutOperationsSection,
@@ -314,6 +325,7 @@ const BY_SLUG: Record<string, SydekykRegistryEntry> = {
   },
   mirror: {
     setupSection: MirrorSettingsSection,
+    setupSectionOwnsLayout: true,
     playbookPanel: MirrorPlaybookPanel,
     missionSummary: MirrorMissionSummary,
     operationsPanel: MirrorOperationsSection,
@@ -323,6 +335,7 @@ const BY_SLUG: Record<string, SydekykRegistryEntry> = {
   },
   shield: {
     setupSection: ShieldSettingsSection,
+    setupSectionOwnsLayout: true,
     playbookPanel: ShieldPlaybookPanel,
     missionSummary: ShieldMissionSummary,
     operationsPanel: ShieldOperationsSection,

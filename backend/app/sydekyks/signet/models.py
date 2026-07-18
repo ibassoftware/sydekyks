@@ -34,7 +34,7 @@ class SignetTenantSettings(Base):
 
 
 class SignetAsset(Base):
-    """PDF bytes in Postgres (mirrors Seal's asset boundary) — an envelope's source document and, once
+    """PDF bytes in Postgres (mirrors Seal's asset boundary) - an envelope's source document and, once
     everyone has signed, the assembled signed PDF. `kind` distinguishes them."""
 
     __tablename__ = "signet_assets"
@@ -95,7 +95,7 @@ class SignetEnvelope(Base):
 class SignetSigner(Base):
     """One signatory on an envelope. The signing link carries a high-entropy raw token; we store only
     its sha256 `token_hash` (for public lookup) plus a Fernet-encrypted copy (so reminders can rebuild
-    the same link) — the raw token is never persisted in the clear."""
+    the same link) - the raw token is never persisted in the clear."""
 
     __tablename__ = "signet_signers"
 
@@ -124,7 +124,7 @@ class SignetSigner(Base):
 
 
 class SignetEvent(Base):
-    """Append-only audit trail for an envelope — powers the signer certificate and the status drawer."""
+    """Append-only audit trail for an envelope - powers the signer certificate and the status drawer."""
 
     __tablename__ = "signet_events"
 

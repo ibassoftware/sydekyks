@@ -16,11 +16,11 @@ export interface SeoProps {
   /** Full <title> text (caller decides branding suffix). */
   title: string;
   description: string;
-  /** Route path, e.g. "/" or "/sydekyks/ledger" — used to build the canonical + og:url. */
+  /** Route path, e.g. "/" or "/sydekyks/ledger" - used to build the canonical + og:url. */
   path: string;
   /** OG/Twitter image path or absolute URL (defaults to the site share image). */
   image?: string;
-  /** OG type — "website" for the landing, "article" for a Sydekyk page. */
+  /** OG type - "website" for the landing, "article" for a Sydekyk page. */
   type?: "website" | "article";
   /** Optional JSON-LD structured-data object(s) to inject. */
   jsonLd?: object | object[];

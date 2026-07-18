@@ -1,4 +1,4 @@
-"""Decode readiness checklist — mirrors the playbook's runtime gates (AI engine, Odoo assignment/
+"""Decode readiness checklist - mirrors the playbook's runtime gates (AI engine, Odoo assignment/
 connection) so gaps surface before a résumé is processed. Reuses the generic gadget resolver."""
 
 import uuid

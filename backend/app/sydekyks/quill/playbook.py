@@ -1,15 +1,15 @@
-"""Quill's playbooks — proposal drafting + conversational refinement.
+"""Quill's playbooks - proposal drafting + conversational refinement.
 
 Two playbook keys, both driven by queued Missions and observed through the shared Mission SSE
 endpoint. Both are metered the standard way (usage_guard pre-flight + emit_usage), so every token
 flows through the shared UsageRecord ledger:
 
-  - ``quill.draft``  — turn a template + the rep's notes (+ optional grounded Odoo opportunity facts)
+  - ``quill.draft``  - turn a template + the rep's notes (+ optional grounded Odoo opportunity facts)
                        into a polished HTML proposal.
-  - ``quill.refine`` — the "Ask Quill" co-editing turn: rewrite the current proposal HTML per the
+  - ``quill.refine`` - the "Ask Quill" co-editing turn: rewrite the current proposal HTML per the
                        rep's instruction, and append the user + assistant turns to the chat store.
 
-Quill never sends anything to a customer — it drafts. Odoo is entirely optional.
+Quill never sends anything to a customer - it drafts. Odoo is entirely optional.
 """
 
 from datetime import datetime, timezone
@@ -34,10 +34,10 @@ PLAYBOOK_STEPS = [
      "likely_failures": "The proposal or template was deleted."},
     {"key": "ground_facts", "title": "Pull grounded facts (optional)",
      "description": "If an Odoo opportunity is linked, read its customer/amount facts to ground the draft.",
-     "likely_failures": "None fatal — Quill drafts from notes alone when Odoo isn't connected."},
+     "likely_failures": "None fatal - Quill drafts from notes alone when Odoo isn't connected."},
     {"key": "check_quota", "title": "Check AI allowance",
      "description": "Confirm the tenant is within its monthly AI-token budget before spending tokens.",
-     "likely_failures": "Monthly token allowance reached — try again after it resets."},
+     "likely_failures": "Monthly token allowance reached - try again after it resets."},
     {"key": "generate", "title": "Write the proposal",
      "description": "AI writes (or revises) the proposal as clean HTML, grounded in the supplied facts.",
      "likely_failures": "No AI engine configured, or the model returned an unusable response."},
@@ -134,7 +134,7 @@ def run_draft(db: Session, mission: Mission) -> None:
     if llm is None:
         record_step(db, mission, idx, "check_quota", "internal", "failed", error="No AI engine configured")
         _finish(db, mission, "failed", {"proposal_id": str(proposal.id)},
-                "No AI engine configured for Quill — set one in AI Engine settings.", failure_category="setup")
+                "No AI engine configured for Quill - set one in AI Engine settings.", failure_category="setup")
         return
     allowed, deny = usage_guard.check_allowed(db, mission.tenant_id, mission.sydekyk_id, model_alias)
     if not allowed:

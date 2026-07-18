@@ -1,4 +1,4 @@
-"""Quill's package seed — sets the playbook_key + an OPTIONAL Odoo gadget requirement on the base
+"""Quill's package seed - sets the playbook_key + an OPTIONAL Odoo gadget requirement on the base
 Quill catalog row (created by app/seed.py), and seeds a couple of built-in starter templates so a new
 tenant isn't staring at a blank editor. Quill accepts no document uploads (it authors, not ingests)."""
 
@@ -34,7 +34,7 @@ _BUILTIN_TEMPLATES = [
         "name": "Services statement of work",
         "format": "md",
         "body": (
-            "# Statement of Work — [confirm client]\n\n"
+            "# Statement of Work - [confirm client]\n\n"
             "## Background\n[confirm background]\n\n"
             "## Deliverables\n- [confirm deliverable]\n\n"
             "## Milestones & timeline\n| Milestone | Date |\n|---|---|\n| [milestone] | [date] |\n\n"

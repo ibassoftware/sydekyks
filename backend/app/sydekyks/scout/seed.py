@@ -1,4 +1,4 @@
-"""Scout's package seed — sets playbook_key + the Odoo (erp) gadget requirement on the base Scout
+"""Scout's package seed - sets playbook_key + the Odoo (erp) gadget requirement on the base Scout
 Sydekyk catalog row. No email/upload trigger, so no inbox requirement and no accepts_document_uploads.
 """
 

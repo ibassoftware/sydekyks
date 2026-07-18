@@ -3,7 +3,7 @@ import { api, type TenantSettings } from "./api";
 
 /** The tenant's reporting currency, loaded once and shared across every card (module-level cache +
  * in-flight dedupe). It's the display currency for the whole dashboard and the wage inputs in agent
- * settings. Amounts are NOT FX-converted — a tenant's Odoo is single-currency and should match this.
+ * settings. Amounts are NOT FX-converted - a tenant's Odoo is single-currency and should match this.
  * Defaults to "USD". */
 let cache: string | null = null;
 let inflight: Promise<string> | null = null;
@@ -26,7 +26,7 @@ function load(): Promise<string> {
   return inflight;
 }
 
-/** Push a freshly-saved value so every mounted card re-renders immediately — no page reload. */
+/** Push a freshly-saved value so every mounted card re-renders immediately - no page reload. */
 export function setTenantCurrency(code: string) {
   cache = code;
   subscribers.forEach((fn) => fn(code));

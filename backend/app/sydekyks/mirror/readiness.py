@@ -1,4 +1,4 @@
-"""Mirror readiness — Odoo is required; the AI engine is OPTIONAL (only used to confirm ambiguous
+"""Mirror readiness - Odoo is required; the AI engine is OPTIONAL (only used to confirm ambiguous
 same-amount/different-reference duplicates by their line items, so Mirror still runs without it)."""
 
 import uuid

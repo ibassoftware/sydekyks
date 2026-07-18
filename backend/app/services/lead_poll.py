@@ -24,6 +24,7 @@ MAX_LIMIT = 30
 async def enqueue_stale_opportunities(
     db: Session, *, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID, store_model, snooze_model,
     cadence_days: int, min_stale_days: int, limit: int = 30,
+    skip_tag_name: str = "Nudge-skip",
 ) -> tuple[int, dict | None]:
     """Enqueue a Mission per candidate opp that needs a closer look (≤30). `store_model`/`snooze_model`
     are Nudge's finding + snooze tables — used to skip recently-nudged and snoozed opps.
@@ -52,7 +53,8 @@ async def enqueue_stale_opportunities(
     won_ids = await asyncio.to_thread(odoo_crm.won_stage_ids, client)
     open_total = await asyncio.to_thread(odoo_crm.count_open_opportunities, client, won_ids=won_ids)
     scheduled = await asyncio.to_thread(odoo_crm.count_scheduled_opportunities, client, won_ids=won_ids)
-    breakdown = {"open_total": open_total, "scheduled": scheduled, "snoozed": 0, "recently_nudged": 0, "enqueued": 0}
+    breakdown = {"open_total": open_total, "scheduled": scheduled, "tagged_skip": 0,
+                 "snoozed": 0, "recently_nudged": 0, "enqueued": 0}
 
     cutoff = (datetime.now(timezone.utc) - timedelta(days=max(1, min_stale_days))).strftime("%Y-%m-%d %H:%M:%S")
     candidates = await asyncio.to_thread(
@@ -60,6 +62,7 @@ async def enqueue_stale_opportunities(
     )
     if not candidates:
         return 0, breakdown
+    skip_tag_id = await asyncio.to_thread(odoo_crm.tag_id_by_name, client, skip_tag_name) if skip_tag_name else None
 
     # Snoozed / whitelisted (snooze_until null = forever, else still in the future).
     today = date.today()
@@ -82,6 +85,9 @@ async def enqueue_stale_opportunities(
 
     count = 0
     for opp in candidates:
+        if skip_tag_id is not None and skip_tag_id in (opp.get("tag_ids") or []):
+            breakdown["tagged_skip"] += 1
+            continue
         if opp["id"] in snoozed:
             breakdown["snoozed"] += 1
             continue

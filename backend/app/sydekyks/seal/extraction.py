@@ -1,4 +1,4 @@
-"""Seal's AI steps — the parts that need a model.
+"""Seal's AI steps - the parts that need a model.
 
 `generate_contract_stream` turns a template + the drafter's brief (+ optional grounded Odoo facts) into
 a polished HTML contract. `refine_contract` is the "Ask Seal" co-editing turn. `review_contract` is the
@@ -12,7 +12,7 @@ stay buffered on `vision_ai.llm_completion` because their outputs are structured
 
 Grounding discipline (§12): every factual claim about a party must trace to a fact we passed in; if a
 fact isn't supplied, the draft says "confirm" rather than inventing. For review, every finding must
-quote real clause text — the router drops any finding whose anchor can't be located in the source.
+quote real clause text - the router drops any finding whose anchor can't be located in the source.
 """
 
 from app.services import vision_ai
@@ -35,12 +35,12 @@ REVIEW_CATEGORIES = {
 REVIEW_SEVERITIES = {"high", "medium", "low"}
 
 _GENERATE_TEMPLATE = """You are Seal, a contract writer. Produce a clean, professional contract as \
-semantic HTML (a document fragment — a title, numbered clause headings, paragraphs, lists, and a \
+semantic HTML (a document fragment - a title, numbered clause headings, paragraphs, lists, and a \
 simple table where useful; NO <html>/<head>/<body> wrapper, no inline styles, no markdown fences).
 
 Use the TEMPLATE below as the structure and legal tone to follow, and fill it out from the drafter's \
 BRIEF. Only state facts about the parties (names, dates, amounts, governing law, term) that appear in \
-the BRIEF or GROUNDED FACTS; never invent them — where a detail is missing, write a clear \
+the BRIEF or GROUNDED FACTS; never invent them - where a detail is missing, write a clear \
 "[confirm …]" placeholder. Keep standard protective clauses that the template implies.
 
 TEMPLATE ({template_format}):
@@ -49,17 +49,17 @@ TEMPLATE ({template_format}):
 BRIEF FROM THE DRAFTER:
 {notes}
 
-GROUNDED FACTS (from Odoo — authoritative, may be empty):
+GROUNDED FACTS (from Odoo - authoritative, may be empty):
 {facts}
 
-Respond with ONLY the contract itself as an HTML fragment — begin with a single <h1> holding a short \
+Respond with ONLY the contract itself as an HTML fragment - begin with a single <h1> holding a short \
 contract title, then the clauses. No JSON, no <html>/<head>/<body> wrapper, no markdown fences, and no \
 commentary before or after the fragment."""
 
 
 _REFINE_TEMPLATE = """You are Seal, editing an in-progress contract for a drafter. You are given the \
 CURRENT contract HTML and the drafter's INSTRUCTION. Return the FULL updated HTML fragment with the \
-requested change applied — change only what's asked, and preserve everything else exactly: existing \
+requested change applied - change only what's asked, and preserve everything else exactly: existing \
 clause structure, wording you weren't asked to touch, and especially any images (keep every \
 <img src="/api/tenant/seal/assets/..."> tag intact). No <html>/<body> wrapper, no markdown fences, \
 no invented facts.
@@ -79,7 +79,7 @@ Respond with ONLY a JSON object (no prose, no markdown fences):
 
 _REVIEW_TEMPLATE = """You are Seal, a contract reviewer acting for the party identified in the review \
 guidelines. Read the CONTRACT clause-by-clause and surface risky, one-sided, or missing clauses. You \
-FLAG and SUGGEST — you never rewrite the document yourself; a human accepts or rejects each finding.
+FLAG and SUGGEST - you never rewrite the document yourself; a human accepts or rejects each finding.
 
 Ground your judgment in the tenant's REVIEW GUIDELINES (their standard positions and risk tolerance). \
 For every finding you MUST quote the exact offending clause text from the contract in "clause_anchor" \
@@ -126,7 +126,7 @@ def generate_contract_stream(
     `(ok, msg, {html, title, counterparty} | None, meta)` once the full HTML fragment is assembled.
     Title is derived from the leading heading; counterparty is grounded by the playbook, not the model."""
     prompt = _GENERATE_TEMPLATE.format(
-        template=(template_body or "(no template — use a standard contract structure)").strip(),
+        template=(template_body or "(no template - use a standard contract structure)").strip(),
         template_format=template_format or "html",
         notes=(notes or "(no brief supplied)").strip(),
         facts=_fmt_facts(facts),
@@ -139,7 +139,7 @@ def generate_contract_stream(
                 on_delta(event["text"])
         elif event["type"] == "error":
             return False, event["msg"], None, event["meta"]
-        else:  # done — full assembled text + usage/cost meta
+        else:  # done - full assembled text + usage/cost meta
             html, meta = event["text"], event["meta"]
 
     html = vision_ai.strip_code_fences(html)
@@ -167,10 +167,10 @@ def refine_contract(virtual_key, model_alias, *, current_html, message, history=
 
 def review_contract(virtual_key, model_alias, *, contract_text, guidelines, timeout: float = 240.0):
     """Returns (ok, msg, [finding, ...] | None, meta). Findings are validated against the category and
-    severity sets; anything outside them is coerced to `other` / `low` rather than dropped here — the
+    severity sets; anything outside them is coerced to `other` / `low` rather than dropped here - the
     router drops findings whose non-empty anchor can't be located in the source."""
     prompt = _REVIEW_TEMPLATE.format(
-        guidelines=(guidelines or "(no guidelines supplied — apply standard commercial-contract best practice)").strip(),
+        guidelines=(guidelines or "(no guidelines supplied - apply standard commercial-contract best practice)").strip(),
         contract=(contract_text or "(empty document)").strip(),
     )
     ok, msg, raw, meta = vision_ai.llm_completion(virtual_key, model_alias, prompt, [], timeout)

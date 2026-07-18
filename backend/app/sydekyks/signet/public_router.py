@@ -1,4 +1,4 @@
-"""Public, unauthenticated signing endpoints — a signer opens the emailed link, views the document, and
+"""Public, unauthenticated signing endpoints - a signer opens the emailed link, views the document, and
 signs, with no login. Modeled on the inbound email webhook (app/routers/email_webhook.py): the router
 declares NO auth dependency and self-authenticates by validating the opaque per-signer token in
 constant time, with a per-process IP rate limiter to blunt floods. Errors are deliberately generic so
@@ -46,7 +46,7 @@ def _guard(request: Request):
 
 
 def _lookup(db: Session, token: str):
-    """(signer, envelope) or a 404 — generic message so we never disclose token/tenant existence."""
+    """(signer, envelope) or a 404 - generic message so we never disclose token/tenant existence."""
     signer = service.find_signer_by_raw_token(db, token)
     if signer is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="This signing link is not valid.")
@@ -115,7 +115,7 @@ def sign(token: str, payload: SignIn, request: Request, db: Session = Depends(ge
         active = service.recipients_for_send(db, envelope)
         if active and active[0].id != signer.id:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT,
-                                detail="It isn't your turn to sign yet — you'll be emailed when it is.")
+                                detail="It isn't your turn to sign yet - you'll be emailed when it is.")
 
     image = _decode_signature_image(payload.signature_image_data_uri)
     service.record_signature(db, envelope, signer, signature_name=payload.signature_name, signature_image=image, ip=ip)
@@ -123,8 +123,8 @@ def sign(token: str, payload: SignIn, request: Request, db: Session = Depends(ge
     service.advance_or_complete(db, envelope, sender=sender)
     db.refresh(envelope)
     if envelope.status == "completed":
-        return PublicResultOut(status="completed", message="Thank you — the document is now fully signed.")
-    return PublicResultOut(status="signed", message="Thank you — your signature has been recorded.")
+        return PublicResultOut(status="completed", message="Thank you - the document is now fully signed.")
+    return PublicResultOut(status="signed", message="Thank you - your signature has been recorded.")
 
 
 @router.post("/{token}/decline", response_model=PublicResultOut)

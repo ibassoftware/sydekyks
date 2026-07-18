@@ -1,4 +1,4 @@
-"""Signed-PDF assembly — stamp a signature page onto the source document and append a signing
+"""Signed-PDF assembly - stamp a signature page onto the source document and append a signing
 certificate (who signed, when, from where). WeasyPrint + pypdf, imported lazily so package discovery
 never needs the native libraries; only an actual completion does.
 """
@@ -22,7 +22,7 @@ th { background: #1e3a5f; color: #fff; }
 
 
 def _fmt(dt: datetime | None) -> str:
-    return dt.strftime("%Y-%m-%d %H:%M UTC") if dt else "—"
+    return dt.strftime("%Y-%m-%d %H:%M UTC") if dt else " - "
 
 
 def build_certificate_html(*, title: str, signers: list[dict], completed_at: datetime | None) -> str:
@@ -36,7 +36,7 @@ def build_certificate_html(*, title: str, signers: list[dict], completed_at: dat
             f"<td>{_html.escape(s.get('name') or '')}<br><span class='muted'>{_html.escape(s.get('email') or '')}</span></td>"
             f"<td>{sig_cell}</td>"
             f"<td>{_fmt(s.get('signed_at'))}</td>"
-            f"<td class='muted'>{_html.escape(s.get('ip') or '—')}</td>"
+            f"<td class='muted'>{_html.escape(s.get('ip') or ' - ')}</td>"
             "</tr>"
         )
     table = (

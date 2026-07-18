@@ -6,7 +6,7 @@ import { Button, Input, Label, Modal } from "../../components/ui";
 import { toast } from "../../lib/toast";
 import type { OperationsProps } from "../registry";
 
-/** Seal's operations panel — the workbench entry point. Create a contract (blank or from a template)
+/** Seal's operations panel - the workbench entry point. Create a contract (blank or from a template)
  * and jump into the editor, import a counterparty contract to review, and reopen recent contracts. */
 export function SealOperationsSection({ canManage }: OperationsProps) {
   const navigate = useNavigate();
@@ -38,7 +38,7 @@ export function SealOperationsSection({ canManage }: OperationsProps) {
             const html = await marked.parse(tpl.data.body);
             await api.put(`/tenant/seal/contracts/${r.data.id}`, { content_html: html });
           }
-        } catch { /* non-fatal — Generate can fill it from the template */ }
+        } catch { /* non-fatal - Generate can fill it from the template */ }
       }
       navigate(`/hq/seal/editor/${r.data.id}`);
     } finally {
@@ -53,11 +53,11 @@ export function SealOperationsSection({ canManage }: OperationsProps) {
       const form = new FormData();
       form.append("file", file);
       await api.post<{ contract: SealContract }>(`/tenant/seal/contracts/${created.data.id}/import`, form);
-      toast.success("Imported — opening for review");
+      toast.success("Imported - opening for review");
       navigate(`/hq/seal/editor/${created.data.id}`);
     } catch (e) {
       const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      toast.error(detail || "Couldn't import that file — try pasting the text instead.");
+      toast.error(detail || "Couldn't import that file - try pasting the text instead.");
     } finally {
       setImporting(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -99,7 +99,7 @@ export function SealOperationsSection({ canManage }: OperationsProps) {
         {!page ? (
           <p className="mt-2 text-sm text-[#8a7f6d]">Loading…</p>
         ) : page.items.length === 0 ? (
-          <p className="mt-2 text-sm text-[#8a7f6d]">No contracts yet — create one to get started.</p>
+          <p className="mt-2 text-sm text-[#8a7f6d]">No contracts yet - create one to get started.</p>
         ) : (
           <div className="mt-2 grid gap-2">
             {page.items.map((c) => (
@@ -107,7 +107,7 @@ export function SealOperationsSection({ canManage }: OperationsProps) {
                 <button onClick={() => navigate(`/hq/seal/editor/${c.id}`)} className="min-w-0 flex-1 text-left">
                   <span className="text-sm text-[#ede6da]">{c.title}</span>
                   {c.counterparty_name && <span className="ml-2 text-xs text-[#8a7f6d]">· {c.counterparty_name}</span>}
-                  {page.sees_all && c.owned_by && <span className="ml-2 text-[11px] text-[#7a7060]">— {c.owned_by}</span>}
+                  {page.sees_all && c.owned_by && <span className="ml-2 text-[11px] text-[#7a7060]"> -  {c.owned_by}</span>}
                 </button>
                 {c.open_findings > 0 && <span className="rounded-full border border-amber-500/50 bg-amber-500/10 px-2 py-0.5 text-[11px] text-amber-200">{c.open_findings} open</span>}
                 <span className={`rounded-full border px-2 py-0.5 text-[11px] ${c.status === "final" ? "border-gold-600/50 bg-gold-500/10 text-gold-300" : "border-ink-600 bg-ink-800/60 text-[#b9ad98]"}`}>{c.status}</span>
@@ -184,7 +184,7 @@ function TemplatesManager({ canManage, onClose }: { canManage: boolean; onClose:
             ))}
           </div>
           <div className="overflow-y-auto p-4">
-            {editingBuiltin && <p className="mb-3 rounded-md border border-gold-700/40 bg-gold-500/[0.06] px-3 py-2 text-xs text-gold-200">Built-in template — read-only. Edit the name/body and “Save as new” to make your own editable copy.</p>}
+            {editingBuiltin && <p className="mb-3 rounded-md border border-gold-700/40 bg-gold-500/[0.06] px-3 py-2 text-xs text-gold-200">Built-in template - read-only. Edit the name/body and “Save as new” to make your own editable copy.</p>}
             <div className="grid gap-3">
               <div className="grid grid-cols-[1fr_auto] gap-3">
                 <div>
@@ -202,7 +202,7 @@ function TemplatesManager({ canManage, onClose }: { canManage: boolean; onClose:
               <div>
                 <Label>Body ({format === "md" ? "Markdown" : "HTML"})</Label>
                 <textarea value={body} disabled={!canManage} onChange={(e) => setBody(e.target.value)} rows={14} placeholder={format === "md" ? "# Service Agreement\n\n## 1. Services\n…" : "<h1>Service Agreement</h1>\n<p>…</p>"} className="w-full rounded-md border border-ink-600 bg-ink-900 px-3 py-2 font-mono text-xs text-[#ede6da] outline-none focus:border-gold-500" />
-                <p className="mt-1 text-[11px] text-[#8a7f6d]">Use bracketed placeholders like [confirm client] — Seal fills them from your brief when drafting.</p>
+                <p className="mt-1 text-[11px] text-[#8a7f6d]">Use bracketed placeholders like [confirm client] - Seal fills them from your brief when drafting.</p>
               </div>
               {canManage && (
                 <div className="flex items-center gap-2">

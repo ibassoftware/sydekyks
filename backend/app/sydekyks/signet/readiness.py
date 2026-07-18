@@ -1,4 +1,4 @@
-"""Signet readiness — outbound email is REQUIRED (that's how signers are invited): the Postmark server
+"""Signet readiness - outbound email is REQUIRED (that's how signers are invited): the Postmark server
 token must be set. Seal must be installed (Signet signs Seal's contracts; auto-installed on first use).
 The AI engine is OPTIONAL (only used for AI-written email copy); Odoo is OPTIONAL (attach the signed PDF
 back to a record).
@@ -40,7 +40,7 @@ def compute_readiness(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) 
         items.append(_item("seal_installed", "Seal (contract agent)", "ok", "Installed", None, None))
     else:
         items.append(_item("seal_installed", "Seal (contract agent)", "warn",
-                           "Signet signs contracts authored in Seal — it's installed automatically when you send.",
+                           "Signet signs contracts authored in Seal - it's installed automatically when you send.",
                            "Open Seal", None))
 
     llm = (

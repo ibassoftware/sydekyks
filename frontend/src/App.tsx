@@ -31,7 +31,7 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/sydekyks/:slug" element={<SydekykShowcase />} />
           <Route path="/login" element={<Login />} />
-          {/* Public, unauthenticated signing page — a signer opens this from the emailed link. */}
+          {/* Public, unauthenticated signing page - a signer opens this from the emailed link. */}
           <Route path="/sign/:token" element={<SignContract />} />
           <Route
             path="/admin"

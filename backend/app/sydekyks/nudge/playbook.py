@@ -1,4 +1,4 @@
-"""Nudge's follow-up playbook — registered under 'nudge.followup'.
+"""Nudge's follow-up playbook - registered under 'nudge.followup'.
 
 Works ONE open opportunity (id in `mission.trigger_context`). The cron does the catching
 (deterministic per-stage staleness); this playbook confirms the opp is genuinely stale, respects the
@@ -6,7 +6,7 @@ snooze/whitelist memory and the cadence guard, then has the AI draft a context-a
 grounded in the real last exchange. Definition of done: a `mail.activity` (the next touch) exists on
 the opp assigned to its salesperson, the suggested body is logged to the opp's chatter for the rep to
 edit and send, and a NudgeFinding tags this cycle so the cron skips the opp until it goes stale again.
-Nudge never sends on the rep's behalf — it drafts.
+Nudge never sends on the rep's behalf - it drafts.
 """
 
 from datetime import date, datetime, timedelta, timezone
@@ -30,15 +30,15 @@ PLAYBOOK_STEPS = [
     {"key": "load_opp", "title": "Load the opportunity",
      "description": "Read the opportunity, its stage, salesperson, and recent thread.",
      "likely_failures": "The opportunity was deleted, won, or lost."},
-    {"key": "check_guards", "title": "Check snooze & cadence",
-     "description": "Skip paused/whitelisted deals, ones already nudged this cycle, and ones with a future touch scheduled.",
-     "likely_failures": "None fatal — a guarded opp is skipped cleanly."},
+    {"key": "check_guards", "title": "Check skip rules and cadence",
+     "description": "Skip deals tagged in Odoo, ones already nudged this cycle, and ones with a future touch scheduled.",
+     "likely_failures": "None fatal. A guarded opportunity is skipped cleanly."},
     {"key": "measure_staleness", "title": "Measure silence",
      "description": "Compute days since the last real touch and compare against the stage's tolerance.",
-     "likely_failures": "None fatal — a fresh opp needs no nudge."},
+     "likely_failures": "None fatal - a fresh opp needs no nudge."},
     {"key": "draft", "title": "Draft the follow-up",
      "description": "AI drafts a follow-up that references the last exchange and fits the stage.",
-     "likely_failures": "No AI engine configured — falls back to a plain reminder."},
+     "likely_failures": "No AI engine configured - falls back to a plain reminder."},
     {"key": "record", "title": "Create the nudge",
      "description": "Create a follow-up To-Do for the salesperson and log the suggested message to chatter.",
      "likely_failures": "Best-effort writes to Odoo."},
@@ -88,7 +88,7 @@ def _is_snoozed(db, mission, lead_id: int, today: date) -> bool:
 
 
 def _nudged_within_cadence(db, mission, lead_id: int, cadence_days: int) -> bool:
-    # Any finding = a nudge we already drafted (to a To-Do and/or the chatter) — respect the cadence
+    # Any finding = a nudge we already drafted (to a To-Do and/or the chatter) - respect the cadence
     # regardless of whether a salesperson was set to receive the activity.
     since = datetime.now(timezone.utc) - timedelta(days=max(1, cadence_days))
     return (
@@ -105,18 +105,18 @@ def _nudged_within_cadence(db, mission, lead_id: int, cadence_days: int) -> bool
 
 
 def _draft_note(draft: dict | None, days_stale: int, overdue: bool) -> str:
-    head = "<p><b>Nudge — suggested follow-up.</b> " + (
+    head = "<p><b>Nudge - suggested follow-up.</b> " + (
         f"This opportunity has been silent for {days_stale} days." if days_stale else "This opportunity is due for a touch."
     ) + "</p>"
     if overdue:
-        head += "<p>An activity on this opp is already <b>overdue</b> — Nudge did not create a duplicate; please action the existing one.</p>"
+        head += "<p>An activity on this opp is already <b>overdue</b> - Nudge did not create a duplicate; please action the existing one.</p>"
     if not draft or not draft.get("body"):
         return head + "<p>Reach out to move this deal forward, referencing your last exchange.</p>"
     body_html = draft["body"].replace("\n", "<br/>")
     out = head + f"<p><b>Subject:</b> {draft.get('subject') or 'Following up'}</p><p>{body_html}</p>"
     if draft.get("reasoning"):
         out += f"<p><i>Why now: {draft['reasoning']}</i></p>"
-    out += "<p><i>Draft only — edit and send from your side.</i></p>"
+    out += "<p><i>Draft only - edit and send from your side.</i></p>"
     return out
 
 
@@ -162,6 +162,12 @@ def run(db: Session, mission: Mission) -> None:
         idx += 1
 
         # --- Guards: snooze/whitelist, cadence, and an already-scheduled future touch --------------
+        skip_tag_id = odoo_crm.tag_id_by_name(client, settings.skip_tag_name) if settings.skip_tag_name else None
+        if skip_tag_id is not None and skip_tag_id in (lead.get("tag_ids") or []):
+            record_step(db, mission, idx, "check_guards", "internal", "succeeded", output={"skipped": "odoo_tag"})
+            _finish(db, mission, "succeeded", {"odoo_lead_id": int(lead_id), "skipped": "odoo_tag",
+                                               "opp_name": lead.get("name"), "skip_tag": settings.skip_tag_name})
+            return
         if _is_snoozed(db, mission, int(lead_id), today):
             record_step(db, mission, idx, "check_guards", "internal", "succeeded", output={"skipped": "snoozed"})
             _finish(db, mission, "succeeded", {"odoo_lead_id": int(lead_id), "skipped": "snoozed",
@@ -173,7 +179,7 @@ def run(db: Session, mission: Mission) -> None:
                                                "opp_name": lead.get("name")})
             return
         if odoo_crm.has_future_activity(client, int(lead_id)):
-            # A future-dated activity is an implicit "handled" — the rep already planned the next touch.
+            # A future-dated activity is an implicit "handled" - the rep already planned the next touch.
             record_step(db, mission, idx, "check_guards", "internal", "succeeded", output={"skipped": "future_activity"})
             _finish(db, mission, "succeeded", {"odoo_lead_id": int(lead_id), "skipped": "future_activity",
                                                "opp_name": lead.get("name")})
@@ -219,7 +225,7 @@ def run(db: Session, mission: Mission) -> None:
         activity_created = False
         note = _draft_note(draft, days_stale, overdue)
         if sp_id and not overdue:
-            summary = f"Follow up: {lead.get('name') or 'opportunity'} — silent {days_stale}d"
+            summary = f"Follow up: {lead.get('name') or 'opportunity'} - silent {days_stale}d"
             act_id = odoo_activity.create_activity(
                 client, model="crm.lead", res_id=int(lead_id), user_id=sp_id,
                 summary=summary, note=note, days=settings.activity_days,
@@ -245,7 +251,7 @@ def run(db: Session, mission: Mission) -> None:
             "currency": currency, "days_stale": days_stale, "silence_score": silence,
             "value_at_risk": at_risk, "overdue": overdue, "activity_created": activity_created,
             "draft_subject": (draft or {}).get("subject") if draft else None,
-            "review_reason": f"Silent {days_stale}d in {stage_name or 'stage'} — follow-up drafted.",
+            "review_reason": f"Silent {days_stale}d in {stage_name or 'stage'} - follow-up drafted.",
         })
     except odoo.OdooError as exc:
         record_step(db, mission, idx, "odoo_error", "gadget_call", "failed", error=str(exc))

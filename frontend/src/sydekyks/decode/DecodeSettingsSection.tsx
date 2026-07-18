@@ -5,6 +5,7 @@ import { GadgetRequirementList } from "../../components/GadgetRequirementList";
 import { ReadinessList } from "../ReadinessList";
 import { useTenantCurrency } from "../../lib/useTenantCurrency";
 import type { SydekykSetupProps } from "../registry";
+import { SettingsBand, SettingsColumns, SettingsToggle } from "../SettingsLayout";
 
 export function DecodeSettingsSection({ sydekyk, canManage, onReadiness }: SydekykSetupProps) {
   const currency = useTenantCurrency();
@@ -47,33 +48,25 @@ export function DecodeSettingsSection({ sydekyk, canManage, onReadiness }: Sydek
   }
 
   return (
-    <div className="grid gap-6">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Readiness</p>
-        <div className="mt-3">{readiness ? <ReadinessList items={readiness.items} /> : <p className="text-sm text-[#8a7f6d]">Loading…</p>}</div>
-      </div>
+    <>
+      <SettingsBand title="Readiness" description="What Decode can use now and anything that needs your attention.">
+        {readiness ? <ReadinessList items={readiness.items} /> : <p className="text-sm text-body">Loading...</p>}
+      </SettingsBand>
 
-      <div id="gadgets" className="border-t border-ink-700 pt-6">
-        <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Integrations</p>
-        <div className="mt-3">
-          <GadgetRequirementList sydekykId={sydekyk.id} canManage={canManage} />
-        </div>
-      </div>
+      <SettingsBand id="gadgets" title="Connections" description="Choose the Odoo recruitment workspace where Decode creates and updates applicants.">
+        <GadgetRequirementList sydekykId={sydekyk.id} canManage={canManage} />
+      </SettingsBand>
 
       {settings && (
-        <div className="grid gap-3 border-t border-ink-700 pt-6">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Parsing Settings</p>
-          <label className="flex items-center gap-2 text-sm text-[#ede6da]">
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-gold-500"
-              disabled={!canManage || saving}
-              checked={settings.auto_create_skills}
-              onChange={(e) => save({ ...settings, auto_create_skills: e.target.checked })}
-            />
-            Auto-create missing skills in Odoo
-          </label>
-          <div className="grid grid-cols-2 gap-4">
+        <SettingsBand title="Applicant processing" description="Control how Decode turns résumé data into structured Odoo applicant records.">
+          <SettingsToggle
+            label="Create missing skills in Odoo"
+            description="Adds skills found in a résumé when they do not already exist in the recruitment catalog."
+            disabled={!canManage || saving}
+            checked={settings.auto_create_skills}
+            onChange={(checked) => save({ ...settings, auto_create_skills: checked })}
+          />
+          <SettingsColumns>
             <div>
               <Label>Processed tag</Label>
               <Input
@@ -104,18 +97,15 @@ export function DecodeSettingsSection({ sydekyk, canManage, onReadiness }: Sydek
                 onBlur={(e) => save({ ...settings, max_resume_pages: Number(e.target.value) })}
               />
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <label className="flex items-center gap-2 text-sm text-[#ede6da]">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-gold-500"
-                disabled={!canManage || saving}
-                checked={settings.cron_enabled}
-                onChange={(e) => save({ ...settings, cron_enabled: e.target.checked })}
-              />
-              Poll Odoo for new applicants (cron)
-            </label>
+          </SettingsColumns>
+          <div className="mt-5 border-t-2 border-ink-600 pt-2">
+            <SettingsToggle
+              label="Check Odoo for new applicants automatically"
+              description="Runs every 15 minutes and processes applicants that have not yet received the processed tag."
+              disabled={!canManage || saving}
+              checked={settings.cron_enabled}
+              onChange={(checked) => save({ ...settings, cron_enabled: checked })}
+            />
             <div>
               <Label>Per-run cap (max 30)</Label>
               <Input
@@ -129,15 +119,12 @@ export function DecodeSettingsSection({ sydekyk, canManage, onReadiness }: Sydek
               />
             </div>
           </div>
-          <p className="text-xs text-[#8a7f6d]">The cron requires the background worker to be running.</p>
-        </div>
+        </SettingsBand>
       )}
 
       {settings && (
-        <div className="grid gap-3 border-t border-ink-700 pt-6">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Estimated Savings</p>
-          <p className="-mt-1 text-xs text-[#8a7f6d]">Powers the “$ saved” metric on your Dashboard.</p>
-          <div className="grid grid-cols-2 gap-4">
+        <SettingsBand title="Value assumptions" description="The business inputs behind Decode's time-saved and money-saved estimates.">
+          <SettingsColumns>
             <div>
               <Label>Hourly wage ({currency})</Label>
               <Input
@@ -162,23 +149,22 @@ export function DecodeSettingsSection({ sydekyk, canManage, onReadiness }: Sydek
                 onBlur={(e) => save({ ...settings, estimated_minutes_per_resume: Number(e.target.value) })}
               />
             </div>
-          </div>
-        </div>
+          </SettingsColumns>
+        </SettingsBand>
       )}
 
-      <div id="email" className="grid gap-2 border-t border-ink-700 pt-6">
-        <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Email Intake (optional)</p>
+      <SettingsBand id="email" title="Email intake" description="Optional inbound address for turning emailed résumés into applicant missions.">
         {inbox ? (
-          <p className="text-sm text-[#ede6da]">Send résumés to <span className="font-semibold text-gold-300">{inbox}</span></p>
+          <p className="text-sm text-heading">Send résumés to <code className="font-semibold text-gold-300">{inbox}</code></p>
         ) : (
-          <p className="text-sm text-[#8a7f6d]">Create an inbound address so emailed résumés become applicants automatically.</p>
+          <p className="text-sm text-body">Create an inbound address so emailed résumés become applicants automatically.</p>
         )}
         {canManage && !inbox && (
           <Button variant="ghost" className="w-fit px-3 py-1.5 text-xs" disabled={creatingInbox} onClick={createInbox}>
             {creatingInbox ? "Creating…" : "Create Email Inbox"}
           </Button>
         )}
-      </div>
-    </div>
+      </SettingsBand>
+    </>
   );
 }

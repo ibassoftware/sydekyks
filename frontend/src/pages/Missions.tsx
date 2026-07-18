@@ -112,7 +112,8 @@ export default function Missions() {
 
   return (
     <HQShell>
-      <main id="main-content" className="mx-auto min-w-0 max-w-6xl px-6 py-12">
+      <div className="hq-command-background min-h-screen">
+      <main id="main-content" className="relative mx-auto min-w-0 max-w-6xl px-6 py-10">
         <header className="flex flex-col gap-8 border-b-2 border-ink-600 pb-8 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-[0.4px] text-gold-300">Operations</p>
@@ -194,7 +195,7 @@ export default function Missions() {
 
             {page && total > 0 && (
               <div className="mt-6 flex flex-col gap-4 text-sm text-body sm:flex-row sm:items-center sm:justify-between">
-                <span>{offset + 1}–{pageEnd} of {total}</span>
+                <span>{offset + 1}-{pageEnd} of {total}</span>
                 <div className="flex flex-wrap gap-4">
                   <Button variant="ghost" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>Previous</Button>
                   <Button variant="ghost" disabled={pageEnd >= total} onClick={() => setOffset(offset + PAGE_SIZE)}>Next</Button>
@@ -204,6 +205,7 @@ export default function Missions() {
           </>
         )}
       </main>
+      </div>
     </HQShell>
   );
 }

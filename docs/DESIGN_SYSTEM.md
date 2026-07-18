@@ -77,11 +77,15 @@ The original TypeUI dark border token is intentionally raised along the same blu
 - Layout: mobile-first, 8px rhythm, 24px container gutters, 1152px page container, 96px desktop section padding, and three visible spacing tiers.
 - Links: inline prose links are underlined; navigation and button-role links are not.
 - Agent identity names (for example Nudge, Quill, and Ledger) use solid, mixed-case Space Grotesk in the heading color. They do not use the outlined uppercase display-heading treatment because recognition and name legibility take priority.
-- Operational readiness always combines text with color: `Ready for orders` uses the success family, while `Not configured` and `Not ready` use the warning family. A blocked agent shows a setup explanation instead of a disabled primary action.
+- Operational readiness always combines text with color: `Standing ready` uses the success family, `Mission underway` uses a pulsing brand treatment, and blocked/setup states use the warning family. The readiness strip occupies one fixed location in every dashboard agent card. A blocked agent shows a setup explanation instead of a dead primary action.
 - Dashboard commands are agent-specific: upload surfaces for intake agents, run controls for scheduled scanners, and creation controls for document workbenches. Avoid generic `Run agent` or repeated `Open [name]` labels.
 - The HQ command-center canvas uses a token-driven atmospheric background: a restrained brand glow, a very low-opacity warning halo, and one 40px ruled-grid pattern. Data cards stay opaque enough to preserve measured contrast; decoration never carries state.
 - The roster uses compact business-unit cards with uncropped, unfiltered identity portraits, solid mixed-case names, explicit duty states, and separate navigation/action controls. It does not turn the whole card into a nested interactive target.
 - Operational attention is a Missions view, not a separate visual system. Configuration blockers and review Missions share one chronological card stream, with a text badge identifying the record type. Long filenames, vendor names, emails, and action rows must wrap; the attention surface must never require horizontal page scrolling.
+- Every active agent detail uses the same two-tab contract: **Actions** contains day-to-day commands and Recent Missions; **Settings** contains AI engine, integrations, reviewer assignment, playbook, and agent configuration. Use-only Heroes never mount Settings, while configure-enabled Heroes and Commanders receive both tabs. The API enforces the same boundary on reads and writes.
+- Mission rows use a semantic left status rail plus a written status, readable 16px titles, grouped source/date/duration metadata, and a compact AI footprint (`tokens`, `capacity`, model calls). Expanded outcomes, decisions, failures, and execution steps occupy visually distinct inset regions. Color never carries status alone.
+- Repeated operational lists use explicit pagination or a **Load more** control. Review queues prefer Load more over infinite scroll so operators retain position and know how much work remains.
+- Roster, Missions, Utility Belt, Team, and Settings share the restrained HQ command background. Cards remain opaque and bordered; the atmospheric canvas is hierarchy, never information.
 
 ## Acceptance checklist
 

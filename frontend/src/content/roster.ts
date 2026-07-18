@@ -1,4 +1,4 @@
-/** Public marketing copy for the Roster — the single source of truth for the landing page and every
+/** Public marketing copy for the Roster - the single source of truth for the landing page and every
  * per-Sydekyk showcase sub-page. Kept deliberately self-contained (no API, no imports from the authed
  * app) so it renders on the unauthenticated marketing routes and stays out of the app bundle.
  *
@@ -8,7 +8,7 @@
 
 export type RosterSlug = "nudge" | "quill" | "seal" | "signet" | "ledger" | "mirror" | "shield" | "decode" | "scout";
 
-/** Business function — matches the in-app `FunctionGroup` labels (Sales · Accounting · HR). */
+/** Business function - matches the in-app `FunctionGroup` labels (Sales · Accounting · HR). */
 export type Domain = "Sales" | "Accounting" | "HR";
 
 export interface HowItWorksStep {
@@ -26,11 +26,11 @@ export interface RosterEntry {
   role: string;
   /** The narrative "what it does" paragraph (trimmed from the seed description). */
   summary: string;
-  /** 3–5 headline capabilities. */
+  /** 3-5 headline capabilities. */
   capabilities: string[];
-  /** The 3–4 step "playbook" of how the Sydekyk works. */
+  /** The 3-4 step "playbook" of how the Sydekyk works. */
   howItWorks: HowItWorksStep[];
-  /** Visual accent — HR Sydekyks get a cool tint (mirrors the registry's `domain: "hr"` convention);
+  /** Visual accent - HR Sydekyks get a cool tint (mirrors the registry's `domain: "hr"` convention);
    * everything else rides the signature gold. */
   accent: "gold" | "hr";
 }
@@ -40,16 +40,16 @@ export const ROSTER: RosterEntry[] = [
   {
     slug: "nudge",
     name: "Nudge",
-    tagline: "Your sales follow-up sidekick — no opportunity goes cold on your watch.",
+    tagline: "Your sales follow-up sidekick - no opportunity goes cold on your watch.",
     domain: "Sales",
     role: "Pipeline follow-ups",
     summary:
       "Nudge watches your Odoo pipeline for open opportunities that have gone quiet and drafts the " +
       "follow-up before the deal cools. It measures silence per stage, reads the real thread history, " +
-      "and writes a context-aware message that references the last exchange — never a generic “just " +
+      "and writes a context-aware message that references the last exchange - never a generic “just " +
       "checking in”. It hands each draft to the salesperson, ranked by revenue at risk.",
     capabilities: [
-      "Measures silence per pipeline stage — fresh leads get less rope than late-stage deals",
+      "Measures silence per pipeline stage - fresh leads get less rope than late-stage deals",
       "Reads each deal's real conversation history for context",
       "Drafts a specific follow-up that references the last exchange",
       "Ranks the queue by revenue at risk",
@@ -58,7 +58,7 @@ export const ROSTER: RosterEntry[] = [
     howItWorks: [
       { title: "Sweep", detail: "Watches your Odoo pipeline for opportunities that have gone quiet." },
       { title: "Read", detail: "Reads each deal's stage and real conversation history." },
-      { title: "Draft", detail: "Writes a context-aware follow-up — never a generic “just checking in”." },
+      { title: "Draft", detail: "Writes a context-aware follow-up - never a generic “just checking in”." },
       { title: "Hand off", detail: "Creates a To-Do and logs the draft to the chatter for the rep to edit and send." },
     ],
     accent: "gold",
@@ -66,18 +66,18 @@ export const ROSTER: RosterEntry[] = [
   {
     slug: "quill",
     name: "Quill",
-    tagline: "Your proposal-writing sidekick — turns notes into a polished, client-ready proposal.",
+    tagline: "Your proposal-writing sidekick - turns notes into a polished, client-ready proposal.",
     domain: "Sales",
     role: "Proposal generation",
     summary:
       "Quill turns a template and your notes into a polished, client-ready proposal you can edit in a " +
-      "rich web editor. Pick a template, drop in your notes, and Quill drafts the whole document — then " +
+      "rich web editor. Pick a template, drop in your notes, and Quill drafts the whole document - then " +
       "keep refining it by conversation (“shorten the intro”, “add a pricing table”), insert images, and " +
       "export a crisp PDF. Optionally ground the draft in a real Odoo opportunity, raise a draft sales " +
       "quotation, and merge its official PDF with the proposal.",
     capabilities: [
       "Drafts a full proposal as clean, editable HTML from your notes + a template",
-      "Refine it by chat — Quill rewrites the work-in-progress on request",
+      "Refine it by chat - Quill rewrites the work-in-progress on request",
       "Insert images, edit freely, and save your own reusable templates",
       "Exports a crisp, branded PDF",
       "Optional Odoo: ground in an opportunity, raise a quotation, and merge its PDF",
@@ -86,19 +86,19 @@ export const ROSTER: RosterEntry[] = [
       { title: "Draft", detail: "Pick a template, drop in your notes, and Quill writes the proposal." },
       { title: "Refine", detail: "Edit by hand or ask Quill to revise the document in place." },
       { title: "Illustrate", detail: "Insert images and save the result as a new template." },
-      { title: "Export", detail: "Download a polished PDF — optionally merged with an Odoo quotation." },
+      { title: "Export", detail: "Download a polished PDF - optionally merged with an Odoo quotation." },
     ],
     accent: "gold",
   },
   {
     slug: "seal",
     name: "Seal",
-    tagline: "Your contract-drafting sidekick — writes contracts and reviews them clause-by-clause.",
+    tagline: "Your contract-drafting sidekick - writes contracts and reviews them clause-by-clause.",
     domain: "Sales",
     role: "Contract drafting & review",
     summary:
       "Seal drafts a contract from a template and your brief in a rich web editor, then reviews it " +
-      "clause-by-clause and flags the risky, one-sided, or missing clauses — proposing a redline for " +
+      "clause-by-clause and flags the risky, one-sided, or missing clauses - proposing a redline for " +
       "each that you accept or reject. Draft an NDA, service agreement, SOW or MSA, keep refining it by " +
       "conversation, import a counterparty's contract to review it, and export a clean PDF. Hand the " +
       "finished contract off for signing via Odoo Sign or the native Signet e-signature agent.",
@@ -112,7 +112,7 @@ export const ROSTER: RosterEntry[] = [
     howItWorks: [
       { title: "Draft", detail: "Pick a template, give Seal a plain-language brief, and it writes the contract." },
       { title: "Review", detail: "Seal reads it clause-by-clause and flags the risks, grounded in your playbook." },
-      { title: "Redline", detail: "Accept a suggested redline and Seal edits the clause in place — or dismiss it." },
+      { title: "Redline", detail: "Accept a suggested redline and Seal edits the clause in place - or dismiss it." },
       { title: "Send", detail: "Export a clean PDF and hand off for signing via Odoo Sign or Signet." },
     ],
     accent: "gold",
@@ -120,17 +120,17 @@ export const ROSTER: RosterEntry[] = [
   {
     slug: "signet",
     name: "Signet",
-    tagline: "Your e-signature sidekick — sends contracts out for signing and chases the stragglers.",
+    tagline: "Your e-signature sidekick - sends contracts out for signing and chases the stragglers.",
     domain: "Sales",
     role: "E-signature & tracking",
     summary:
       "Signet takes a finished contract and gets it signed. Add the signatories and their email " +
       "addresses, and Signet sends each a secure public signing link, tracks who has opened and signed, " +
-      "and follows up automatically after a few days — while letting you hold or void a request at any " +
+      "and follows up automatically after a few days - while letting you hold or void a request at any " +
       "time. When everyone has signed, it assembles the final signed PDF with an audit trail. A native " +
       "e-signature path that needs no Odoo Enterprise.",
     capabilities: [
-      "Sends each signatory a secure, public signing link — no account needed",
+      "Sends each signatory a secure, public signing link - no account needed",
       "Tracks who has viewed, signed, or declined in real time",
       "Follows up automatically on a cadence you set, and lets you hold or void",
       "Assembles the final signed PDF with a certificate-of-completion audit trail",
@@ -138,7 +138,7 @@ export const ROSTER: RosterEntry[] = [
     ],
     howItWorks: [
       { title: "Prepare", detail: "Add the signatories and their emails to a finished contract." },
-      { title: "Send", detail: "Each signer gets a secure public link to review and sign — no login." },
+      { title: "Send", detail: "Each signer gets a secure public link to review and sign - no login." },
       { title: "Track", detail: "Watch progress live and let Signet chase the stragglers for you." },
       { title: "Complete", detail: "Once all have signed, Signet assembles the signed PDF with an audit trail." },
     ],
@@ -147,11 +147,11 @@ export const ROSTER: RosterEntry[] = [
   {
     slug: "ledger",
     name: "Ledger",
-    tagline: "Your accounts-payable sidekick — turns vendor bills into Odoo entries.",
+    tagline: "Your accounts-payable sidekick - turns vendor bills into Odoo entries.",
     domain: "Accounting",
     role: "Accounts-payable automation",
     summary:
-      "Ledger turns the vendor bills you upload or email in into Odoo vendor bills — automatically. " +
+      "Ledger turns the vendor bills you upload or email in into Odoo vendor bills - automatically. " +
       "It reads each bill with AI, pulls out the vendor, dates, line items, tax and totals, and " +
       "matches them to your real Odoo setup. It creates the bill with the original document attached, " +
       "posts it when it's confident, and flags anything that needs a human.",
@@ -164,7 +164,7 @@ export const ROSTER: RosterEntry[] = [
     ],
     howItWorks: [
       { title: "Capture", detail: "Upload or email a bill, or let Ledger pull it straight from Odoo." },
-      { title: "Read", detail: "Vision AI extracts every field — even from a phone photo." },
+      { title: "Read", detail: "Vision AI extracts every field - even from a phone photo." },
       { title: "Match", detail: "Line items map to your Odoo accounts, tax and currency." },
       { title: "File", detail: "Ledger creates and posts the bill, or flags it for a human to check." },
     ],
@@ -173,13 +173,13 @@ export const ROSTER: RosterEntry[] = [
   {
     slug: "mirror",
     name: "Mirror",
-    tagline: "Your accounts-payable watchdog — catches duplicate vendor bills before you pay twice.",
+    tagline: "Your accounts-payable watchdog - catches duplicate vendor bills before you pay twice.",
     domain: "Accounting",
     role: "Duplicate-bill detection",
     summary:
       "Mirror scans your Odoo vendor bills and flags likely duplicates before they get paid twice. " +
       "It matches on the invoice reference, on the same vendor + amount + date even when the reference " +
-      "differs, and across split vendor records that share a Tax ID or bank account — and uses AI to " +
+      "differs, and across split vendor records that share a Tax ID or bank account - and uses AI to " +
       "confirm resubmitted invoices by their line items.",
     capabilities: [
       "Matches on invoice reference across every bill",
@@ -199,21 +199,21 @@ export const ROSTER: RosterEntry[] = [
   {
     slug: "shield",
     name: "Shield",
-    tagline: "Your internal-audit watchdog — surfaces suspicious vendor bills for review.",
+    tagline: "Your internal-audit watchdog - surfaces suspicious vendor bills for review.",
     domain: "Accounting",
     role: "Fraud-risk & internal audit",
     summary:
       "Shield reviews your Odoo vendor bills for fraud-risk signals and builds a ranked review queue " +
       "for an internal auditor. It watches for the classic payment-diversion pattern, vendor details " +
       "colliding with an employee's, segregation-of-duties breaks, phantom-vendor markers, off-norm " +
-      "amounts and statistical tells — each alert carrying the evidence that fired it. It surfaces risk " +
+      "amounts and statistical tells - each alert carrying the evidence that fired it. It surfaces risk " +
       "for a human to judge; it never accuses.",
     capabilities: [
       "Detects a vendor bank account changed right before an unpaid bill (payment diversion)",
       "Catches vendor details colliding with an employee's",
       "Flags segregation-of-duties breaks and phantom-vendor markers",
       "Spots off-norm amounts and statistical outliers",
-      "Every alert carries the evidence that fired it — advisory, never accusatory",
+      "Every alert carries the evidence that fired it - advisory, never accusatory",
     ],
     howItWorks: [
       { title: "Watch", detail: "Monitors vendor bills and vendor-master changes in Odoo." },
@@ -226,12 +226,12 @@ export const ROSTER: RosterEntry[] = [
   {
     slug: "decode",
     name: "Decode",
-    tagline: "Your recruitment sidekick — turns résumés into Odoo applicants.",
+    tagline: "Your recruitment sidekick - turns résumés into Odoo applicants.",
     domain: "HR",
     role: "Résumé parsing",
     summary:
       "Decode reads every résumé you upload, email in, or already have in Odoo, extracts the " +
-      "candidate's details with AI, and fills out their Odoo applicant record — contact info, the " +
+      "candidate's details with AI, and fills out their Odoo applicant record - contact info, the " +
       "position they applied for (or the talent pool), skills, and a summary note. It reads the " +
       "résumé's text when it can and the page images when it can't, and flags anything a recruiter " +
       "should double-check.",
@@ -253,12 +253,12 @@ export const ROSTER: RosterEntry[] = [
   {
     slug: "scout",
     name: "Scout",
-    tagline: "Your recruitment sidekick — scores candidates against the role.",
+    tagline: "Your recruitment sidekick - scores candidates against the role.",
     domain: "HR",
     role: "Candidate scoring",
     summary:
       "Scout reviews the applicants in your Odoo, reads each résumé, and scores how well the candidate " +
-      "fits the job they applied for — with an honest breakdown of strengths, weaknesses, and " +
+      "fits the job they applied for - with an honest breakdown of strengths, weaknesses, and " +
       "highlights. It sets the applicant's evaluation stars, posts a scoring note, and tags who it has " +
       "reviewed. Run it on a schedule or on demand.",
     capabilities: [
@@ -282,7 +282,7 @@ export const rosterBySlug: Record<string, RosterEntry> = Object.fromEntries(
   ROSTER.map((entry) => [entry.slug, entry])
 );
 
-/** A Sydekyk on the roadmap — not yet available, no detail page. Marketing-only teaser. */
+/** A Sydekyk on the roadmap - not yet available, no detail page. Marketing-only teaser. */
 export interface UpcomingSydekyk {
   name: string;
   /** What the agent does, e.g. "Collections Agent". */
@@ -369,7 +369,7 @@ export const UPCOMING: { domain: string; entries: UpcomingSydekyk[] }[] = [
   },
 ];
 
-/** Group labels + order for the landing roster — mirrors the in-app `FUNCTION_GROUPS`. */
+/** Group labels + order for the landing roster - mirrors the in-app `FUNCTION_GROUPS`. */
 export const DOMAIN_ORDER: Domain[] = ["Sales", "Accounting", "HR"];
 
 /** The roster grouped by domain, in `DOMAIN_ORDER`, dropping any empty group. */

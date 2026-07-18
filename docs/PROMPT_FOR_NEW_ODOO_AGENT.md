@@ -357,12 +357,12 @@ act (Mirror/Shield on bills; **Nudge** on `crm.lead` opportunities). The shape:
   a bounded candidate set (open, not-won, untouched-since-cutoff, no *future* scheduled activity),
   enqueues one Mission per record with just the id in `trigger_context`, and caps at 30/run. The
   playbook re-confirms the condition per record (state can change between poll and run).
-- **Guard rails prevent nagging.** Three checks *before* acting: a **snooze/whitelist** memory for
-  legitimately-paused records (`snooze_until` date = pause until; NULL = never — the "circle back in
-  Q3" trap), a **cadence guard** (never act on the same record more than once per M days, keyed off
-  the finding store), and an **implicit-handled** signal (a future-dated `mail.activity` means the
-  human already planned the next touch — skip). A skipped run still `succeeds` with a `skipped`
-  reason on the summary, so the Mission row reads calmly ("Left X alone — paused deal").
+- **Guard rails prevent nagging.** Check an Odoo-native **skip tag** before acting (Nudge defaults to
+  `Nudge-skip`), then apply a **cadence guard** keyed off the finding store and an
+  **implicit-handled** signal where a future-dated `mail.activity` means the human already planned
+  the next touch. Resolve the tag by exact name without creating Odoo data. Check it once in the
+  bounded poller and again in the playbook because the record can change while a Mission waits in
+  queue. A skipped run still succeeds with a calm, explicit `skipped` reason.
 - **Don't duplicate what Odoo already tracks.** If an *overdue* `mail.activity` already exists,
   surface it — don't create a second To-Do.
 - **Draft, don't send.** For anything that goes to a customer, the agent writes the suggestion to the
@@ -580,3 +580,60 @@ agent (a contract/SOW writer, a report builder) reuses them:
   as an inline `style`) both serialize into the stored HTML as inline styles, so WeasyPrint honors them
   on export with zero extra work. Page numbers + a footer line come from CSS `@page` margin boxes
   (`@bottom-right { content: "Page " counter(page) ... }`).
+
+## 15. Command-surface and observability lessons
+
+The agent is not finished when its playbook works. It is finished when a permitted user can issue
+the right order, understand the outcome, and an operator can diagnose a failure without reproducing
+it. Apply these platform rules to every new agent:
+
+- **Actions and Settings are separate for every agent.** Register the agent's day-to-day work as an
+  `operationsPanel` or upload context; keep AI engine, Gadget assignments, reviewer setup, playbook,
+  and agent configuration under Settings. `SydekykDetail` supplies the common tabs. A use-only Hero
+  mounts Actions only; a configure-enabled Hero or Commander gets both. Protect configuration
+  **GETs as well as writes** with `assert_can_configure`—a hidden tab is not authorization.
+- **The dashboard command must match the operating model.** Intake agents get a dropzone (Ledger
+  bills, Decode résumés); polling agents get their business verb (Scout "Score applicants", Nudge
+  "Check the pipeline"); authoring agents get a creation verb (Quill "Start a proposal"). Do not
+  add `Run agent` or repeated `Open <name>` controls. Keep readiness in one fixed card footer:
+  `Standing ready` (success), `Mission underway` (live brand), or a written setup/blocking state.
+- **Schedules must answer "when next?"** Do not expose cron or worker vocabulary. Return a stable
+  schedule label plus the computed next-run timestamp from the backend, format it in the user's
+  locale, and explain the business outcome of the sweep and where human approval remains.
+- **Use Odoo-native exclusion and matching controls.** Prefer a tag or field that users can see and
+  maintain in Odoo over a parallel application-only whitelist. Optional document-to-record checks,
+  such as Ledger's PO verification, must be explicit tenant settings. Extract the reference, resolve
+  it against live Odoo fields, compare deterministic business facts, block automatic posting on any
+  mismatch, and create an actionable review task rather than silently guessing.
+- **A browser command announces Mission discovery immediately.** Successful `run-now`, document
+  upload, and retry responses dispatch the shared `sydekyks:mission-activity` event. The activity
+  provider then re-reads `/tenant/missions/active`; do not wait for the periodic poll or require a
+  page refresh before showing work.
+- **Mission presentation is one shared component.** The collapsed card carries a semantic status
+  rail and text status, verb-led outcome, source/uploader/date/duration, retry/review state, and its
+  AI footprint. Aggregate `UsageRecord` by the Mission ids in the current page in **one query** and
+  expose `tokens_used`, `ai_capacity_seconds`, and `ai_calls`; never add a per-card usage query.
+  Expanded outcome, decision controls, errors, and step trail stay compact and visually separated.
+- **Review queues are finite work, not a feed.** Use explicit paging or a count-aware Load more
+  control rather than unbounded infinite scroll. Long filenames, emails, external-record labels,
+  and error text must wrap without horizontal page scrolling.
+- **Metrics need a meaningful zero state.** If an upstream field is optional (CRM expected revenue
+  is the classic case), do not headline a permanent currency zero. Fall back to an actionable count
+  such as opportunities awaiting follow-up. Explain savings as team time returned and net labour
+  value, state the minutes/wage assumption and AI cost, and pair the KPI with a trend graph that
+  helps a business owner see momentum.
+- **System failure visibility is a platform capability.** Mission domain failures remain on the
+  Mission, but unhandled API/database failures and top-level runner crashes also enter the shared
+  `system_incidents` channel with source, request/path, exception type, safe message, traceback, and
+  optional tenant/Mission ids. The super-admin Command Center resolves them. Incident recording must
+  never compete indefinitely for the pool it is reporting: retain a bounded in-memory fallback when
+  PostgreSQL is saturated and flush it after recovery.
+- **Connection-pool headroom is not the architecture.** Keep the larger configured pool, but prevent
+  starvation by loading the HQ through the consolidated `/tenant/command-center` projection,
+  passing its readiness/insights/queues into panels, bounding frontend refreshes, aggregating usage
+  per page, removing duplicate requests, and closing the SQLAlchemy session before an SSE stream
+  begins.
+- **Use the TypeUI contract on operational surfaces.** Space Grotesk, semantic dark-navy/teal tokens,
+  2px boundaries, 4px radius, 44px controls, written states, and the shared HQ background apply to
+  Roster, Missions, Utility Belt, Team, Settings, and agent workspaces. Portraits remain original,
+  uncropped identity assets—never tinted or dithered.

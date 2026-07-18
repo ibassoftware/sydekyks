@@ -45,7 +45,7 @@ export function GadgetRequirementList({ sydekykId, canManage }: { sydekykId: str
           </Label>
           {req.eligible_links.length === 0 ? (
             <p className="text-xs text-[#8a7f6d]">
-              No {req.gadget_category} Gadget Links yet — connect one in Gadgets first.
+              No {req.gadget_category} Gadget Links yet - connect one in Gadgets first.
             </p>
           ) : canManage ? (
             <select
@@ -54,7 +54,7 @@ export function GadgetRequirementList({ sydekykId, canManage }: { sydekykId: str
               value={req.assigned_link_id ?? ""}
               onChange={(e) => assign(req, e.target.value)}
             >
-              <option value="">— Not assigned —</option>
+              <option value=""> -  Not assigned  - </option>
               {req.eligible_links.map((l) => (
                 <option key={l.id} value={l.id}>
                   {l.name}

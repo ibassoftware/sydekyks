@@ -1,4 +1,4 @@
-"""Scout readiness — AI engine + Odoo assignment/connection (no email; Scout has no email trigger)."""
+"""Scout readiness - AI engine + Odoo assignment/connection (no email; Scout has no email trigger)."""
 
 import uuid
 

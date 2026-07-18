@@ -1,4 +1,4 @@
-"""Seal's package seed — sets the playbook_key + an OPTIONAL Odoo gadget requirement on the base Seal
+"""Seal's package seed - sets the playbook_key + an OPTIONAL Odoo gadget requirement on the base Seal
 catalog row (created by app/seed.py), and seeds built-in starter contract templates + a default review
 playbook so a new tenant isn't staring at a blank editor. Seal accepts document uploads only for the
 optional "import a contract for review" path (handled in the router, not the generic intake)."""
@@ -64,7 +64,7 @@ _BUILTIN_TEMPLATES = [
         "name": "Statement of Work (SOW)",
         "format": "md",
         "body": (
-            "# Statement of Work — [confirm client]\n\n"
+            "# Statement of Work - [confirm client]\n\n"
             "This SOW is issued under the Master Services Agreement dated [confirm MSA date].\n\n"
             "## 1. Background\n[confirm background]\n\n"
             "## 2. Deliverables\n- [confirm deliverable]\n\n"
@@ -83,9 +83,9 @@ _BUILTIN_TEMPLATES = [
             "[confirm Provider] and [confirm Client].</p>"
             "<h2>1. Scope</h2><p>Services are performed under Statements of Work referencing this MSA.</p>"
             "<h2>2. Payment Terms</h2><p>[confirm payment terms]</p>"
-            "<h2>3. Term and Renewal</h2><p>[confirm term and renewal — avoid automatic renewal without notice]</p>"
+            "<h2>3. Term and Renewal</h2><p>[confirm term and renewal - avoid automatic renewal without notice]</p>"
             "<h2>4. Warranties</h2><p>[confirm warranties]</p>"
-            "<h2>5. Indemnification</h2><p>[confirm indemnity — prefer mutual]</p>"
+            "<h2>5. Indemnification</h2><p>[confirm indemnity - prefer mutual]</p>"
             "<h2>6. Limitation of Liability</h2><p>[confirm liability cap]</p>"
             "<h2>7. Confidentiality</h2><p>[confirm confidentiality]</p>"
             "<h2>8. Data Protection</h2><p>[confirm data-protection obligations]</p>"

@@ -1,7 +1,7 @@
 """Mirror's deterministic duplicate-detection tiers (no AI). Given the candidate bill and the
 vendor's other bills, find matches by exact reference, strong fuzzy (amount + date window), and
 cross-vendor-record (same VAT / same bank across different partner records). Line-item similarity is
-the one tier that needs AI — it lives in extraction.py and is only invoked when these are ambiguous.
+the one tier that needs AI - it lives in extraction.py and is only invoked when these are ambiguous.
 
 Each tier returns (matched_move_ids, reasons, base_confidence) so the playbook can pick the strongest
 signal and attach the "why" to the finding.
@@ -64,7 +64,7 @@ def cross_vendor_match(
     *, same_vat_partner_ids: set[int], same_bank_partner_ids: set[int], window_days: int,
 ) -> tuple[list[int], list[str], int]:
     """Same amount billed under a DIFFERENT vendor record that shares this vendor's VAT or bank
-    account — the classic 'ACME Inc' vs 'ACME Incorporated' split under one real supplier."""
+    account - the classic 'ACME Inc' vs 'ACME Incorporated' split under one real supplier."""
     amt = _amount(bill)
     if amt <= 0:
         return [], [], 0

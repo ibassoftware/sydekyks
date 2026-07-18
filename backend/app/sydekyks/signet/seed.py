@@ -1,4 +1,4 @@
-"""Signet's package seed — sets the playbook_key + an OPTIONAL Odoo gadget requirement on the base
+"""Signet's package seed - sets the playbook_key + an OPTIONAL Odoo gadget requirement on the base
 Signet catalog row (created by app/seed.py). Signet sends email and hosts a public signing page; it
 accepts no document uploads through the generic intake (its source PDFs come from Seal or a direct
 upload on the envelope)."""

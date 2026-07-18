@@ -29,7 +29,8 @@ class NudgeTenantSettings(Base):
     cron_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     cron_last_checked_at: Mapped[str | None] = mapped_column(String(32), nullable=True)
     cron_poll_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
-    # Snapshot of open-opportunity count from the last poll — the denominator for coverage %, so the
+    skip_tag_name: Mapped[str] = mapped_column(String(80), nullable=False, default="Nudge-skip")
+    # Snapshot of open-opportunity count from the last poll - the denominator for coverage %, so the
     # dashboard doesn't hit Odoo on every load.
     last_open_total: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
@@ -39,7 +40,7 @@ class NudgeTenantSettings(Base):
 
 
 class NudgeFinding(Base):
-    """One stale opp Nudge acted on — the audit line + dashboard/learning store."""
+    """One stale opp Nudge acted on - the audit line + dashboard/learning store."""
 
     __tablename__ = "nudge_findings"
 

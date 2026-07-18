@@ -1,4 +1,4 @@
-"""Ledger readiness checklist (VS-1) — Ledger-owned, deliberately NOT a generic framework.
+"""Ledger readiness checklist (VS-1) - Ledger-owned, deliberately NOT a generic framework.
 
 Computes, from existing tables, whether a tenant has everything Ledger needs before a bill can be
 processed, and the exact next action for each gap. Mirrors the checks the playbook performs at
@@ -97,7 +97,7 @@ def compute_readiness(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) 
         items.append(_item("email_inbox", "Email inbox (optional)", "ok", addr, None, None))
 
     # --- Last inbound email (informational) ----------------------------------------------------
-    # Scope to THIS Sydekyk's inbox, not tenant-wide — otherwise an unrelated Sydekyk's inbound
+    # Scope to THIS Sydekyk's inbox, not tenant-wide - otherwise an unrelated Sydekyk's inbound
     # email would show up as Ledger's "last inbound" (matters at Sydekyk #2).
     last_event = (
         db.query(EmailIngestEvent)

@@ -1,7 +1,7 @@
 """Nudge upkeep: keep the per-stage silence thresholds aligned with the tenant's real CRM stages.
 
 Stages can be renamed, merged, or deleted in Odoo. An override keyed on a stage id that no longer
-exists is dead config — it silently stops applying. A daily cron reconciles the saved overrides
+exists is dead config - it silently stops applying. A daily cron reconciles the saved overrides
 against the live stage ids, prunes the dead ones, and raises a Command-Center issue so an admin knows
 a threshold they set is gone.
 """
@@ -18,7 +18,7 @@ def reconcile_stage_thresholds(
     db: Session, *, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID, real_stage_ids: set[int]
 ) -> list[int]:
     """Drop per-stage overrides whose stage id no longer exists in Odoo; raise/clear an issue.
-    Returns the list of dropped stage ids. Pure w.r.t. Odoo — the caller supplies `real_stage_ids`,
+    Returns the list of dropped stage ids. Pure w.r.t. Odoo - the caller supplies `real_stage_ids`,
     so it's unit-testable. A None/empty stage set is treated as 'couldn't read stages' and is a
     no-op (never prune on a failed read)."""
     if not real_stage_ids:

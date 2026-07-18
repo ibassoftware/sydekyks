@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((res) => setUser(res.data))
       .catch((err) => {
         // Only drop the session when the token is genuinely rejected (401/403). A transient failure
-        // (backend restarting, network blip, 5xx) must NOT wipe a still-valid token — otherwise a
+        // (backend restarting, network blip, 5xx) must NOT wipe a still-valid token - otherwise a
         // brief hiccup logs the user out for no reason.
         const status = err?.response?.status;
         if (status === 401 || status === 403) localStorage.removeItem("sydekyks_token");

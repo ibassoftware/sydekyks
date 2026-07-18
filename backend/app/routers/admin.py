@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -15,6 +15,7 @@ from app.models.metering import ModelRateProfile, PlanTier
 from app.models.mission import Mission, MissionDocument
 from app.models.postmark import PostmarkConfig
 from app.models.sydekyk import Sydekyk
+from app.models.system_incident import SystemIncident
 from app.models.tenant import Tenant
 from app.models.user import User
 from app.schemas.hosted_assignment import HostedAssignmentOut, HostedAssignmentUpdate
@@ -33,14 +34,40 @@ from app.schemas.mission import MissionDetailOut, MissionOut, MissionPage, Missi
 from app.schemas.provider_key import ProviderKeyOut, ProviderKeyUpdate
 from app.schemas.sydekyk import SydekykAdminOut, SydekykModelUpdate
 from app.schemas.sydekyk_llm_config import SydekykUsageOut
+from app.schemas.system_incident import SystemIncidentPage
 from app.schemas.tenant import TenantCommanderUpdate, TenantCreate, TenantOut
-from app.services import gadget_links, llm_provisioning, metering, postmark_config
-from app.services.missions import apply_mission_filters
+from app.services import gadget_links, llm_provisioning, metering, postmark_config, system_incidents
+from app.services.missions import apply_mission_filters, usage_by_mission
 from app.services.usage import get_sydekyk_total_usage
 
 router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(require_super_admin)])
 
 _PROVIDERS = ("openai", "anthropic", "ollama_cloud")
+
+
+@router.get("/incidents", response_model=SystemIncidentPage)
+def list_system_incidents(
+    limit: int = 30,
+    include_resolved: bool = False,
+    db: Session = Depends(get_db),
+):
+    items, open_count, fallback_count = system_incidents.incident_rows(
+        db, limit=max(1, min(limit, 100)), unresolved_only=not include_resolved
+    )
+    return SystemIncidentPage(items=items, open_count=open_count, memory_fallback_count=fallback_count)
+
+
+@router.post("/incidents/{incident_id}/resolve", status_code=status.HTTP_204_NO_CONTENT)
+def resolve_system_incident(incident_id: uuid.UUID, db: Session = Depends(get_db)):
+    incident = db.get(SystemIncident, incident_id)
+    if incident is not None:
+        incident.resolved = True
+        incident.resolved_at = datetime.now().astimezone()
+        db.commit()
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    if system_incidents.resolve_fallback(incident_id):
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found")
 
 
 def _tenant_commander(db: Session, tenant_id: uuid.UUID) -> User | None:
@@ -440,7 +467,7 @@ def update_tenant_plan(tenant_id: uuid.UUID, payload: TenantPlanUpdate, db: Sess
 # ---------------------------------------------------------------------------
 
 
-def _admin_mission_out(m: Mission, *, filename, source, sydekyk_name, tenant_name) -> MissionOut:
+def _admin_mission_out(m: Mission, *, filename, source, sydekyk_name, tenant_name, usage=None) -> MissionOut:
     return MissionOut(
         id=m.id, sydekyk_id=m.sydekyk_id, sydekyk_name=sydekyk_name, tenant_name=tenant_name,
         playbook_key=m.playbook_key, signal_type=m.signal_type, source=source, status=m.status,
@@ -448,6 +475,8 @@ def _admin_mission_out(m: Mission, *, filename, source, sydekyk_name, tenant_nam
         error_message=m.error_message,  # raw — no friendly_message() sanitization here
         document_filename=filename, parent_mission_id=m.parent_mission_id,
         root_mission_id=m.root_mission_id, attempt_number=m.attempt_number,
+        ai_calls=int((usage or {}).get("ai_calls", 0)), tokens_used=int((usage or {}).get("tokens_used", 0)),
+        ai_capacity_seconds=float((usage or {}).get("ai_capacity_seconds", 0.0)),
         created_at=m.created_at, completed_at=m.completed_at,
     )
 
@@ -489,8 +518,9 @@ def list_all_tenant_missions(
     total = count_q.scalar() or 0
 
     rows = base.order_by(Mission.created_at.desc()).limit(limit).offset(offset).all()
+    usage = usage_by_mission(db, [m.id for m, *_ in rows])
     items = [
-        _admin_mission_out(m, filename=fn, source=src, sydekyk_name=syd_name, tenant_name=ten_name)
+        _admin_mission_out(m, filename=fn, source=src, sydekyk_name=syd_name, tenant_name=ten_name, usage=usage.get(m.id))
         for m, fn, src, syd_name, ten_name in rows
     ]
     return MissionPage(items=items, total=total, limit=limit, offset=offset)
@@ -513,6 +543,7 @@ def get_any_mission(mission_id: uuid.UUID, db: Session = Depends(get_db)):
     base = _admin_mission_out(
         mission, filename=doc[0] if doc else None, source=doc[1] if doc else None,
         sydekyk_name=sydekyk.name if sydekyk else None, tenant_name=tenant.name if tenant else None,
+        usage=usage_by_mission(db, [mission.id]).get(mission.id),
     )
     move_id = (mission.result_summary or {}).get("odoo_move_id")
     if move_id:

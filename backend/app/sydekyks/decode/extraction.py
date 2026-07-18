@@ -1,7 +1,7 @@
-"""Decode's AI functions — résumé classification, extraction, and grounded mapping onto real Odoo
+"""Decode's AI functions - résumé classification, extraction, and grounded mapping onto real Odoo
 config (job, hr.applicant fields, skills). All calls go through the shared `vision_ai` plumbing
 (text-first, image-fallback) and are metered by the caller. Every returned Odoo id is validated
-against the offered set (never trust a hallucinated id — same discipline as Ledger's matcher).
+against the offered set (never trust a hallucinated id - same discipline as Ledger's matcher).
 """
 
 import json
@@ -10,12 +10,12 @@ from dataclasses import dataclass, field
 from app.services import vision_ai
 
 _CLASSIFY_PROMPT = """You are Decode, a recruitment assistant. Decide whether the attached document \
-is a candidate's résumé / CV — a document describing ONE person's work experience, education, and \
+is a candidate's résumé / CV - a document describing ONE person's work experience, education, and \
 skills. Respond with ONLY a JSON object (no prose, no markdown fences):
 {"is_resume": boolean, "document_type_guess": short string describing what the document actually is, "reason": short string}
 
 Answer true for a résumé/CV even if unusually formatted or in another language. Answer FALSE for \
-anything that is clearly NOT a résumé — e.g. an invoice or receipt, a contract, a job description or \
+anything that is clearly NOT a résumé - e.g. an invoice or receipt, a contract, a job description or \
 job posting, an ID card, a certificate/diploma on its own, a standalone cover letter with no CV, a \
 random photo, a screenshot, or a blank/unreadable page."""
 
@@ -139,7 +139,7 @@ def match_job(virtual_key, model_alias, *, hint, summary, skills, available_jobs
 
 _MAP_FIELDS_TEMPLATE = """You are Decode, filling an Odoo hr.applicant record from a parsed résumé. \
 Map the candidate's data onto the ACTUAL fields of THIS Odoo instance. Each field lists its technical \
-name, type, label, and — for selection/relation fields — the allowed options.
+name, type, label, and - for selection/relation fields - the allowed options.
 
 Candidate data:
 {resume_json}
@@ -161,7 +161,7 @@ etc.). Omit only fields you genuinely cannot determine. Never invent field names
 # relational_options, e.g. Degree) are also offered, with their allowed values, and validated.
 _SCALAR_TYPES = {"char", "text", "html", "float", "integer", "date", "monetary"}
 
-# Fields Decode must NEVER set from a résumé — recruiter/pipeline/system fields, and priority
+# Fields Decode must NEVER set from a résumé - recruiter/pipeline/system fields, and priority
 # (that's Scout's evaluation score). Everything else writable is fair game.
 _EXCLUDE_FIELDS = {
     "priority", "kanban_state", "stage_id", "active", "color", "id", "display_name",
@@ -174,7 +174,7 @@ _EXCLUDE_FIELDS = {
 def map_to_applicant_fields(
     virtual_key, model_alias, resume: ResumeExtraction, fields_schema: dict, relational_options: dict | None = None, timeout=45.0
 ):
-    """Map résumé data onto the instance's real hr.applicant fields — scalars, selection fields (from
+    """Map résumé data onto the instance's real hr.applicant fields - scalars, selection fields (from
     fields_get), and any many2one fields whose options are supplied in `relational_options`
     ({field_name: [{id,name}]}, e.g. the Degree field). Every value is validated against the offered
     options; nothing is invented. Version-safe: everything comes from `fields_get(hr.applicant)`."""
@@ -248,7 +248,7 @@ Use only category names from the list. Include every skill."""
 
 
 def map_skills(virtual_key, model_alias, resume_skills, skill_types, timeout=45.0):
-    """Categorize each résumé skill into an existing skill TYPE (by name — reliable for an LLM, unlike
+    """Categorize each résumé skill into an existing skill TYPE (by name - reliable for an LLM, unlike
     id-matching). Returns a validated list of {name, skill_type_id}; the playbook then resolves/creates
     the hr.skill + attaches it with the type's level. Unknown categories fall back to the first type."""
     if not skill_types:

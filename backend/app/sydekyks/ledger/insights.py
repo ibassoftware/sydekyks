@@ -1,4 +1,4 @@
-"""Ledger dashboard insights — trend data + an estimated $-saved metric.
+"""Ledger dashboard insights - trend data + an estimated $-saved metric.
 
 Deliberately Ledger-owned (not a generic platform feature): the "how much manual data-entry time
 did this save" framing is specific to Ledger's value proposition, not something every future
@@ -8,7 +8,7 @@ Sydekyk would want computed the same way.
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import func
+from sqlalchemy import and_, case, func
 from sqlalchemy.orm import Session
 
 from app.models.mission import Mission
@@ -45,7 +45,7 @@ def compute_insights(db: Session, tenant_id: uuid.UUID, ledger_sydekyk_id: uuid.
         Mission.status == "succeeded", Mission.result_summary["posted"].astext == "true"
     ).count()
 
-    # Every succeeded Mission — even a needs-review one — spared a human from reading the bill and
+    # Every succeeded Mission - even a needs-review one - spared a human from reading the bill and
     # keying it in from scratch; they're reviewing Ledger's draft, not starting blank.
     manual_hours_saved = succeeded_missions * minutes_per_bill / 60.0
     estimated_manual_cost = round(manual_hours_saved * hourly_wage, 2)
@@ -61,24 +61,33 @@ def compute_insights(db: Session, tenant_id: uuid.UUID, ledger_sydekyk_id: uuid.
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=TREND_DAYS)
     rows = (
-        db.query(func.date(Mission.created_at).label("day"), Mission.status, func.count(Mission.id))
+        db.query(
+            func.date(Mission.created_at).label("day"),
+            func.sum(case((Mission.status == "succeeded", 1), else_=0)).label("succeeded"),
+            func.sum(case((Mission.status == "failed", 1), else_=0)).label("failed"),
+            func.sum(case((and_(Mission.status == "succeeded",
+                                Mission.result_summary["needs_review"].astext == "true"), 1), else_=0)).label("needs_review"),
+            func.sum(case((and_(Mission.status == "succeeded",
+                                Mission.result_summary["posted"].astext == "true"), 1), else_=0)).label("posted"),
+        )
         .filter(Mission.tenant_id == tenant_id, Mission.sydekyk_id == ledger_sydekyk_id, Mission.created_at >= cutoff)
-        .group_by("day", Mission.status)
+        .group_by("day")
         .all()
     )
     by_day: dict[str, dict[str, int]] = {}
-    for day, status, count in rows:
+    for day, succeeded, failed, needs_review, posted in rows:
         key = day.isoformat() if hasattr(day, "isoformat") else str(day)
-        by_day.setdefault(key, {"succeeded": 0, "failed": 0})
-        if status in ("succeeded", "failed"):
-            by_day[key][status] = count
+        by_day[key] = {
+            "succeeded": int(succeeded or 0), "failed": int(failed or 0),
+            "needs_review": int(needs_review or 0), "posted": int(posted or 0),
+        }
 
     daily_trend = []
     today = datetime.now(timezone.utc).date()
     for i in range(TREND_DAYS - 1, -1, -1):
         day = (today - timedelta(days=i)).isoformat()
-        counts = by_day.get(day, {"succeeded": 0, "failed": 0})
-        daily_trend.append({"date": day, "succeeded": counts["succeeded"], "failed": counts["failed"]})
+        counts = by_day.get(day, {"succeeded": 0, "failed": 0, "needs_review": 0, "posted": 0})
+        daily_trend.append({"date": day, **counts})
 
     return {
         "total_missions": total_missions,

@@ -5,6 +5,7 @@ import { GadgetRequirementList } from "../../components/GadgetRequirementList";
 import { ReadinessList } from "../ReadinessList";
 import { useTenantCurrency } from "../../lib/useTenantCurrency";
 import type { SydekykSetupProps } from "../registry";
+import { SettingsBand, SettingsColumns } from "../SettingsLayout";
 
 export function QuillSettingsSection({ sydekyk, canManage, onReadiness }: SydekykSetupProps) {
   const currency = useTenantCurrency();
@@ -31,29 +32,26 @@ export function QuillSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
   }
 
   return (
-    <div className="grid gap-6">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Readiness</p>
-        <div className="mt-3">{readiness ? <ReadinessList items={readiness.items} /> : <p className="text-sm text-[#8a7f6d]">Loading…</p>}</div>
-      </div>
+    <>
+      <SettingsBand title="Readiness" description="What Quill can use now and anything that needs your attention.">
+        {readiness ? <ReadinessList items={readiness.items} /> : <p className="text-sm text-body">Loading...</p>}
+      </SettingsBand>
 
-      <div id="gadgets" className="border-t border-ink-700 pt-6">
-        <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Integrations (optional)</p>
-        <p className="-mt-0.5 mb-3 mt-1 text-xs text-[#8a7f6d]">Odoo is only needed to raise a sales quotation and merge its PDF. Quill drafts and exports without it.</p>
+      <SettingsBand id="gadgets" title="Connections" description="Optional Odoo handoff for creating sales quotations and merging their PDFs.">
+        <p className="mb-4 text-sm text-body">Quill can draft and export proposals without Odoo.</p>
         <GadgetRequirementList sydekykId={sydekyk.id} canManage={canManage} />
-      </div>
+      </SettingsBand>
 
       {settings && (
-        <div className="grid gap-3 border-t border-ink-700 pt-6">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">PDF & Branding</p>
-          <div className="grid grid-cols-2 gap-4">
+        <SettingsBand title="PDF and branding" description="Set the default page format and identity applied to exported proposals.">
+          <SettingsColumns>
             <div>
               <Label>Page size</Label>
               <select
                 value={settings.page_size}
                 disabled={!canManage || saving}
                 onChange={(e) => save({ ...settings, page_size: e.target.value })}
-                className="w-full rounded-md border border-ink-600 bg-ink-900 px-3 py-2.5 text-sm text-[#ede6da] outline-none focus:border-gold-500"
+                className="w-full rounded-[4px] border-2 border-ink-600 bg-ink-800 px-4 py-3 text-base text-heading focus:border-gold-500"
               >
                 <option value="A4">A4</option>
                 <option value="Letter">Letter</option>
@@ -68,8 +66,8 @@ export function QuillSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
                 onBlur={(e) => save({ ...settings, accent_color: e.target.value || null })}
               />
             </div>
-          </div>
-          <div>
+          </SettingsColumns>
+          <div className="mt-5">
             <Label>PDF header line (optional)</Label>
             <Input
               type="text" maxLength={300} placeholder="Acme Corp"
@@ -77,7 +75,7 @@ export function QuillSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
               defaultValue={settings.header_text ?? ""}
               onBlur={(e) => save({ ...settings, header_text: e.target.value || null })}
             />
-            <p className="mt-1 text-[11px] text-[#8a7f6d]">Runs along the top of every exported page (with the proposal title on the right).</p>
+            <p className="mt-2 text-xs text-body">Runs along the top of every exported page with the proposal title on the right.</p>
           </div>
           <div>
             <Label>PDF footer line (optional)</Label>
@@ -87,16 +85,14 @@ export function QuillSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
               defaultValue={settings.footer_text ?? ""}
               onBlur={(e) => save({ ...settings, footer_text: e.target.value || null })}
             />
-            <p className="mt-1 text-[11px] text-[#8a7f6d]">Appears at the bottom-left of every exported page; page numbers sit at the bottom-right.</p>
+            <p className="mt-2 text-xs text-body">Appears at the bottom-left of every exported page. Page numbers sit at the bottom-right.</p>
           </div>
-        </div>
+        </SettingsBand>
       )}
 
       {settings && (
-        <div className="grid gap-3 border-t border-ink-700 pt-6">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Estimated Savings</p>
-          <p className="-mt-1 text-xs text-[#8a7f6d]">Powers the “time saved” metric on your Dashboard.</p>
-          <div className="grid grid-cols-2 gap-4">
+        <SettingsBand title="Value assumptions" description="The business inputs behind Quill's time-saved and money-saved estimates.">
+          <SettingsColumns>
             <div>
               <Label>Hourly wage ({currency})</Label>
               <Input
@@ -117,9 +113,9 @@ export function QuillSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
                 onBlur={(e) => save({ ...settings, estimated_minutes_per_proposal: Number(e.target.value) })}
               />
             </div>
-          </div>
-        </div>
+          </SettingsColumns>
+        </SettingsBand>
       )}
-    </div>
+    </>
   );
 }

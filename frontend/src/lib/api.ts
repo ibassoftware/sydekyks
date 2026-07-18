@@ -14,7 +14,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Global "Saved" feedback for settings changes (DRY — one place, every settings form). A settings
+// Global "Saved" feedback for settings changes (DRY - one place, every settings form). A settings
 // save is a PUT (or a gadget-assignment DELETE/unassign). Changing the AI engine or the Odoo
 // connection gates the agent's readiness, so we reload afterwards to re-fetch it.
 api.interceptors.response.use((response) => {
@@ -25,7 +25,7 @@ api.interceptors.response.use((response) => {
   const isSettingsSave = method === "put" || (method === "delete" && /gadget-requirements|reviewers|recurring/.test(url));
   if (isSettingsSave) {
     const affectsReadiness = /llm-config|gadget-requirements/.test(url);
-    toast.success(affectsReadiness ? "Saved — refreshing…" : "Saved");
+    toast.success(affectsReadiness ? "Saved - refreshing…" : "Saved");
     if (affectsReadiness) {
       setTimeout(() => window.location.reload(), 750);
     }
@@ -49,6 +49,30 @@ export interface Tenant {
   plan: string;
   commander_email: string | null;
   created_at: string;
+}
+
+export interface SystemIncident {
+  id: string;
+  tenant_id: string | null;
+  mission_id: string | null;
+  tenant_name: string | null;
+  source: string;
+  severity: string;
+  method: string | null;
+  path: string | null;
+  status_code: number;
+  error_type: string;
+  message: string;
+  traceback: string | null;
+  resolved: boolean;
+  resolved_at: string | null;
+  created_at: string;
+}
+
+export interface SystemIncidentPage {
+  items: SystemIncident[];
+  open_count: number;
+  memory_fallback_count: number;
 }
 
 export interface Dashboard {
@@ -108,6 +132,8 @@ export interface LedgerDailyTrend {
   date: string;
   succeeded: number;
   failed: number;
+  needs_review: number;
+  posted: number;
 }
 
 export interface LedgerInsights {
@@ -399,11 +425,14 @@ export interface Mission {
   last_step_key: string | null;
   reviewed?: boolean;
   odoo_bill_url?: string | null;  // only populated on the mission-detail endpoint
-  odoo_record_url?: string | null;  // generic Odoo deep link (e.g. the applicant) — detail endpoint only
+  odoo_record_url?: string | null;  // generic Odoo deep link (e.g. the applicant) - detail endpoint only
   odoo_record_label?: string | null;
   parent_mission_id: string | null;
   root_mission_id: string | null;
   attempt_number: number;
+  ai_calls: number;
+  tokens_used: number;
+  ai_capacity_seconds: number;
   created_at: string;
   completed_at: string | null;
 }
@@ -552,6 +581,7 @@ export interface LedgerSettings {
   auto_create_partner: boolean;
   auto_post_enabled: boolean;
   auto_post_threshold: number;
+  purchase_order_match_enabled: boolean;
   ledger_vision_ok?: boolean | null;
   ledger_vision_tested_at?: string | null;
   estimated_hourly_wage: number;
@@ -808,6 +838,10 @@ export interface NudgeSettings {
   estimated_minutes_per_followup: number;
   cron_enabled: boolean;
   cron_poll_limit: number;
+  cron_schedule_label: string;
+  cron_next_run_at: string | null;
+  cron_last_checked_at: string | null;
+  skip_tag_name: string;
 }
 export interface NudgeStage {
   id: number;

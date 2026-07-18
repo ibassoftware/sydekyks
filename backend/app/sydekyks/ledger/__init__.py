@@ -1,4 +1,4 @@
-"""Ledger — the vendor-bill ingestion Sydekyk.
+"""Ledger - the vendor-bill ingestion Sydekyk.
 
 Importing this package triggers:
   - models import (LedgerTenantSettings table registered with SQLAlchemy metadata),
@@ -8,6 +8,6 @@ It exposes `router` (settings endpoints) and `seed` (capability flags + gadget r
 both collected generically by the platform's discovery mechanism.
 """
 
-from app.sydekyks.ledger import models, playbook, tools  # noqa: F401 — import for registration side-effects
-from app.sydekyks.ledger.router import router  # noqa: F401 — collected by app.sydekyks.collect_routers
-from app.sydekyks.ledger.seed import seed  # noqa: F401 — collected by app.sydekyks.collect_seed_functions
+from app.sydekyks.ledger import models, playbook, tools  # noqa: F401 - import for registration side-effects
+from app.sydekyks.ledger.router import router  # noqa: F401 - collected by app.sydekyks.collect_routers
+from app.sydekyks.ledger.seed import seed  # noqa: F401 - collected by app.sydekyks.collect_seed_functions

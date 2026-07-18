@@ -8,7 +8,6 @@ import { Button, Card, buttonClassName } from "../components/ui";
 import { HQShell } from "../components/HQShell";
 import { MissionList } from "../components/MissionList";
 import { AgentCardHeader } from "../components/AgentCardHeader";
-import { LedgerTrendChart } from "../sydekyks/ledger/LedgerTrendChart";
 import { DecodeInsightsSection } from "../sydekyks/decode/DecodeInsightsSection";
 import { ScoutInsightsSection } from "../sydekyks/scout/ScoutInsightsSection";
 import { MirrorInsightsSection } from "../sydekyks/mirror/MirrorInsightsSection";
@@ -138,14 +137,16 @@ export default function TenantDashboard() {
               </div>
             </header>
 
-            <section aria-labelledby="overview-title" className="mt-8">
+            <DashboardJumpNav agents={activated} />
+
+            <section id="overview" aria-labelledby="overview-title" className="mt-8 scroll-mt-28">
               <div className="mb-4 flex items-center justify-between gap-4">
                 <h2 id="overview-title" className="text-sm font-medium uppercase tracking-[0.4px] text-gold-300">Business overview</h2>
                 <span className="text-xs text-body">Rolling sample · latest {missions.length || 0} missions</span>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                 <KpiCard
-                  value={moneySaved == null ? "—" : formatMoneyCompact(moneySaved, dashboard.currency)}
+                  value={moneySaved == null ? " - " : formatMoneyCompact(moneySaved, dashboard.currency)}
                   label="Money saved"
                   detail={moneySaved == null ? "Calculating verified agent value" : "Labour avoided + duplicate payments prevented"}
                   tone="value"
@@ -162,7 +163,7 @@ export default function TenantDashboard() {
               <WorkloadPanel workload={workload} />
             </section>
 
-            <section aria-labelledby="capacity-title" className="mt-8">
+            <section id="capacity" aria-labelledby="capacity-title" className="mt-8 scroll-mt-28">
               <h2 id="capacity-title" className="mb-4 text-sm font-medium uppercase tracking-[0.4px] text-gold-300">AI capacity</h2>
               <div className="grid gap-4 md:grid-cols-2">
                 <UsageMeter label="Tokens this month" used={dashboard.tokens_used_this_month} cap={dashboard.monthly_token_cap} throttled={dashboard.token_throttled} caption="Resets on the 1st at 00:01 UTC" />
@@ -182,17 +183,17 @@ export default function TenantDashboard() {
               </div>
 
             {/* Grouped by business function: Sales · Accounting · HR. Each card self-gates on activation. */}
-            <NudgeInsightsSection initialData={insights?.nudge ?? null} initialQueue={queues?.nudge ?? null} />
-            <QuillInsightsSection initialData={insights?.quill ?? null} />
-            <SealInsightsSection initialData={insights?.seal ?? null} />
-            <SignetInsightsSection initialData={insights?.signet ?? null} />
+            <div id="agent-nudge" className="scroll-mt-28"><NudgeInsightsSection initialData={insights?.nudge ?? null} initialQueue={queues?.nudge ?? null} /></div>
+            <div id="agent-quill" className="scroll-mt-28"><QuillInsightsSection initialData={insights?.quill ?? null} /></div>
+            <div id="agent-seal" className="scroll-mt-28"><SealInsightsSection initialData={insights?.seal ?? null} /></div>
+            <div id="agent-signet" className="scroll-mt-28"><SignetInsightsSection initialData={insights?.signet ?? null} /></div>
 
-            {insights?.ledger && (insights.ledger.activated ? <LedgerInsightsSection insights={insights.ledger} /> : <LedgerNotActivatedCard />)}
-            <MirrorInsightsSection initialData={insights?.mirror ?? null} initialQueue={queues?.mirror ?? null} />
-            <ShieldInsightsSection initialData={insights?.shield ?? null} initialQueue={queues?.shield ?? null} />
+            <div id="agent-ledger" className="scroll-mt-28">{insights?.ledger && (insights.ledger.activated ? <LedgerInsightsSection insights={insights.ledger} /> : <LedgerNotActivatedCard />)}</div>
+            <div id="agent-mirror" className="scroll-mt-28"><MirrorInsightsSection initialData={insights?.mirror ?? null} initialQueue={queues?.mirror ?? null} /></div>
+            <div id="agent-shield" className="scroll-mt-28"><ShieldInsightsSection initialData={insights?.shield ?? null} initialQueue={queues?.shield ?? null} /></div>
 
-            <DecodeInsightsSection initialData={insights?.decode ?? null} />
-            <ScoutInsightsSection initialData={insights?.scout ?? null} />
+            <div id="agent-decode" className="scroll-mt-28"><DecodeInsightsSection initialData={insights?.decode ?? null} /></div>
+            <div id="agent-scout" className="scroll-mt-28"><ScoutInsightsSection initialData={insights?.scout ?? null} /></div>
             </section>
 
             <DashboardRecentMissions initialMissions={missions.slice(0, 8)} />
@@ -231,7 +232,7 @@ function KpiCard({
   const valueTone = tone === "warning" ? "text-amber-300" : tone === "value" ? "text-gold-300" : "text-heading";
   const dotTone = tone === "warning" ? "bg-amber-400" : tone === "value" ? "bg-gold-300" : "bg-gold-400";
   const card = (
-    <Card className={`h-full p-5 ${href ? "transition-colors hover:border-gold-500 hover:bg-ink-800" : ""}`}>
+    <Card className={`h-full p-5 ${href ? "fx-lift hover:border-gold-500 hover:bg-ink-800" : ""}`}>
       <div className="flex items-start justify-between gap-4">
         <p className="text-xs font-medium uppercase tracking-[0.4px] text-body">{label}</p>
         <span className={`mt-1 h-2 w-2 rounded-full ${dotTone}`} aria-hidden="true" />
@@ -368,7 +369,7 @@ function AgentLaunchpad({
   readiness: CommandCenter["readiness"];
 }) {
   return (
-    <section aria-labelledby="launchpad-title" className="mt-10">
+    <section id="quick-launch" aria-labelledby="launchpad-title" className="mt-10 scroll-mt-28">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.4px] text-gold-300">Quick launch</p>
@@ -386,7 +387,7 @@ function AgentLaunchpad({
           {agents.map((agent) => {
             const working = activeIds.has(agent.id);
             return (
-              <Card key={agent.id} className="flex min-w-0 flex-col p-5">
+              <Card key={agent.id} className="fx-lift flex h-full min-w-0 flex-col p-5 hover:border-gold-500">
                 <div className="flex items-start gap-3">
                   <AgentThumb slug={agent.slug} alt={agent.name} size={48} />
                   <div className="min-w-0 flex-1">
@@ -399,10 +400,10 @@ function AgentLaunchpad({
                         {working ? "On a mission" : "Standing by"}
                       </span>
                     </div>
-                    <p className="mt-2 line-clamp-2 text-sm text-body">{agent.tagline}</p>
+                    <p className="mt-2 min-h-10 line-clamp-2 text-sm text-body">{agent.tagline}</p>
                   </div>
                 </div>
-                <AgentQuickAction agent={agent} working={working} readiness={readiness[agent.slug] ?? null} />
+                <AgentQuickAction agent={agent} working={working} readiness={readiness[agent.slug]} />
               </Card>
             );
           })}
@@ -424,7 +425,7 @@ function DashboardRecentMissions({ initialMissions }: { initialMissions: Mission
   }, [initialMissions]);
 
   return (
-    <Card className="mt-6 p-6">
+    <Card className="mt-6 p-4">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Recent Missions</p>
         <Link to="/hq/missions" className="text-xs font-semibold text-gold-400 hover:text-gold-300">
@@ -434,7 +435,7 @@ function DashboardRecentMissions({ initialMissions }: { initialMissions: Mission
       {missions.length === 0 ? (
         <p className="mt-3 text-sm text-body">No missions yet.</p>
       ) : (
-        <div className="mt-3 overflow-hidden rounded-lg border border-ink-700">
+        <div className="mt-3 min-w-0">
           <MissionList missions={missions} onReload={load} />
         </div>
       )}
@@ -449,14 +450,14 @@ function LedgerInsightsSection({ insights }: { insights: LedgerInsights }) {
       <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-gold-500/10 blur-3xl" />
       <AgentCardHeader slug="ledger" name="Ledger" kicker="Bills encoded · Live" />
 
-      <div className="relative mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+      <div className="relative mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-body">Estimated $ saved</p>
           <p className="mt-1 text-4xl font-bold text-heading">
             {formatMoneyCompact(insights.estimated_net_savings, currency)}
           </p>
           <p className="mt-1 text-xs text-body">
-            {formatMoneyCompact(insights.estimated_manual_cost, currency)} manual entry avoided − {formatMoneyCompact(insights.ai_cost, currency)} AI cost
+            {formatMoneyCompact(insights.estimated_manual_cost, currency)} manual entry avoided, less {formatMoneyCompact(insights.ai_cost, currency)} AI cost
           </p>
           <p className="mt-2 text-sm font-medium text-gold-300">
             {compactNumber(insights.succeeded_missions)} bills encoded in {formatFastTime(insights.processing_seconds)}
@@ -465,7 +466,7 @@ function LedgerInsightsSection({ insights }: { insights: LedgerInsights }) {
             </span>
           </p>
           <p className="mt-2 text-xs text-body">
-            Assumes ${insights.estimated_hourly_wage}/hr, {insights.estimated_minutes_per_bill} min per bill — adjust in
+            Assumes ${insights.estimated_hourly_wage}/hr, {insights.estimated_minutes_per_bill} min per bill. Adjust in
             Ledger settings.
           </p>
 
@@ -485,12 +486,134 @@ function LedgerInsightsSection({ insights }: { insights: LedgerInsights }) {
           </div>
         </div>
 
-        <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-body">Last 30 days</p>
-          <LedgerTrendChart trend={insights.daily_trend} />
-        </div>
+        <LedgerAutomationChart insights={insights} />
       </div>
     </Card>
+  );
+}
+
+function LedgerAutomationChart({ insights }: { insights: LedgerInsights }) {
+  const days = insights.daily_trend.slice(-30);
+  const rolling = days.map((day, index) => {
+    const window = days.slice(Math.max(0, index - 6), index + 1);
+    const completed = window.reduce((sum, point) => sum + point.succeeded, 0);
+    const review = window.reduce((sum, point) => sum + point.needs_review, 0);
+    return {
+      ...day,
+      volume: day.succeeded + day.failed,
+      rate: completed > 0 ? Math.round(((completed - review) / completed) * 100) : null,
+    };
+  });
+  const latestIndex = rolling.findLastIndex((point) => point.rate !== null);
+  const latestRate = latestIndex >= 0 ? rolling[latestIndex].rate : null;
+  const comparisonRate = latestIndex >= 7 ? rolling[latestIndex - 7].rate : null;
+  const change = latestRate !== null && comparisonRate !== null ? latestRate - comparisonRate : null;
+
+  const width = 640;
+  const height = 220;
+  const pad = { top: 24, right: 12, bottom: 30, left: 38 };
+  const plotWidth = width - pad.left - pad.right;
+  const plotHeight = height - pad.top - pad.bottom;
+  const x = (index: number) => pad.left + (index / Math.max(1, rolling.length - 1)) * plotWidth;
+  const y = (rate: number) => pad.top + ((100 - rate) / 100) * plotHeight;
+  const maxVolume = Math.max(1, ...rolling.map((point) => point.volume));
+  let linePath = "";
+  let drawing = false;
+  rolling.forEach((point, index) => {
+    if (point.rate === null) {
+      drawing = false;
+      return;
+    }
+    linePath += `${drawing ? " L" : "M"}${x(index).toFixed(1)},${y(point.rate).toFixed(1)}`;
+    drawing = true;
+  });
+  const hasVolume = rolling.some((point) => point.volume > 0);
+
+  return (
+    <figure className="rounded-[4px] border-2 border-ink-600 bg-ink-800 p-4 shadow-[var(--shadow-xs)] sm:p-5">
+      <figcaption>
+        <p className="text-xs font-medium uppercase tracking-[0.4px] text-gold-300">Bills cleared without review</p>
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-3xl font-bold tabular-nums text-heading">{latestRate === null ? "Not enough data" : `${latestRate}%`}</p>
+            <p className="mt-1 text-xs text-body">7-day rolling rate</p>
+          </div>
+          {change !== null && (
+            <p className={`text-sm font-medium ${change >= 0 ? "text-success" : "text-warning-fg"}`}>
+              {change >= 0 ? "Up" : "Down"} {Math.abs(change)} points from the prior week
+            </p>
+          )}
+        </div>
+        <p className="mt-3 text-sm text-body">Higher means Ledger completed more bills without sending them to a human for correction.</p>
+      </figcaption>
+
+      {!hasVolume ? (
+        <div className="mt-6 grid min-h-44 place-items-center border-t-2 border-ink-600 text-center">
+          <div><p className="font-medium text-heading">The graph begins with Ledger's first bill</p><p className="mt-1 text-sm text-body">Daily volume and the rolling touchless rate will appear here.</p></div>
+        </div>
+      ) : (
+        <>
+          <div className="mt-5 flex flex-wrap gap-5 text-xs text-body" aria-hidden="true">
+            <span className="flex items-center gap-2"><span className="h-0.5 w-6 bg-brand" />7-day rate</span>
+            <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-[2px] bg-ink-600" />Daily bill volume</span>
+          </div>
+          <svg
+            viewBox={`0 0 ${width} ${height}`}
+            className="mt-2 block w-full"
+            role="img"
+            aria-label={`Thirty-day Ledger chart. Latest bills cleared without review rate is ${latestRate ?? 0} percent.`}
+          >
+            {[100, 50, 0].map((tick) => (
+              <g key={tick}>
+                <line x1={pad.left} x2={width - pad.right} y1={y(tick)} y2={y(tick)} stroke="var(--border-default-strong)" strokeWidth="2" />
+                <text x={pad.left - 8} y={y(tick) + 4} textAnchor="end" fontSize="11" fill="var(--body)">{tick}%</text>
+              </g>
+            ))}
+            {rolling.map((point, index) => {
+              const barWidth = Math.max(3, plotWidth / Math.max(rolling.length, 1) - 5);
+              const barHeight = (point.volume / maxVolume) * plotHeight * 0.3;
+              return (
+                <rect key={point.date} x={x(index) - barWidth / 2} y={pad.top + plotHeight - barHeight}
+                  width={barWidth} height={barHeight} rx="2" fill="var(--border-default-strong)">
+                  <title>{point.date}: {point.volume} bills</title>
+                </rect>
+              );
+            })}
+            {linePath && <path d={linePath} fill="none" stroke="var(--brand)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />}
+            {rolling.map((point, index) => point.rate !== null && (index % 5 === 0 || index === latestIndex) ? (
+              <circle key={point.date} cx={x(index)} cy={y(point.rate)} r={index === latestIndex ? 5 : 3}
+                fill="var(--neutral-primary-soft)" stroke="var(--brand)" strokeWidth="3">
+                <title>{point.date}: {point.rate}% cleared without review, {point.volume} bills</title>
+              </circle>
+            ) : null)}
+            {[0, 10, 20, 29].filter((index) => rolling[index]).map((index) => (
+              <text key={rolling[index].date} x={x(index)} y={height - 7} textAnchor={index === 0 ? "start" : index === 29 ? "end" : "middle"} fontSize="11" fill="var(--body)">
+                {new Date(`${rolling[index].date}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" })}
+              </text>
+            ))}
+          </svg>
+          <table className="sr-only">
+            <caption>Ledger daily volume and seven-day bills-cleared-without-review rate</caption>
+            <thead><tr><th>Date</th><th>Bills</th><th>Cleared without review</th></tr></thead>
+            <tbody>{rolling.map((point) => <tr key={point.date}><td>{point.date}</td><td>{point.volume}</td><td>{point.rate === null ? "Not available" : `${point.rate}%`}</td></tr>)}</tbody>
+          </table>
+        </>
+      )}
+    </figure>
+  );
+}
+
+function DashboardJumpNav({ agents }: { agents: Sydekyk[] }) {
+  return (
+    <nav aria-label="Command center sections" className="sticky top-0 z-20 mt-4 rounded-[4px] border-2 border-ink-600 bg-ink-900/95 p-2 shadow-[var(--shadow-md)] backdrop-blur">
+      <div className="flex items-center gap-2 overflow-x-auto">
+        <a href="#overview" className="shrink-0 rounded-[4px] px-3 py-2 text-sm font-medium text-body hover:bg-ink-700 hover:text-heading">Overview</a>
+        <a href="#quick-launch" className="shrink-0 rounded-[4px] px-3 py-2 text-sm font-medium text-body hover:bg-ink-700 hover:text-heading">Quick launch</a>
+        <a href="#capacity" className="shrink-0 rounded-[4px] px-3 py-2 text-sm font-medium text-body hover:bg-ink-700 hover:text-heading">AI capacity</a>
+        <span className="h-6 w-0.5 shrink-0 bg-ink-600" aria-hidden="true" />
+        {agents.map((agent) => <a key={agent.id} href={`#agent-${agent.slug}`} className="shrink-0 rounded-[4px] px-3 py-2 text-sm font-medium text-gold-300 hover:bg-ink-700 hover:text-heading">{agent.name}</a>)}
+      </div>
+    </nav>
   );
 }
 
@@ -499,7 +622,7 @@ function LedgerNotActivatedCard() {
     <Card className="mt-6 flex flex-col items-center gap-3 p-8 text-center">
       <span className="text-2xl">📒</span>
       <p className="text-body">
-        Activate Ledger to turn vendor bills into Odoo entries automatically — and see your estimated savings here.
+        Activate Ledger to turn vendor bills into Odoo entries automatically - and see your estimated savings here.
       </p>
       <Link to="/hq/roster">
         <Button>Activate Ledger</Button>

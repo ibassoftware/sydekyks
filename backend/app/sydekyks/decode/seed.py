@@ -1,4 +1,4 @@
-"""Decode's package seed — sets capability flags + playbook_key + gadget requirements on the base
+"""Decode's package seed - sets capability flags + playbook_key + gadget requirements on the base
 Decode Sydekyk catalog row (created by app/seed.py). Idempotent, run by the discovery loop."""
 
 from sqlalchemy.orm import Session

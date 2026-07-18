@@ -1,4 +1,4 @@
-"""Shield dashboard — the ranked auditor review queue is the product. Also: transactions assessed,
+"""Shield dashboard - the ranked auditor review queue is the product. Also: transactions assessed,
 how many warranted review, hard-holds, exposure ($ under review), and which rules fire most.
 """
 
@@ -35,7 +35,7 @@ def _alert_out(r: ShieldFinding, base_url: str | None) -> dict:
 
 
 def pending_alerts(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID, *, limit: int, offset: int) -> dict:
-    """Paged auditor review queue — flagged bills awaiting adjudication, hard-holds + highest risk first."""
+    """Paged auditor review queue - flagged bills awaiting adjudication, hard-holds + highest risk first."""
     s = db.query(ShieldTenantSettings).filter(ShieldTenantSettings.tenant_id == tenant_id).first()
     threshold = s.flag_threshold if s else 45
     base = db.query(ShieldFinding).filter(

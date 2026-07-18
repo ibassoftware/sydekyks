@@ -19,6 +19,10 @@ class NudgeSettingsOut(BaseModel):
     estimated_minutes_per_followup: float
     cron_enabled: bool
     cron_poll_limit: int
+    cron_schedule_label: str
+    cron_next_run_at: str | None = None
+    cron_last_checked_at: str | None = None
+    skip_tag_name: str
 
 
 class NudgeSettingsUpdate(BaseModel):
@@ -30,6 +34,7 @@ class NudgeSettingsUpdate(BaseModel):
     estimated_minutes_per_followup: float = Field(default=6.0, ge=0)
     cron_enabled: bool
     cron_poll_limit: int = Field(default=30, ge=1, le=30)
+    skip_tag_name: str = Field(default="Nudge-skip", min_length=1, max_length=80)
 
 
 class StageOut(BaseModel):
@@ -114,7 +119,7 @@ class NudgeInsightsOut(BaseModel):
     activated: bool
     open_total: int  # open opportunities currently tracked (denominator for "never missed")
     stale_caught: int  # stale opps Nudge acted on
-    coverage_pct: float  # stale_caught / open_total — "follow-ups never missed"
+    coverage_pct: float  # stale_caught / open_total - "follow-ups never missed"
     followups_drafted: int
     value_at_risk_total: float
     currency: str | None = None

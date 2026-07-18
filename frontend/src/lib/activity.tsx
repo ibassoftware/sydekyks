@@ -19,7 +19,7 @@ function stepLabel(key: string | null): string {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
-/** One aggregated in-flight "burst" of Missions — powers a single progress toast instead of one
+/** One aggregated in-flight "burst" of Missions - powers a single progress toast instead of one
  * toast per Mission. `total` is every distinct Mission seen active since the burst began; `running`
  * is how many are still going; `failed` counts finished-and-failed so far. */
 interface Burst {
@@ -167,7 +167,7 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/** A single aggregated progress toast for the whole in-flight burst — one popup with a bar, not one
+/** A single aggregated progress toast for the whole in-flight burst - one popup with a bar, not one
  * popup per Mission. A lone Mission keeps its live step label; a batch shows determinate progress. */
 function ActivityToasts({ active, burst }: { active: Mission[]; burst: Burst | null }) {
   const navigate = useNavigate();

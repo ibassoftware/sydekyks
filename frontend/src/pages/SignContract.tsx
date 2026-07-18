@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { api, type PublicSignEnvelope, type PublicSignResult } from "../lib/api";
 
 /** The public, unauthenticated signing page (route: /sign/:token). A signer opens the emailed link,
- * reviews the document, and signs — no login. Uses the shared axios instance, which omits the bearer
+ * reviews the document, and signs - no login. Uses the shared axios instance, which omits the bearer
  * header when no token is stored. Deliberately plain and standalone (no HQ shell). */
 export default function SignContract() {
   const { token } = useParams<{ token: string }>();

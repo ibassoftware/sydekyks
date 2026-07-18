@@ -29,6 +29,9 @@
   --color-warning: #ff8c42;
   --color-warning-soft: #7c2d12;
   --color-warning-fg: #fbbf24;
+  --color-danger: #ff2d6b;
+  --color-danger-soft: #3d0015;
+  --color-danger-strong: #ff6b6b;
 
   --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
@@ -54,6 +57,7 @@
   --shadow-xs: 0 1px 2px 0 rgb(113 199 197 / 0.08);
   --shadow-sm: 0 1px 3px 0 rgb(113 199 197 / 0.12), 0 1px 2px -1px rgb(113 199 197 / 0.08);
   --shadow-md: 0 4px 6px -1px rgb(113 199 197 / 0.15), 0 2px 4px -2px rgb(113 199 197 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(113 199 197 / 0.15), 0 4px 6px -4px rgb(113 199 197 / 0.1);
   --color-1-400: rgb(113 199 197 / 0.12);
   --color-1-700: rgb(0 0 0 / 0.3);
 }
@@ -110,6 +114,47 @@ body {
 .typeui-page h1 { font-size: clamp(2rem, 6vw, 3.75rem); line-height: 1.05; letter-spacing: -0.05rem; }
 .typeui-page h2 { font-size: clamp(1.75rem, 4vw, 2.75rem); line-height: 1.15; }
 .typeui-page h3 { font-size: clamp(1.5rem, 3vw, 2.25rem); line-height: 1.2; }
+
+/* Settings are an operational surface, so their hierarchy should come from
+   spacing and weight rather than the outlined display treatment used by
+   marketing and page-level headings. */
+.typeui-page .settings-console h2,
+.typeui-page .settings-console h3 {
+  color: var(--heading);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  line-height: 1.5;
+  paint-order: normal;
+  -webkit-text-stroke: 0;
+  text-transform: none;
+}
+
+.typeui-page .settings-console .settings-band-title {
+  color: var(--brand);
+  font-size: 0.875rem;
+  letter-spacing: 0.025rem;
+  line-height: 1.25rem;
+  text-transform: uppercase;
+}
+
+.typeui-page .settings-console > section {
+  background: var(--neutral-primary-soft);
+}
+
+.typeui-page .settings-console > section:nth-child(even) {
+  background: var(--neutral-secondary-medium);
+}
+
+.typeui-page .settings-console > section {
+  transition: background-color 180ms ease-out, box-shadow 180ms ease-out;
+}
+
+.typeui-page .settings-console > section:focus-within {
+  background: color-mix(in srgb, var(--neutral-secondary-medium) 88%, var(--brand));
+  box-shadow: inset 3px 0 var(--brand);
+}
 
 .typeui-page section {
   position: relative;
@@ -229,6 +274,107 @@ body {
     opacity: 1;
     transform: scale(1);
   }
+}
+
+/* --- Landing "operating model" figure: motion-safe dynamic accents --- */
+.fx-figure {
+  position: relative;
+  transition: transform 500ms cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 500ms ease;
+}
+.fx-figure img {
+  transition: transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.fx-figure:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+.fx-figure:hover img {
+  transform: scale(1.035);
+}
+/* ambient light sweep across the panel */
+.fx-figure::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 34%,
+    rgb(255 255 255 / 0.10) 47%,
+    rgb(113 199 197 / 0.14) 50%,
+    rgb(255 255 255 / 0.05) 53%,
+    transparent 66%
+  );
+  transform: translateX(-130%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .fx-figure::after {
+    animation: fxSheen 1.2s ease-out 1.2s 1 both;
+  }
+  /* scroll-driven reveal; degrades to fully-visible where unsupported */
+  @supports (animation-timeline: view()) {
+    .fx-reveal {
+      animation: fadeIn both linear;
+      animation-timeline: view();
+      animation-range: entry 4% cover 20%;
+    }
+  }
+}
+
+@keyframes fxSheen {
+  0% {
+    transform: translateX(-130%);
+  }
+  58% {
+    transform: translateX(130%);
+  }
+  100% {
+    transform: translateX(130%);
+  }
+}
+
+/* Shared motion language. Marketing can reveal on scroll; product surfaces
+   respond only to an explicit hover, focus, or expanded state. */
+.fx-lift {
+  transition: transform 180ms ease-out, border-color 180ms ease-out, background-color 180ms ease-out, box-shadow 180ms ease-out;
+}
+
+.fx-lift:hover,
+.fx-lift:focus-within {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.fx-responsive-row {
+  transition: transform 180ms ease-out, box-shadow 180ms ease-out;
+}
+
+.fx-responsive-row:hover,
+.fx-responsive-row:focus-within {
+  transform: translateX(3px);
+  box-shadow: var(--shadow-sm);
+}
+
+.fx-arrow {
+  transition: transform 180ms ease-out;
+}
+
+.fx-arrow-back {
+  transition: transform 180ms ease-out;
+}
+
+.group:hover .fx-arrow,
+.group:focus-visible .fx-arrow,
+.group:focus-within .fx-arrow {
+  transform: translateX(3px);
+}
+
+.group:hover .fx-arrow-back,
+.group:focus-visible .fx-arrow-back,
+.group:focus-within .fx-arrow-back {
+  transform: translateX(-3px);
 }
 
 /* RichDocEditor (TipTap) content — rendered on a light "paper" surface, so it reads like a document. */

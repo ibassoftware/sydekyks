@@ -1,9 +1,9 @@
-"""Signet's playbooks — dispatching an envelope's invitations and (optionally) a metered reminder pass.
+"""Signet's playbooks - dispatching an envelope's invitations and (optionally) a metered reminder pass.
 
-  - ``signet.dispatch`` — send the signing invitations for an envelope. Deterministic by default; when
+  - ``signet.dispatch`` - send the signing invitations for an envelope. Deterministic by default; when
                           the envelope is in AI email-copy mode it generates one invitation body via a
                           metered model call (with a template fallback) and personalises the greeting.
-  - ``signet.remind``   — a manual "remind now" pass surfaced as a Mission for the activity feed
+  - ``signet.remind``   - a manual "remind now" pass surfaced as a Mission for the activity feed
                           (template reminders, no AI).
 
 The reminder cron calls ``service.process_due_reminders`` directly (deterministic, no mission), so
@@ -30,7 +30,7 @@ PLAYBOOK_STEPS = [
      "likely_failures": "The envelope was deleted, or has no signers."},
     {"key": "compose", "title": "Compose the invitation",
      "description": "Write the signing invitation (AI-personalised or from a template).",
-     "likely_failures": "None fatal — falls back to the standard template."},
+     "likely_failures": "None fatal - falls back to the standard template."},
     {"key": "send", "title": "Send the invitations",
      "description": "Email each signer a secure signing link.",
      "likely_failures": "Outbound email isn't configured (set the Postmark server token)."},
@@ -118,7 +118,7 @@ def run_dispatch(db: Session, mission: Mission) -> None:
 
     if sent == 0:
         _finish(db, mission, "failed", {"envelope_id": str(envelope.id), "title": envelope.title},
-                "Could not send any invitations — check that outbound email is configured.",
+                "Could not send any invitations - check that outbound email is configured.",
                 failure_category="setup")
         return
     _finish(db, mission, "succeeded", {

@@ -1,4 +1,4 @@
-"""Ledger's vendor-bill ingestion playbook — registered under 'ledger.vendor_bill_ingest'.
+"""Ledger's vendor-bill ingestion playbook - registered under 'ledger.vendor_bill_ingest'.
 
 Each step is recorded via the generic `record_step` so the Mission is a full audit trail.
 """
@@ -25,7 +25,7 @@ PLAYBOOK_KEY = "ledger.vendor_bill_ingest"
 PLAYBOOK_STEPS = [
     {"key": "classify_document", "title": "Check it's actually a bill",
      "description": "Quick check that the uploaded document is a vendor bill/invoice/receipt before running full extraction.",
-     "likely_failures": "The document doesn't look like a bill (e.g. a random photo, resume, or unrelated file) — Mission fails immediately, no Odoo bill created."},
+     "likely_failures": "The document doesn't look like a bill (e.g. a random photo, resume, or unrelated file) - Mission fails immediately, no Odoo bill created."},
     {"key": "extract_bill_data", "title": "Extract bill data",
      "description": "Read the uploaded/emailed bill with the assigned vision model and pull vendor, invoice number, dates, totals and line items.",
      "likely_failures": "AI engine not configured, or the model can't read images/PDFs."},
@@ -37,7 +37,10 @@ PLAYBOOK_STEPS = [
      "likely_failures": "Vendor not found and auto-create disabled (marked needs-review)."},
     {"key": "duplicate_check", "title": "Duplicate check",
      "description": "Look for an existing bill with the same invoice number (or a near-match by amount) to avoid double entry.",
-     "likely_failures": "None fatal — a suspected duplicate is flagged for review."},
+     "likely_failures": "None fatal. A suspected duplicate is flagged for review."},
+    {"key": "purchase_order_check", "title": "Match the purchase order",
+     "description": "When enabled, read the PO or source reference and compare vendor, currency, total, and quantities with Odoo.",
+     "likely_failures": "A missing, unknown, ambiguous, or mismatched reference is left as a draft for review."},
     {"key": "infer_account", "title": "Infer the expense account",
      "description": "Reuse the vendor's historical account if one exists; otherwise ask the AI to match the bill's line items against the real chart of accounts.",
      "likely_failures": "No expense account available in Odoo at all."},
@@ -45,14 +48,14 @@ PLAYBOOK_STEPS = [
      "description": "Ask the AI to match the bill's currency against Odoo's ACTUALLY-enabled currencies (falling back to an exact-code lookup), so the bill is created in the right denomination.",
      "likely_failures": "No enabled Odoo currency matches the bill (marked needs-review, no bill created)."},
     {"key": "resolve_tax", "title": "Resolve tax",
-     "description": "Ask the AI to match the bill's tax against every active purchase tax rate configured in Odoo — not just the expense account's default.",
+     "description": "Ask the AI to match the bill's tax against every active purchase tax rate configured in Odoo - not just the expense account's default.",
      "likely_failures": "The bill has tax but no configured Odoo tax rate matches it (bill created as a draft, flagged for review, never auto-posted)."},
     {"key": "create_bill", "title": "Create the vendor bill",
      "description": "Compute a confidence score and create the draft bill in Odoo with its line items and narration.",
      "likely_failures": "Required Odoo fields unmet (marked needs-review) or an Odoo error."},
     {"key": "attach_document", "title": "Attach the original document",
      "description": "Attach the originally uploaded bill (PDF/image) to the Odoo record as evidence, so a human can compare it against the extracted data.",
-     "likely_failures": "Best-effort — an attachment failure never fails the Mission; the bill itself is already created."},
+     "likely_failures": "Best-effort - an attachment failure never fails the Mission; the bill itself is already created."},
     {"key": "post_bill", "title": "Post when confident",
      "description": "If confidence meets the auto-post threshold, post the bill; otherwise leave it as a draft for a human.",
      "likely_failures": "Odoo rejects posting; bill stays draft."},
@@ -77,7 +80,7 @@ def _finish(
 
 
 def _real_model(db: Session, mission: Mission, llm) -> str | None:
-    """The underlying model actually running — NOT the LiteLLM alias. This is what usage is
+    """The underlying model actually running - NOT the LiteLLM alias. This is what usage is
     attributed to and what per-model GPU multipliers key on (so an admin keys "kimi-k2.7-code",
     not "sydekyk-ledger-core"). For Power Core the real model lives on the hosted assignment;
     for BYOK it's the config's own model."""
@@ -94,7 +97,7 @@ def _real_model(db: Session, mission: Mission, llm) -> str | None:
 
 
 def _emit_usage(db: Session, mission: Mission, llm, meta: dict) -> None:
-    """Best-effort usage attribution — never let a usage-logging hiccup fail the Mission."""
+    """Best-effort usage attribution - never let a usage-logging hiccup fail the Mission."""
     try:
         from app.services import usage_events
 
@@ -109,7 +112,7 @@ def _emit_usage(db: Session, mission: Mission, llm, meta: dict) -> None:
             litellm_request_id=meta.get("request_id"),
             cost_usd=float(meta.get("cost_usd") or 0.0),
         )
-    except Exception:  # noqa: BLE001 — usage logging is non-critical to the AP workflow
+    except Exception:  # noqa: BLE001 - usage logging is non-critical to the AP workflow
         db.rollback()
 
 
@@ -160,7 +163,7 @@ def run(db: Session, mission: Mission) -> None:
 
     settings = _get_ledger_settings(db, mission.tenant_id)
 
-    # --- Step 1: classify — is this actually a bill? -----------------------------------------------
+    # --- Step 1: classify - is this actually a bill? -----------------------------------------------
     llm = (
         db.query(TenantSydekykLLMConfig)
         .filter(
@@ -187,7 +190,7 @@ def run(db: Session, mission: Mission) -> None:
         record_step(db, mission, idx, "quota_check", "internal", "failed", error=deny_reason)
         tenant_issues.report_issue(
             db, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id,
-            kind="quota_exceeded", title="AI usage limit reached — Ledger paused",
+            kind="quota_exceeded", title="AI usage limit reached - Ledger paused",
             detail=deny_reason, mission_id=mission.id,
         )
         _finish(db, mission, "failed", {}, deny_reason, failure_category="quota")
@@ -196,7 +199,7 @@ def run(db: Session, mission: Mission) -> None:
     virtual_key = decrypt_secret(llm.litellm_virtual_key_encrypted)
 
     # Rasterize once (PDF pages -> PNG, capped at 3) and reuse for both the classify and extract
-    # calls — avoids rendering a multi-page PDF twice.
+    # calls - avoids rendering a multi-page PDF twice.
     image_uris, img_err = extraction.document_to_image_uris(document_bytes, document.content_type)
     if img_err:
         record_step(db, mission, idx, "classify_document", "internal", "failed", error=img_err)
@@ -228,12 +231,14 @@ def run(db: Session, mission: Mission) -> None:
     _emit_usage(db, mission, llm, meta)
     if not ok or bill is None:
         record_step(db, mission, idx, "extract_bill_data", "llm_call", "failed", error=msg)
-        # Provider/proxy reachability or model rejection — the queue may retry transient cases.
+        # Provider/proxy reachability or model rejection - the queue may retry transient cases.
         _finish(db, mission, "failed", {}, msg, failure_category="transient")
         return
     record_step(db, mission, idx, "extract_bill_data", "llm_call", "succeeded", output={
         "vendor_name": bill.vendor_name, "invoice_number": bill.invoice_number,
         "invoice_date": bill.invoice_date, "total": bill.total, "currency": bill.currency,
+        "purchase_order_reference": bill.purchase_order_reference,
+        "sales_order_reference": bill.sales_order_reference,
         "llm_confidence": bill.llm_confidence,
     })
     idx += 1
@@ -298,9 +303,46 @@ def run(db: Session, mission: Mission) -> None:
             })
             return
 
-        # --- Steps 5-7: infer account, resolve currency, resolve tax — all AI-grounded against
+        # --- Optional PO/SO reference check ----------------------------------------------------
+        po = None
+        po_needs_review = False
+        po_review_reason: str | None = None
+        order_reference = bill.purchase_order_reference or bill.sales_order_reference
+        if settings.purchase_order_match_enabled:
+            if not order_reference:
+                po_needs_review = True
+                po_review_reason = "No purchase order or source reference was found on the bill."
+            else:
+                po = odoo_bills.find_purchase_order(client, order_reference)
+                if po is None:
+                    po_needs_review = True
+                    po_review_reason = f"No unique Odoo purchase order matches reference '{order_reference}'."
+                else:
+                    line_items_for_check = [
+                        {"description": li.description, "quantity": li.quantity,
+                         "unit_price": li.unit_price, "amount": li.amount}
+                        for li in bill.line_items
+                    ]
+                    po_ok, mismatches = odoo_bills.check_purchase_order(
+                        po, partner_id=partner_id, total=bill.total, currency=bill.currency,
+                        line_items=line_items_for_check, client=client,
+                    )
+                    if not po_ok:
+                        po_needs_review = True
+                        po_review_reason = "; ".join(mismatches).capitalize() + "."
+            record_step(db, mission, idx, "purchase_order_check", "gadget_call", "succeeded", output={
+                "enabled": True, "reference": order_reference,
+                "purchase_order": po.get("name") if po else None,
+                "matched": not po_needs_review, "review_reason": po_review_reason,
+            })
+            idx += 1
+        else:
+            record_step(db, mission, idx, "purchase_order_check", "internal", "succeeded", output={"enabled": False})
+            idx += 1
+
+        # --- Steps 5-7: infer account, resolve currency, resolve tax - all AI-grounded against
         # what's ACTUALLY configured in Odoo (one shared LLM call), not a blind code guess -------
-        # Historical vendor-account usage is a strong, cheap, reliable signal — trust it first and
+        # Historical vendor-account usage is a strong, cheap, reliable signal - trust it first and
         # skip second-guessing it with the AI. Only when there's no history do we lean on the AI's
         # chart-of-accounts match (passed the history as a hint either way, for its reasoning).
         account_id = odoo_bills.get_historical_account_id(client, partner_id)
@@ -342,7 +384,7 @@ def run(db: Session, mission: Mission) -> None:
 
         # --- Step 6: resolve currency (currency-aware) ------------------------------------------
         # A PDF/image bill states its currency; Odoo previously always defaulted to the company's
-        # currency regardless — silently wrong for any bill not in that currency. The AI matches
+        # currency regardless - silently wrong for any bill not in that currency. The AI matches
         # the bill against Odoo's ACTUALLY-enabled currencies (falling back to a plain exact-code
         # lookup if it declines); if nothing resolves, refuse to create a (mis-denominated) bill
         # rather than guess.
@@ -357,7 +399,7 @@ def run(db: Session, mission: Mission) -> None:
                     "vendor_name": bill.vendor_name, "invoice_number": bill.invoice_number,
                     "total": bill.total, "currency": bill.currency, "posted": False, "duplicate": False,
                     "needs_review": True,
-                    "review_reason": f"Currency '{bill.currency}' isn't enabled in Odoo — needs manual review.",
+                    "review_reason": f"Currency '{bill.currency}' isn't enabled in Odoo - needs manual review.",
                 })
                 return
             record_step(db, mission, idx, "resolve_currency", "gadget_call", "succeeded", output={
@@ -373,7 +415,7 @@ def run(db: Session, mission: Mission) -> None:
         # The AI matches the bill's tax against ALL of the instance's active purchase taxes by
         # rate (not just the expense account's single default). If the bill states tax but nothing
         # matches, still create the draft (line amounts are correct) but never auto-post it, and
-        # flag a standing tenant Issue — this is an Odoo configuration gap, not a one-off problem.
+        # flag a standing tenant Issue - this is an Odoo configuration gap, not a one-off problem.
         tax_ids = [ai_tax_id] if ai_tax_id is not None else []
         tax_needs_review = False
         tax_review_reason: str | None = None
@@ -406,9 +448,10 @@ def run(db: Session, mission: Mission) -> None:
             partner_auto_created=partner_auto_created, account_source=account_source,
             duplicate_check="clear")
         # Auto-post is opt-in (auto_post_enabled) and additionally never fires when tax config is
-        # missing — posting a bill with an unrepresented tax liability is a compliance risk we
+        # missing - posting a bill with an unrepresented tax liability is a compliance risk we
         # don't take automatically.
-        will_post = settings.auto_post_enabled and not tax_needs_review and score >= settings.auto_post_threshold
+        will_post = (settings.auto_post_enabled and not tax_needs_review and not po_needs_review
+                     and score >= settings.auto_post_threshold)
         note = narration.build_narration(score, account_source, will_post)
 
         line_items = [
@@ -418,7 +461,8 @@ def run(db: Session, mission: Mission) -> None:
         ok, msg, move_id, unmet = odoo_bills.create_vendor_bill(
             client, partner_id=partner_id, invoice_number=bill.invoice_number,
             invoice_date=bill.invoice_date, account_id=account_id, line_items=line_items, narration=note,
-            currency_id=currency_id, tax_ids=tax_ids or None)
+            currency_id=currency_id, tax_ids=tax_ids or None,
+            invoice_origin=po.get("name") if po and not po_needs_review else order_reference)
         if not ok:
             record_step(db, mission, idx, "create_bill", "gadget_call", "failed", error=msg,
                         output={"unmet_required_fields": unmet})
@@ -432,7 +476,7 @@ def run(db: Session, mission: Mission) -> None:
             "odoo_move_id": move_id, "confidence": score})
         idx += 1
 
-        # --- Step 9: attach the original document (best-effort — never fails the Mission) --------
+        # --- Step 9: attach the original document (best-effort - never fails the Mission) --------
         # The bill was already created correctly; a failed attachment is a nice-to-have miss, not a
         # reason to mark a successful bill-creation Mission as failed.
         attach_ok, attach_msg = odoo_bills.attach_document(
@@ -452,15 +496,18 @@ def run(db: Session, mission: Mission) -> None:
                         error=None if ok else msg, output={"posted": ok})
             idx += 1
 
-        if tax_needs_review:
+        needs_review = tax_needs_review or po_needs_review
+        review_reasons = [reason for reason in (tax_review_reason, po_review_reason) if reason]
+        review_reason = " ".join(review_reasons) or None
+        if needs_review:
             review_assignment.assign_on_flag(
                 db, client, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id,
                 model="account.move", res_id=move_id,
-                summary=f"Review vendor bill — {bill.vendor_name or 'vendor'} {bill.invoice_number or ''}".strip(),
-                note=f"<p>Why: {tax_review_reason or 'Ledger flagged this bill for review.'} It was left as an unposted draft.</p>",
+                summary=f"Review vendor bill - {bill.vendor_name or 'vendor'} {bill.invoice_number or ''}".strip(),
+                note=f"<p>Why: {review_reason or 'Ledger flagged this bill for review.'} It was left as an unposted draft.</p>",
                 steps=[
                     "Open this draft vendor bill.",
-                    "Set the correct tax on the line(s) — the AI couldn't match one to your active Odoo purchase taxes.",
+                    "Check the purchase-order reference, vendor, currency, total, quantities, and tax.",
                     "Check the line amounts and total match the attached original document.",
                     "Post the bill once it's correct.",
                 ],
@@ -472,7 +519,10 @@ def run(db: Session, mission: Mission) -> None:
             "total": bill.total, "currency": bill.currency, "confidence": score,
             "odoo_move_id": move_id, "odoo_move_name": bill_row.get("name") if bill_row else None,
             "posted": posted, "duplicate": False,
-            "needs_review": tax_needs_review, "review_reason": tax_review_reason,
+            "purchase_order_reference": order_reference,
+            "purchase_order_name": po.get("name") if po else None,
+            "purchase_order_matched": bool(po and not po_needs_review),
+            "needs_review": needs_review, "review_reason": review_reason,
         })
     except odoo.OdooError as exc:
         record_step(db, mission, idx, "odoo_error", "gadget_call", "failed", error=str(exc))

@@ -54,6 +54,12 @@ def list_stages(client: OdooClient) -> list[dict]:
     return client.search_read("crm.stage", [], ["id", "name", "is_won", "sequence"])
 
 
+def tag_id_by_name(client: OdooClient, name: str) -> int | None:
+    """Resolve a configured CRM tag by exact name without creating or changing Odoo data."""
+    rows = client.search_read("crm.tag", [["name", "=ilike", name.strip()]], ["id", "name"], limit=1)
+    return rows[0]["id"] if rows else None
+
+
 def won_stage_ids(client: OdooClient) -> list[int]:
     return [s["id"] for s in list_stages(client) if s.get("is_won")]
 

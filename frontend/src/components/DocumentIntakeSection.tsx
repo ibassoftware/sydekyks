@@ -82,9 +82,9 @@ export function DocumentIntakeSection({
         {!missions ? (
           <p className="mt-2 text-sm text-[#8a7f6d]">Loading…</p>
         ) : missions.length === 0 ? (
-          <p className="mt-2 text-sm text-[#8a7f6d]">No missions yet — drop a file above to begin.</p>
+          <p className="mt-2 text-sm text-[#8a7f6d]">No missions yet - drop a file above to begin.</p>
         ) : (
-          <div className="mt-2 overflow-hidden rounded-lg border border-ink-700">
+          <div className="mt-2 min-w-0">
             <MissionList missions={missions} onReload={load} showSydekyk={false} />
           </div>
         )}

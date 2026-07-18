@@ -107,7 +107,7 @@ def _proposal_or_404(db: Session, user: User, sydekyk_id: uuid.UUID, proposal_id
 
 
 def _proposal_tokens(db: Session, proposal: QuillProposal) -> tuple[int, float]:
-    """Total tokens + AI cost spent on this proposal — its draft mission + every refine mission."""
+    """Total tokens + AI cost spent on this proposal - its draft mission + every refine mission."""
     mission_ids = set()
     if proposal.mission_id:
         mission_ids.add(proposal.mission_id)
@@ -441,7 +441,7 @@ def export_pdf(proposal_id: uuid.UUID, merge_quotation: bool = False, user: User
             if quote_pdf:
                 out = pdf_svc.merge_pdfs([proposal_pdf, quote_pdf])
         except HTTPException:
-            pass  # Odoo unreachable — return the proposal-only PDF rather than failing the export
+            pass  # Odoo unreachable - return the proposal-only PDF rather than failing the export
 
     filename = (proposal.title or "proposal").strip().replace('"', "") + ".pdf"
     return Response(content=out, media_type="application/pdf",

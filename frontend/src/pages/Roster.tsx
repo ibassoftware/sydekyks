@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { api, type Sydekyk } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useActivity } from "../lib/activity";
-import { Badge, Button, Card } from "../components/ui";
+import { Badge, Button, Card, buttonClassName } from "../components/ui";
 import { HQShell } from "../components/HQShell";
 import { FUNCTION_GROUPS, functionGroupForSlug, type FunctionGroup } from "../sydekyks/registry";
 
@@ -45,14 +45,15 @@ export default function Roster() {
 
   return (
     <HQShell>
-      <main id="main-content" className="mx-auto max-w-6xl px-6 py-12">
+      <div className="hq-command-background min-h-screen">
+      <main id="main-content" className="relative mx-auto max-w-6xl px-6 py-10">
         <header className="typeui-grid relative overflow-hidden rounded-[4px] border-2 border-ink-600 bg-ink-900 p-6 shadow-[var(--shadow-md)] sm:p-8">
           <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div>
-              <p className="text-xs font-medium uppercase tracking-[0.4px] text-gold-300">Roster command</p>
-              <h1 className="mt-4 max-w-2xl text-[28px] font-bold leading-none text-heading">Choose who answers the call</h1>
+              <p className="text-xs font-medium uppercase tracking-[0.4px] text-gold-300">Team directory</p>
+              <h1 className="mt-4 max-w-2xl text-[28px] font-bold leading-none text-heading">Your Sydekyks</h1>
               <p className="mt-4 max-w-[65ch] text-base leading-7 text-body">
-                Organize your AI team by business function, see who is already on duty, and bring another specialist into HQ when the mission demands it.
+                See what every specialist owns, who is ready, and who is already carrying out a mission.
               </p>
             </div>
             <dl className="grid grid-cols-3 gap-4 border-t-2 border-ink-600 pt-6 lg:border-l-2 lg:border-t-0 lg:pl-8 lg:pt-0">
@@ -89,17 +90,18 @@ export default function Roster() {
               </Card>
             ) : (
               groupByFunction(visibleAgents).map(({ key, label, items }) => (
-                <section key={key} aria-labelledby={`roster-${key}`} className="py-12 first:pt-10">
-                  <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-[0.4px] text-gold-300">Business unit</p>
-                      <h2 id={`roster-${key}`} className="mt-3 text-2xl font-bold leading-none text-heading">{label}</h2>
+                <section key={key} aria-labelledby={`roster-${key}`} className="py-8 first:pt-8">
+                  <div className="overflow-hidden rounded-[4px] border-2 border-ink-600 bg-ink-900 shadow-[var(--shadow-xs)]">
+                    <div className="flex flex-wrap items-center justify-between gap-4 border-b-2 border-ink-600 bg-ink-800 px-4 py-4 sm:px-6">
+                      <div className="flex items-baseline gap-3">
+                        <h2 id={`roster-${key}`} className="text-xl font-bold leading-none text-heading">{label}</h2>
+                        <p className="text-xs font-medium uppercase tracking-[0.4px] text-body">Business unit</p>
+                      </div>
+                      <p className="text-sm text-body">{items.length} specialist{items.length === 1 ? "" : "s"}</p>
                     </div>
-                    <p className="text-sm text-body">{items.length} specialist{items.length === 1 ? "" : "s"}</p>
-                  </div>
-                  <div className="grid gap-6 xl:grid-cols-2">
+                    <div className="divide-y-2 divide-ink-600">
                     {items.map((agent) => (
-                      <SydekykCard
+                      <SydekykRow
                         key={agent.id}
                         sydekyk={agent}
                         canManage={canManage}
@@ -108,6 +110,7 @@ export default function Roster() {
                         onToggleInstall={() => toggleInstall(agent)}
                       />
                     ))}
+                    </div>
                   </div>
                 </section>
               ))
@@ -115,6 +118,7 @@ export default function Roster() {
           </>
         )}
       </main>
+      </div>
     </HQShell>
   );
 }
@@ -147,7 +151,7 @@ function RosterTab({
       className={`inline-flex min-h-11 shrink-0 items-center gap-2 border-b-[3px] px-4 py-3 text-base font-medium transition-colors ${
         active
           ? "border-gold-400 text-gold-300"
-          : "border-transparent text-body hover:border-ink-500 hover:text-heading"
+          : "border-transparent text-body hover:border-ink-600 hover:text-heading"
       }`}
     >
       {children}
@@ -177,7 +181,7 @@ function groupByFunction(sydekyks: Sydekyk[]): { key: string; label: string; ite
   return groups;
 }
 
-function SydekykCard({
+function SydekykRow({
   sydekyk,
   canManage,
   pending,
@@ -191,48 +195,52 @@ function SydekykCard({
   onToggleInstall: () => void;
 }) {
   const activated = sydekyk.installed || sydekyk.is_exclusive;
-  const statusLabel = working ? "On a mission" : activated ? "Standing by" : "Available to recruit";
-  const statusTone = working || activated ? "gold" : "neutral";
+  const statusLabel = working ? "Mission underway" : activated ? "Standing ready" : "Available";
+  const statusTone = working ? "gold" : activated ? "success" : "neutral";
+  const workMode = sydekyk.accepts_document_uploads
+    ? "Document intake"
+    : sydekyk.workflow_enabled
+      ? "Mission workflow"
+      : "Collaborative workspace";
 
   return (
-    <article className={`grid min-w-0 overflow-hidden rounded-[4px] border-2 bg-ink-900 shadow-[var(--shadow-xs)] sm:grid-cols-[160px_minmax(0,1fr)] ${working ? "border-gold-500" : "border-ink-600"}`}>
-      <div className="relative min-h-64 overflow-hidden border-b-2 border-ink-600 bg-ink-950 sm:min-h-full sm:border-b-0 sm:border-r-2">
-        <img src={sydekyk.avatar_url} alt={sydekyk.name} className="absolute inset-0 h-full w-full object-contain" />
+    <article className={`fx-responsive-row relative grid min-w-0 gap-4 p-4 sm:grid-cols-[72px_minmax(0,1fr)] sm:p-5 lg:grid-cols-[72px_minmax(0,1fr)_160px_220px] lg:items-center ${working ? "bg-brand-softer" : "bg-ink-900"}`}>
+      <div className="relative h-[72px] w-[72px] overflow-hidden rounded-[4px] border-2 border-ink-600 bg-ink-950">
+        <img src={sydekyk.avatar_url} alt="" className="absolute inset-0 h-full w-full object-contain" />
       </div>
 
-      <div className="flex min-w-0 flex-col p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-[0.4px] text-body">{sydekyk.is_exclusive ? "HQ exclusive" : "Shared specialist"}</p>
-            <h3 className="agent-name mt-3 text-xl font-bold leading-tight text-heading">{sydekyk.name}</h3>
-          </div>
-          <Badge tone={statusTone}>{statusLabel}</Badge>
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <h3 className="agent-name text-xl font-bold leading-tight text-heading">
+            <Link to={`/hq/roster/${sydekyk.id}`} className="hover:text-gold-300">{sydekyk.name}</Link>
+          </h3>
+          {sydekyk.is_exclusive && <span className="text-xs font-medium uppercase tracking-[0.4px] text-gold-300">HQ exclusive</span>}
         </div>
+        <p className="mt-2 max-w-[58ch] text-sm leading-6 text-body">{sydekyk.tagline}</p>
+      </div>
 
-        <p className="mt-4 text-base leading-7 text-body">{sydekyk.tagline}</p>
+      <div className="flex flex-wrap items-center gap-2 sm:col-start-2 lg:col-start-auto lg:block">
+        <Badge tone={statusTone}>{statusLabel}</Badge>
+        <p className="text-xs text-body lg:mt-2">{workMode}</p>
+      </div>
 
-        <div className="mt-6 flex flex-wrap gap-2" aria-label={`${sydekyk.name} capabilities`}>
-          {sydekyk.chat_enabled && <Badge tone="neutral">Chat</Badge>}
-          {sydekyk.workflow_enabled && <Badge tone="neutral">Workflow</Badge>}
-          {sydekyk.is_exclusive && <Badge tone="gold">Exclusive</Badge>}
-        </div>
-
-        <div className="mt-auto flex flex-wrap items-center gap-4 pt-8">
-          <Link to={`/hq/roster/${sydekyk.id}`} className="inline-flex min-h-11 items-center text-base font-medium text-gold-300 hover:text-heading">
-            View command post →
+      <div className="flex flex-wrap items-center gap-2 sm:col-start-2 lg:col-start-auto lg:justify-end">
+        {activated && (
+          <Link to={`/hq/roster/${sydekyk.id}`} className={buttonClassName("primary", "px-4 text-sm")}>
+            Workspace
           </Link>
-          {sydekyk.is_exclusive ? (
-            <span className="ml-auto inline-flex min-h-11 items-center gap-2 text-sm font-medium text-body">
-              <span className="h-2 w-2 rounded-full bg-gold-400" aria-hidden="true" />Always on duty
-            </span>
-          ) : canManage ? (
-            <Button variant={sydekyk.installed ? "ghost" : "primary"} className="ml-auto" disabled={pending} onClick={onToggleInstall}>
-              {pending ? (sydekyk.installed ? "Retiring…" : "Recruiting…") : sydekyk.installed ? "Retire from HQ" : "Recruit to HQ"}
-            </Button>
-          ) : (
-            <span className="ml-auto text-sm text-body">Commander approval required</span>
-          )}
-        </div>
+        )}
+        {!activated && (
+          <Link to={`/hq/roster/${sydekyk.id}`} className={buttonClassName("ghost", "px-4 text-sm")}>
+            View details
+          </Link>
+        )}
+        {!sydekyk.is_exclusive && canManage && (
+          <Button variant={sydekyk.installed ? "ghost" : "primary"} className="px-4 text-sm" disabled={pending} onClick={onToggleInstall}>
+            {pending ? (sydekyk.installed ? "Removing…" : "Adding…") : sydekyk.installed ? "Remove" : "Add to HQ"}
+          </Button>
+        )}
+        {!sydekyk.is_exclusive && !canManage && !activated && <span className="text-sm text-body">Commander approval required</span>}
       </div>
     </article>
   );

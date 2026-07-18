@@ -47,8 +47,8 @@ export default function Landing() {
     <PageShell>
       <div className="typeui-page">
         <Seo
-          title="Sydekyks — AI agents that automate your back office"
-          description="Activate specialist AI agents for accounts payable, recruitment and sales—working directly inside Odoo."
+          title="Sydekyks - AI agents that automate your back office"
+          description="Activate specialist AI agents for accounts payable, recruitment and sales - working directly inside Odoo."
           path="/"
           type="website"
           jsonLd={orgJsonLd}
@@ -71,14 +71,14 @@ export default function Landing() {
                 </span>
                 <h1 className="mt-8 max-w-3xl">Your back office just got backup.</h1>
                 <p className="mt-8 max-w-[65ch] text-xl">
-                  Deploy specialist AI agents that read the work, follow an auditable playbook, and act inside Odoo—without turning your team into prompt engineers.
+                  Deploy specialist AI agents that read the work, follow an auditable playbook, and act inside Odoo - without turning your team into prompt engineers.
                 </p>
                 <div className="mt-10 flex flex-wrap gap-4">
                   <Link to="/login" className={buttonClassName("primary", "px-6 py-3")}>Activate your HQ</Link>
                   <a href="#roster" className={buttonClassName("ghost", "px-6 py-3")}>Meet the roster <ChevronRightIcon className="h-4 w-4" /></a>
                 </div>
               </div>
-              <aside aria-label="Platform summary" className="rounded-[4px] border-2 border-ink-600 bg-ink-900 p-6 shadow-[var(--shadow-md)]">
+              <aside aria-label="Platform summary" className="fx-figure rounded-[4px] border-2 border-ink-600 bg-ink-900 p-6 shadow-[var(--shadow-md)]">
                 <p className="text-xs font-medium uppercase tracking-[0.4px] text-gold-300">Mission control</p>
                 <dl className="mt-8 grid gap-6">
                   <Metric value={String(LIVE_COUNT)} label="Live specialist agents" />
@@ -100,7 +100,7 @@ export default function Landing() {
               </header>
               <div className="grid items-start gap-6 lg:grid-cols-3">
                 {rosterByDomain().map(({ domain, entries }) => (
-                  <section key={domain} aria-labelledby={`domain-${domain}`} className="!bg-ink-900 rounded-[4px] border-2 border-ink-600 p-4 sm:p-6">
+                  <section key={domain} aria-labelledby={`domain-${domain}`} className="fx-reveal !bg-ink-900 rounded-[4px] border-2 border-ink-600 p-4 sm:p-6">
                     <div className="mb-6 flex items-center gap-3 border-b-2 border-ink-600 pb-4">
                       <h3 id={`domain-${domain}`} className="text-2xl">{domain}</h3>
                       <span className="h-0.5 flex-1 bg-ink-700" aria-hidden="true" />
@@ -124,9 +124,17 @@ export default function Landing() {
                 <h2 className="mt-4">Not a chatbot. An operating model.</h2>
                 <p className="mt-8 text-xl">Every mission has a trigger, a bounded sequence of work, durable evidence, and a human-safe finish.</p>
               </header>
+              <figure className="fx-figure fx-reveal mb-16 overflow-hidden rounded-[4px] border-2 border-ink-600 bg-ink-900 shadow-[var(--shadow-md)]">
+                <img
+                  src="/cover.png"
+                  alt="A team of Sydekyks specialist agents working a strategy-to-impact workflow"
+                  loading="lazy"
+                  className="block w-full"
+                />
+              </figure>
               <ol className="grid gap-6 md:grid-cols-3">
                 {HOW_IT_WORKS.map((item) => (
-                  <li key={item.title} className="rounded-[4px] border-2 border-ink-600 bg-ink-900 p-6 shadow-[var(--shadow-xs)]">
+                  <li key={item.title} className="fx-reveal rounded-[4px] border-2 border-ink-600 bg-ink-900 p-6 shadow-[var(--shadow-xs)]">
                     <div className="flex items-center justify-between gap-4">
                       <span className="grid h-11 w-11 place-items-center rounded-[4px] border-2 border-gold-700 bg-brand-softer text-gold-300"><item.icon className="h-5 w-5" /></span>
                       <span className="text-sm font-medium text-body">{item.step}</span>
@@ -149,14 +157,14 @@ export default function Landing() {
                   <h2 className="mt-4">This is only the beginning.</h2>
                   <p className="mt-8 text-xl">The next wave brings specialist backup to finance, recruitment, sales, purchasing, inventory, manufacturing, support, and data quality.</p>
                 </div>
-                <div className="rounded-[4px] border-2 border-gold-600 bg-brand-softer px-6 py-5 text-right shadow-[var(--shadow-md)]">
+                <div className="fx-figure fx-reveal rounded-[4px] border-2 border-gold-600 bg-brand-softer px-6 py-5 text-right shadow-[var(--shadow-md)]">
                   <strong className="block text-5xl font-bold text-heading">{UPCOMING_COUNT}</strong>
                   <span className="mt-2 block text-sm font-medium uppercase tracking-[0.4px] text-gold-300">more agents coming</span>
                 </div>
               </header>
               <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
                 {UPCOMING.map(({ domain, entries }, domainIndex) => (
-                  <article key={domain} className="rounded-[4px] border-2 border-dashed border-ink-600 bg-ink-900 p-5">
+                  <article key={domain} className="fx-reveal rounded-[4px] border-2 border-dashed border-ink-600 bg-ink-900 p-5">
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-xs font-medium text-body">{String(domainIndex + 1).padStart(2, "0")}</span>
                       <span className="rounded-[2px] border-2 border-ink-600 bg-ink-800 px-2 py-1 text-xs font-medium uppercase text-body">{entries.length} queued</span>
@@ -177,7 +185,7 @@ export default function Landing() {
           </section>
 
           <section className="typeui-section typeui-grid border-t-2 border-ink-600">
-            <div className="typeui-container text-center">
+            <div className="fx-reveal typeui-container text-center">
               <p className="text-sm font-medium uppercase tracking-[0.4px] text-gold-300">Ready when you are</p>
               <h2 className="mx-auto mt-4 max-w-3xl">Give your team a specialist bench.</h2>
               <p className="mx-auto mt-8 max-w-[65ch] text-xl">Activate your HQ, assign the right agents, and keep every mission visible from signal to sign-off.</p>
@@ -204,7 +212,7 @@ function Metric({ value, label }: { value: string; label: string }) {
 
 function RosterCard({ entry }: { entry: RosterEntry }) {
   return (
-    <Link to={`/sydekyks/${entry.slug}`} className="group grid min-h-40 grid-cols-[7.5rem_1fr] overflow-hidden rounded-[4px] border-2 border-ink-600 bg-ink-950 shadow-[var(--shadow-xs)] transition-colors hover:border-gold-600 hover:bg-ink-800">
+    <Link to={`/sydekyks/${entry.slug}`} className="fx-lift group grid min-h-40 grid-cols-[7.5rem_1fr] overflow-hidden rounded-[4px] border-2 border-ink-600 bg-ink-950 shadow-[var(--shadow-xs)] hover:border-gold-600 hover:bg-ink-800">
       <div className="border-r-2 border-ink-600 bg-ink-950">
         <img src={`/sydekyks/${entry.slug}.png`} alt={`${entry.name}, ${entry.role}`} loading="lazy" className="h-full w-full object-cover object-top" />
       </div>
@@ -212,7 +220,7 @@ function RosterCard({ entry }: { entry: RosterEntry }) {
         <span className="text-xs font-medium uppercase tracking-[0.4px] text-gold-300">{entry.role}</span>
         <h4 className="agent-name mt-3 text-xl">{entry.name}</h4>
         <p className="mt-4 line-clamp-2 text-sm">{entry.tagline}</p>
-        <span className="mt-auto inline-flex items-center gap-2 pt-4 text-sm font-medium text-gold-300">Agent file <ChevronRightIcon className="h-4 w-4" /></span>
+        <span className="mt-auto inline-flex items-center gap-2 pt-4 text-sm font-medium text-gold-300">Agent file <ChevronRightIcon className="fx-arrow h-4 w-4" /></span>
       </div>
     </Link>
   );

@@ -55,14 +55,15 @@ export default function Settings() {
 
   return (
     <HQShell>
-      <main className="mx-auto max-w-6xl px-6 py-12">
+      <div className="hq-command-background min-h-screen">
+      <main className="relative mx-auto max-w-6xl px-6 py-12">
         <div className="relative overflow-hidden rounded-2xl border border-gold-700/30 bg-gradient-to-br from-ink-800 via-ink-900 to-ink-950 px-8 py-10">
           <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-gold-500/10 blur-3xl" />
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-500">AI Providers</p>
           <h1 className="mt-2 text-4xl font-bold text-[#f5eee0]">Settings</h1>
           <p className="mt-3 max-w-2xl text-sm text-[#b9ad98]">
             Connect your own OpenAI, Anthropic, or Ollama Cloud keys here. Once connected, you can assign any of
-            these — or Sydekyks' own Power Core — to each Sydekyk individually from the Roster.
+            these - or Sydekyks' own Power Core - to each Sydekyk individually from the Roster.
           </p>
         </div>
 
@@ -111,6 +112,7 @@ export default function Settings() {
 
         <CurrencySection />
       </main>
+      </div>
 
       <Modal open={!!editingProvider} onClose={() => setEditingProvider(null)}>
         {editingProvider && (
@@ -126,7 +128,7 @@ export default function Settings() {
   );
 }
 
-/** Tenant reporting currency — the default currency for money shown on the dashboard and in agent
+/** Tenant reporting currency - the default currency for money shown on the dashboard and in agent
  * settings (labor-cost savings, wage inputs). Record-derived amounts keep their own currency. */
 function CurrencySection() {
   const { user } = useAuth();
@@ -155,7 +157,7 @@ function CurrencySection() {
       <h2 className="text-lg font-bold text-[#f5eee0]">Reporting Currency</h2>
       <p className="mt-1 max-w-2xl text-sm text-[#8a7f6d]">
         The currency shown on your Dashboard and in each agent's savings settings. Amounts that carry their own
-        currency in Odoo (a bill, an opportunity) always keep it — this sets the default for everything else.
+        currency in Odoo (a bill, an opportunity) always keep it - this sets the default for everything else.
       </p>
       <Card className="mt-4 max-w-md p-6">
         {!settings ? (
@@ -171,7 +173,7 @@ function CurrencySection() {
             >
               {settings.supported_currencies.map((c) => (
                 <option key={c} value={c}>
-                  {c} — {new Intl.NumberFormat(undefined, { style: "currency", currency: c }).format(1000)}
+                  {c} - {new Intl.NumberFormat(undefined, { style: "currency", currency: c }).format(1000)}
                 </option>
               ))}
             </select>

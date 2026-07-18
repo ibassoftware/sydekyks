@@ -1,6 +1,6 @@
-"""Nudge's AI step — the one part that needs a model. The cron does the catching (deterministic
+"""Nudge's AI step - the one part that needs a model. The cron does the catching (deterministic
 staleness); the LLM only writes the follow-up, grounded in the opp's fields and the actual last
-exchange, matched to the stage — so it references what really happened, not a generic 'just checking
+exchange, matched to the stage - so it references what really happened, not a generic 'just checking
 in'. The rep edits and sends.
 """
 
@@ -10,7 +10,7 @@ from app.services import vision_ai
 
 _TEMPLATE = """You are Nudge, a sales rep's follow-up assistant. Draft a short, warm follow-up \
 message for this opportunity that references the REAL last exchange (below) and fits the deal's \
-stage — never a generic "just checking in". Be specific, friendly, and end with one clear, low-\
+stage - never a generic "just checking in". Be specific, friendly, and end with one clear, low-\
 friction next step. Keep it to 3-5 sentences.
 
 Opportunity: {name}

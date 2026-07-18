@@ -16,7 +16,7 @@ export default function SydekykShowcase() {
     {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
-      name: `${entry.name} — Sydekyk`,
+      name: `${entry.name} - Sydekyk`,
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web",
       description: entry.summary,
@@ -28,15 +28,15 @@ export default function SydekykShowcase() {
   return (
     <PageShell>
       <div className="typeui-page">
-        <Seo title={`${entry.name} — ${entry.tagline.replace(/\.$/, "")} · Sydekyks`} description={entry.tagline} path={path} image={`/sydekyks/${entry.slug}.png`} type="article" jsonLd={jsonLd} />
+        <Seo title={`${entry.name} - ${entry.tagline.replace(/\.$/, "")} · Sydekyks`} description={entry.tagline} path={path} image={`/sydekyks/${entry.slug}.png`} type="article" jsonLd={jsonLd} />
         <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-ink-800 focus:p-3 focus:text-heading">Skip to main content</a>
         <MarketingHeader />
 
         <main id="main-content">
           <section className="typeui-section typeui-grid border-b-2 border-ink-600">
             <div className="typeui-container">
-              <Link to="/#roster" className="mb-12 inline-flex min-h-11 items-center gap-2 font-medium text-gold-300 hover:text-heading">
-                <ChevronLeftIcon className="h-4 w-4" /> Back to roster
+              <Link to="/#roster" className="group mb-12 inline-flex min-h-11 items-center gap-2 font-medium text-gold-300 hover:text-heading">
+                <ChevronLeftIcon className="fx-arrow-back h-4 w-4" /> Back to roster
               </Link>
               <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]">
                 <article className="max-w-3xl">
@@ -49,11 +49,11 @@ export default function SydekykShowcase() {
                   <p className="mt-6 max-w-[65ch]">{entry.summary}</p>
                   <div className="mt-10 flex flex-wrap gap-4">
                     <Link to="/login" className={buttonClassName("primary", "px-6 py-3")}>Activate {entry.name}</Link>
-                    <a href="#playbook" className={buttonClassName("ghost", "px-6 py-3")}>Read the playbook <ChevronRightIcon className="h-4 w-4" /></a>
+                    <a href="#playbook" className={buttonClassName("ghost", "group px-6 py-3")}>Read the playbook <ChevronRightIcon className="fx-arrow h-4 w-4" /></a>
                   </div>
                 </article>
 
-                <figure className="mx-auto w-full max-w-96 overflow-hidden rounded-[4px] border-2 border-ink-600 bg-ink-900 shadow-[var(--shadow-md)]">
+                <figure className="fx-figure mx-auto w-full max-w-96 overflow-hidden rounded-[4px] border-2 border-ink-600 bg-ink-900 shadow-[var(--shadow-md)]">
                   <img src={`/sydekyks/${entry.slug}.png`} alt={`${entry.name}, ${entry.role}`} className="block h-auto w-full" />
                   <figcaption className="flex items-center justify-between gap-4 border-t-2 border-ink-600 px-4 py-3">
                     <span className="font-medium text-heading">{entry.name}</span>
@@ -74,14 +74,14 @@ export default function SydekykShowcase() {
 
           <section id="playbook" className="typeui-section typeui-grid scroll-mt-24">
             <div className="typeui-container">
-              <header className="mb-16 max-w-3xl">
+              <header className="fx-reveal mb-16 max-w-3xl">
                 <p className="text-sm font-medium uppercase tracking-[0.4px] text-gold-300">Playbook</p>
                 <h2 className="mt-4">From signal to sign-off.</h2>
                 <p className="mt-8 text-xl">Every {entry.name} mission follows the same legible sequence. No invisible hand-waving.</p>
               </header>
               <ol className="grid gap-6 sm:grid-cols-2">
                 {entry.howItWorks.map((step, index) => (
-                  <li key={step.title} className="rounded-[4px] border-2 border-ink-600 bg-ink-900 p-6 shadow-[var(--shadow-xs)]">
+                  <li key={step.title} className="fx-reveal rounded-[4px] border-2 border-ink-600 bg-ink-900 p-6 shadow-[var(--shadow-xs)]">
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-sm font-medium text-body">{String(index + 1).padStart(2, "0")}</span>
                       <span className="h-0.5 flex-1 bg-ink-700" aria-hidden="true" />
@@ -98,14 +98,14 @@ export default function SydekykShowcase() {
 
           <section className="typeui-section">
             <div className="typeui-container grid gap-12 lg:grid-cols-[.75fr_1.25fr]">
-              <header>
+              <header className="fx-reveal">
                 <p className="text-sm font-medium uppercase tracking-[0.4px] text-gold-300">Capabilities</p>
                 <h2 className="mt-4">Built for the whole job.</h2>
                 <p className="mt-8">A bounded set of capabilities, applied consistently and backed by evidence.</p>
               </header>
               <ul className="grid gap-4">
                 {entry.capabilities.map((capability) => (
-                  <li key={capability} className="flex items-start gap-4 rounded-[4px] border-2 border-ink-600 bg-ink-900 p-5">
+                  <li key={capability} className="fx-reveal flex items-start gap-4 rounded-[4px] border-2 border-ink-600 bg-ink-900 p-5">
                     <CheckIcon className="mt-1 h-5 w-5 shrink-0 text-gold-300" />
                     <span className="text-body">{capability}</span>
                   </li>
@@ -115,7 +115,7 @@ export default function SydekykShowcase() {
           </section>
 
           <section className="typeui-section typeui-grid border-t-2 border-ink-600">
-            <div className="typeui-container text-center">
+            <div className="fx-reveal typeui-container text-center">
               <p className="text-sm font-medium uppercase tracking-[0.4px] text-gold-300">Deploy {entry.name}</p>
               <h2 className="mx-auto mt-4 max-w-3xl">Put a specialist on the mission.</h2>
               <p className="mx-auto mt-8 max-w-[65ch] text-xl">Activate {entry.name} in your HQ, connect the right Odoo workspace, and keep every run visible.</p>
@@ -136,7 +136,7 @@ export default function SydekykShowcase() {
 
 function BriefBlock({ index, title, detail }: { index: string; title: string; detail: string }) {
   return (
-    <section className="!bg-ink-900 rounded-[4px] border-2 border-ink-600 p-6 shadow-[var(--shadow-xs)]">
+    <section className="fx-reveal !bg-ink-900 rounded-[4px] border-2 border-ink-600 p-6 shadow-[var(--shadow-xs)]">
       <div className="flex items-center gap-4"><span className="text-sm font-medium text-gold-300">{index}</span><span className="h-0.5 flex-1 bg-ink-700" aria-hidden="true" /></div>
       <h2 className="mt-6 text-2xl">{title}</h2>
       <p className="mt-8 text-sm">{detail}</p>

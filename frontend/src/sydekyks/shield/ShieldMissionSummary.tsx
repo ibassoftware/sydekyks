@@ -50,7 +50,7 @@ export function ShieldMissionSummary({ summary }: { summary: Record<string, unkn
           {flags.map((f, i) => (
             <li key={i} className="text-xs text-[#8a7f6d]">
               • <span className="text-[#b9ad98]">{f.label}</span>
-              {f.evidence ? ` — ${f.evidence}` : ""}
+              {f.evidence ? ` - ${f.evidence}` : ""}
             </li>
           ))}
         </ul>

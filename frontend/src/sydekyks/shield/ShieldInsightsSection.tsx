@@ -13,7 +13,7 @@ function riskPill(score: number): string {
       : "border-ink-600 bg-ink-800/60 text-[#b9ad98]";
 }
 
-/** Shield dashboard card — the ranked auditor review queue is the product. Advisory framing only:
+/** Shield dashboard card - the ranked auditor review queue is the product. Advisory framing only:
  * "warrants review", confirm / clear, never an accusation. */
 const PAGE = 3;
 
@@ -88,7 +88,7 @@ export function ShieldInsightsSection({ initialData, initialQueue }: { initialDa
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wider text-[#8a7f6d]">Auditor review queue</p>
             <span className="text-[11px] text-[#8a7f6d]">
-              {offset + 1}–{Math.min(offset + PAGE, total)} of {total}
+              {offset + 1}-{Math.min(offset + PAGE, total)} of {total}
             </span>
           </div>
           <div className="mt-2 grid gap-2">
@@ -112,13 +112,13 @@ export function ShieldInsightsSection({ initialData, initialQueue }: { initialDa
                 {a.flags.length > 0 && (
                   <ul className="mt-1 grid gap-0.5">
                     {a.flags.map((f) => (
-                      <li key={f.code} className="text-[11px] text-[#8a7f6d]">• {f.label}{f.evidence ? ` — ${f.evidence}` : ""}</li>
+                      <li key={f.code} className="text-[11px] text-[#8a7f6d]">• {f.label}{f.evidence ? ` - ${f.evidence}` : ""}</li>
                     ))}
                   </ul>
                 )}
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <DecisionBtn label="Confirm — escalate" tone="danger" onClick={() => decide(a, "confirmed")} />
-                  <DecisionBtn label="Clear — false positive" tone="ghost" onClick={() => decide(a, "cleared")} />
+                  <DecisionBtn label="Confirm - escalate" tone="danger" onClick={() => decide(a, "confirmed")} />
+                  <DecisionBtn label="Clear - false positive" tone="ghost" onClick={() => decide(a, "cleared")} />
                 </div>
               </div>
             ))}

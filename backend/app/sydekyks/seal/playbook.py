@@ -1,18 +1,18 @@
-"""Seal's playbooks — contract drafting, conversational refinement, and clause-level review.
+"""Seal's playbooks - contract drafting, conversational refinement, and clause-level review.
 
 Three playbook keys, all driven by queued Missions and observed through the shared Mission SSE
 endpoint. All are metered the standard way (usage_guard pre-flight + emit_usage), so every token
 flows through the shared UsageRecord ledger:
 
-  - ``seal.draft``   — turn a template + the drafter's brief (+ optional grounded Odoo facts) into a
+  - ``seal.draft``   - turn a template + the drafter's brief (+ optional grounded Odoo facts) into a
                        polished HTML contract.
-  - ``seal.refine``  — the "Ask Seal" co-editing turn: rewrite the current contract HTML per the
+  - ``seal.refine``  - the "Ask Seal" co-editing turn: rewrite the current contract HTML per the
                        drafter's instruction, and append the user + assistant turns to the chat store.
-  - ``seal.review``  — read the contract clause-by-clause and store a fresh set of grounded risk
+  - ``seal.review``  - read the contract clause-by-clause and store a fresh set of grounded risk
                        findings (the wow factor). Findings whose quoted clause can't be located are
-                       dropped; the human accepts/rejects each — Seal never rewrites on its own.
+                       dropped; the human accepts/rejects each - Seal never rewrites on its own.
 
-Seal never sends anything to a customer — it drafts and de-risks. Odoo is entirely optional.
+Seal never sends anything to a customer - it drafts and de-risks. Odoo is entirely optional.
 """
 
 import re
@@ -39,10 +39,10 @@ PLAYBOOK_STEPS = [
      "likely_failures": "The contract or template was deleted."},
     {"key": "ground_facts", "title": "Pull grounded facts (optional)",
      "description": "If an Odoo opportunity is linked, read its party/amount facts to ground the draft.",
-     "likely_failures": "None fatal — Seal drafts from the brief alone when Odoo isn't connected."},
+     "likely_failures": "None fatal - Seal drafts from the brief alone when Odoo isn't connected."},
     {"key": "check_quota", "title": "Check AI allowance",
      "description": "Confirm the tenant is within its monthly AI-token budget before spending tokens.",
-     "likely_failures": "Monthly token allowance reached — try again after it resets."},
+     "likely_failures": "Monthly token allowance reached - try again after it resets."},
     {"key": "generate", "title": "Write the contract",
      "description": "AI writes (or revises) the contract as clean HTML, grounded in the supplied facts.",
      "likely_failures": "No AI engine configured, or the model returned an unusable response."},
@@ -57,10 +57,10 @@ PLAYBOOK_STEPS_REVIEW = [
      "likely_failures": "The contract was deleted, or is empty."},
     {"key": "load_guidelines", "title": "Load the review playbook",
      "description": "Read the tenant's review guidelines to ground the risk assessment.",
-     "likely_failures": "None fatal — Seal applies standard best practice when none are set."},
+     "likely_failures": "None fatal - Seal applies standard best practice when none are set."},
     {"key": "check_quota", "title": "Check AI allowance",
      "description": "Confirm the tenant is within its monthly AI-token budget before spending tokens.",
-     "likely_failures": "Monthly token allowance reached — try again after it resets."},
+     "likely_failures": "Monthly token allowance reached - try again after it resets."},
     {"key": "analyze", "title": "Review the clauses",
      "description": "AI reads the contract clause-by-clause and flags risky, one-sided, or missing clauses.",
      "likely_failures": "No AI engine configured, or the model returned an unusable response."},
@@ -97,7 +97,7 @@ def _contract(db, mission) -> SealContract | None:
 
 
 def html_to_text(html: str) -> str:
-    """A cheap HTML→text reduction for feeding the review model — strips tags, collapses whitespace."""
+    """A cheap HTML→text reduction for feeding the review model - strips tags, collapses whitespace."""
     if not html:
         return ""
     text = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", html, flags=re.I | re.S)
@@ -170,7 +170,7 @@ def run_draft(db: Session, mission: Mission) -> None:
     if llm is None:
         record_step(db, mission, idx, "check_quota", "internal", "failed", error="No AI engine configured")
         _finish(db, mission, "failed", {"contract_id": str(contract.id)},
-                "No AI engine configured for Seal — set one in AI Engine settings.", failure_category="setup")
+                "No AI engine configured for Seal - set one in AI Engine settings.", failure_category="setup")
         return
     allowed, deny = usage_guard.check_allowed(db, mission.tenant_id, mission.sydekyk_id, model_alias)
     if not allowed:

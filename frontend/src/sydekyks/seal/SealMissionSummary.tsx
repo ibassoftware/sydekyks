@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-/** Renders a Seal mission's business object — the contract it drafted, revised, or reviewed — with a
+/** Renders a Seal mission's business object - the contract it drafted, revised, or reviewed - with a
  * jump back into the editor. Reads from `result_summary`. */
 export function SealMissionSummary({ summary }: { summary: Record<string, unknown> }) {
   const contractId = summary.contract_id as string | undefined;

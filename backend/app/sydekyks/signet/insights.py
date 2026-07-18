@@ -1,5 +1,5 @@
-"""Signet dashboard — a coverage/throughput view. Leads with the completion rate and the median
-time-to-signature (the wow metric — how fast a document gets signed vs chasing it by hand), then what's
+"""Signet dashboard - a coverage/throughput view. Leads with the completion rate and the median
+time-to-signature (the wow metric - how fast a document gets signed vs chasing it by hand), then what's
 still in flight and at risk (overdue and unsigned). Savings = documents signed × manual-chase-minutes.
 """
 

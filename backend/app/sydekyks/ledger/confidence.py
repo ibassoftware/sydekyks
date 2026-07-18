@@ -7,7 +7,7 @@ def compute_confidence(
     duplicate_check: str,  # "clear" | "flagged" | "inconclusive"
 ) -> int:
     """Blend the model's self-reported confidence with deterministic penalties. Ledger's own
-    tunable heuristic — the constants below are the knobs to iterate on post-launch."""
+    tunable heuristic - the constants below are the knobs to iterate on post-launch."""
     score = max(0, min(100, llm_confidence))
 
     if partner_auto_created:
@@ -16,7 +16,7 @@ def compute_confidence(
         score -= 5  # fuzzy match, not exact
 
     if account_source == "guessed":
-        score -= 20  # no history AND no confident AI match — fell back to a generic default
+        score -= 20  # no history AND no confident AI match - fell back to a generic default
     elif account_source == "ai_matched":
         score -= 8  # no vendor history, but the AI reasoned a specific match from the chart of accounts
 

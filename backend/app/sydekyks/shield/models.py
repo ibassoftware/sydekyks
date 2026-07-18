@@ -36,7 +36,7 @@ class ShieldTenantSettings(Base):
 
 
 class ShieldFinding(Base):
-    """One transaction Shield risk-assessed — the auditor review-queue row + learning-loop store.
+    """One transaction Shield risk-assessed - the auditor review-queue row + learning-loop store.
     Framing is always 'warrants review', never an accusation."""
 
     __tablename__ = "shield_findings"
@@ -69,7 +69,7 @@ class ShieldFinding(Base):
 
 
 class ShieldSuppression(Base):
-    """A (vendor, rule) the auditor cleared as a false positive — that rule stops firing for that
+    """A (vendor, rule) the auditor cleared as a false positive - that rule stops firing for that
     vendor. The tunable half of the learning loop, kept simple and explainable."""
 
     __tablename__ = "shield_suppressions"

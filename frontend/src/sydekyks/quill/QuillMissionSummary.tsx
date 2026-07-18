@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-/** Renders a Quill mission's business object — the proposal it drafted or revised — with a jump back
+/** Renders a Quill mission's business object - the proposal it drafted or revised - with a jump back
  * into the editor. Reads from `result_summary`. */
 export function QuillMissionSummary({ summary }: { summary: Record<string, unknown> }) {
   const proposalId = summary.proposal_id as string | undefined;

@@ -1,4 +1,4 @@
-"""Scout scoring dashboard — throughput, average score, distribution, and top candidates from the
+"""Scout scoring dashboard - throughput, average score, distribution, and top candidates from the
 ScoutApplicant store. Gated on Scout being installed."""
 
 import uuid
@@ -51,7 +51,7 @@ def compute_insights(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -
         for label, lo, hi in _BANDS
     ]
 
-    # Per-role shortlist + health, and common strength/gap themes — one pass over the store.
+    # Per-role shortlist + health, and common strength/gap themes - one pass over the store.
     rows_all = base.all()
     by_role: dict = defaultdict(list)
     strengths_counter: Counter = Counter()

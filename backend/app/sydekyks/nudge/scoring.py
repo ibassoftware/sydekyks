@@ -4,7 +4,7 @@ opp's expected revenue so the highest-value-at-risk deals rank first."""
 
 
 def stage_threshold(thresholds: dict | None, default_days: int, stage_id: int | None) -> int:
-    """Days of silence tolerated for this stage — a per-stage override if the tenant set one, else the
+    """Days of silence tolerated for this stage - a per-stage override if the tenant set one, else the
     default. A fresh lead tolerates less silence than a late-stage negotiation."""
     if thresholds and stage_id is not None:
         v = thresholds.get(str(stage_id))
@@ -28,7 +28,7 @@ def silence_score(days_stale: int, threshold: int) -> int:
 
 
 def value_at_risk(expected_revenue: float | None, days_stale: int, threshold: int) -> float:
-    """Revenue exposed, weighted by how overdue the follow-up is — the queue's ranking key."""
+    """Revenue exposed, weighted by how overdue the follow-up is - the queue's ranking key."""
     rev = float(expected_revenue or 0.0)
     over = (days_stale / threshold) if threshold > 0 else 1.0
     return round(rev * over, 2)

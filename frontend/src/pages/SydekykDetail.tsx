@@ -17,7 +17,9 @@ import { HQShell } from "../components/HQShell";
 import { DocumentIntakeSection } from "../components/DocumentIntakeSection";
 import { ReviewerAssignment } from "../components/ReviewerAssignment";
 import { TypeUIPanel } from "../components/TypeUIPanel";
+import { BoltIcon, GearIcon } from "../components/icons";
 import { registryForSlug } from "../sydekyks/registry";
+import { SettingsBand } from "../sydekyks/SettingsLayout";
 
 const ENGINE_LABEL: Record<LLMProvider, string> = {
   power_core: "Power Core",
@@ -30,11 +32,11 @@ export default function SydekykDetail() {
   const { sydekykId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isCommander = user?.role === "commander";
   const [sydekyk, setSydekyk] = useState<Sydekyk | null>(null);
   // Per-Sydekyk permissions (a commander has both). Run-actions gate on canUse; settings/engine on
-  // canConfigure — mirrors the backend's assert_can_use / assert_can_configure so use-only heroes
+  // canConfigure - mirrors the backend's assert_can_use / assert_can_configure so use-only heroes
   // can actually operate an agent they're granted, without seeing (blocked) config controls.
   const canUse = sydekyk?.can_use ?? isCommander;
   const canConfigure = sydekyk?.can_configure ?? isCommander;
@@ -43,9 +45,12 @@ export default function SydekykDetail() {
   const [readiness, setReadiness] = useState<LedgerReadiness | null>(null);
   const [reviewCount, setReviewCount] = useState(0);
   const registryEntry = registryForSlug(sydekyk?.slug);
-  // Settings is configured once; Upload Bills + Recent Missions are used constantly — split them
-  // into tabs, defaulting to Operations. Only Sydekyks that accept uploads get a tab bar at all.
-  const [activeTab, setActiveTab] = useState<"operations" | "settings">(searchParams.get("tab") === "settings" ? "settings" : "operations");
+  // Every agent uses the same workspace contract: day-to-day work lives under Actions; privileged
+  // setup lives under Settings. This keeps use-only Heroes away from configuration reads as well as
+  // writes, while Commanders and configure-enabled Heroes can access both surfaces.
+  const [activeTab, setActiveTab] = useState<"actions" | "settings">(
+    searchParams.get("tab") === "settings" ? "settings" : "actions",
+  );
 
   useEffect(() => {
     if (!sydekykId) return;
@@ -58,6 +63,36 @@ export default function SydekykDetail() {
       .then((res) => setReviewCount(res.data.missions_needing_review))
       .catch(() => setReviewCount(0));
   }, [sydekykId]);
+
+  useEffect(() => {
+    if (!sydekyk?.accepts_document_uploads || !canUse) return;
+    let current = true;
+    api.get<LedgerReadiness>(`/tenant/${sydekyk.slug}/readiness`)
+      .then((response) => {
+        if (current) setReadiness(response.data);
+      })
+      .catch(() => {
+        if (current) setReadiness(null);
+      });
+    return () => { current = false; };
+  }, [canUse, sydekyk?.accepts_document_uploads, sydekyk?.slug]);
+
+  useEffect(() => {
+    if (!sydekyk || canConfigure || activeTab !== "settings") return;
+    setActiveTab("actions");
+    const next = new URLSearchParams(searchParams);
+    next.delete("tab");
+    setSearchParams(next, { replace: true });
+  }, [activeTab, canConfigure, searchParams, setSearchParams, sydekyk]);
+
+  function selectTab(tab: "actions" | "settings") {
+    if (tab === "settings" && !canConfigure) return;
+    setActiveTab(tab);
+    const next = new URLSearchParams(searchParams);
+    if (tab === "settings") next.set("tab", "settings");
+    else next.delete("tab");
+    setSearchParams(next, { replace: true });
+  }
 
   async function toggleInstall() {
     if (!sydekyk || !isCommander || sydekyk.is_exclusive) return;
@@ -95,7 +130,7 @@ export default function SydekykDetail() {
                   <img
                     src={sydekyk.avatar_url}
                     alt={sydekyk.name}
-                    className="relative h-full w-full object-cover object-top"
+                    className="relative h-full w-full object-contain object-bottom"
                   />
                 </div>
 
@@ -106,6 +141,11 @@ export default function SydekykDetail() {
                     </Badge>
                     {sydekyk.chat_enabled && <Badge tone="neutral">Chat</Badge>}
                     {sydekyk.workflow_enabled && <Badge tone="neutral">Workflow</Badge>}
+                    {active && (
+                      <Badge tone={canConfigure ? "gold" : "neutral"}>
+                        {canConfigure ? "Use + configure" : canUse ? "Use access" : "No access"}
+                      </Badge>
+                    )}
                   </div>
                   <h1 className="mt-6">{sydekyk.name}</h1>
                   <p className="mt-8 max-w-[65ch] flex-1 text-lg text-body">{sydekyk.description || sydekyk.tagline}</p>
@@ -139,7 +179,7 @@ export default function SydekykDetail() {
             {active && reviewCount > 0 && (
               <Link
                 to={`/hq/missions?view=attention&sydekyk_id=${sydekyk.id}`}
-                className="flex items-center justify-between gap-3 rounded-[4px] border-2 border-amber-600/40 bg-amber-500/10 px-5 py-4 transition-colors hover:bg-amber-500/15"
+                className="fx-lift flex items-center justify-between gap-3 rounded-[4px] border-2 border-amber-600/40 bg-amber-500/10 px-5 py-4 hover:bg-amber-500/15"
               >
                 <div className="flex items-center gap-3">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-400">
@@ -157,80 +197,82 @@ export default function SydekykDetail() {
               </Link>
             )}
 
-            {active && sydekyk.accepts_document_uploads ? (
+            {active ? (
               <>
-                <div role="tablist" aria-label={`${sydekyk.name} sections`} className="flex border-b-2 border-ink-600">
-                  {(["operations", "settings"] as const).map((tab) => (
+                <div role="tablist" aria-label={`${sydekyk.name} workspace`} className="flex border-b-2 border-ink-600">
+                  {(["actions", "settings"] as const).map((tab) => {
+                    const restricted = tab === "settings" && !canConfigure;
+                    const Icon = tab === "actions" ? BoltIcon : GearIcon;
+                    return (
                     <button
                       key={tab}
                       role="tab"
                       aria-selected={activeTab === tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`min-h-11 rounded-t-[4px] border-b-[3px] px-4 py-3 text-sm font-medium capitalize transition-colors ${
+                      aria-disabled={restricted}
+                      disabled={restricted}
+                      title={restricted ? "Configure access is required" : undefined}
+                      onClick={() => selectTab(tab)}
+                      className={`inline-flex min-h-11 items-center gap-2 rounded-t-[4px] border-b-[3px] px-4 py-3 text-base font-medium transition-colors disabled:cursor-not-allowed disabled:text-body/60 ${
                         activeTab === tab
                           ? "border-gold-500 text-gold-300"
                           : "border-transparent text-body hover:border-ink-600 hover:text-heading"
                       }`}
                     >
-                      {tab === "operations" ? "Upload" : "Settings"}
+                      <Icon className="h-4 w-4" />
+                      {tab === "actions" ? "Actions" : "Settings"}
+                      {restricted && <span className="text-xs font-normal">Configure access required</span>}
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
 
-                {/* Both tabs stay mounted (CSS-hidden, not unmounted) so the readiness fetch inside
-                    Settings keeps running and gates the upload panel even while Operations is open. */}
-                <div className={activeTab === "operations" ? "grid gap-6" : "hidden"}>
-                  <Card className="p-6">
-                    <DocumentIntakeSection sydekyk={sydekyk} canManage={canUse} readiness={readiness} uploadContext={registryEntry?.uploadContext} />
+                {activeTab === "actions" ? (
+                  <div role="tabpanel" className="grid gap-6">
+                    {!canUse ? (
+                      <Card className="p-6">
+                        <p className="text-base font-medium text-heading">This command post is outside your current assignment.</p>
+                        <p className="mt-3 text-sm text-body">Ask a Commander to grant Use access for {sydekyk.name}.</p>
+                      </Card>
+                    ) : sydekyk.accepts_document_uploads ? (
+                      <Card className="p-6">
+                        <DocumentIntakeSection sydekyk={sydekyk} canManage={canUse} readiness={readiness} uploadContext={registryEntry?.uploadContext} />
+                      </Card>
+                    ) : registryEntry?.operationsPanel ? (
+                      <Card className="p-6">
+                        <registryEntry.operationsPanel sydekyk={sydekyk} canManage={canUse} />
+                      </Card>
+                    ) : (
+                      <Card className="p-6 text-sm text-body">No direct actions are available for this agent yet.</Card>
+                    )}
+                  </div>
+                ) : canConfigure ? (
+                  <Card role="tabpanel" className="overflow-hidden">
+                    <div className="settings-console divide-y-2 divide-ink-600">
+                      <SettingsBand id="ai-engine" title="AI engine" description="Choose and verify the model that powers this agent's judgment and writing.">
+                        <AIEngineSection sydekyk={sydekyk} canManage />
+                      </SettingsBand>
+                      {registryEntry?.setupSection && (
+                        registryEntry.setupSectionOwnsLayout ? (
+                          <registryEntry.setupSection sydekyk={sydekyk} canManage onReadiness={setReadiness} />
+                        ) : (
+                          <section className="p-5 sm:p-6">
+                            <registryEntry.setupSection sydekyk={sydekyk} canManage onReadiness={setReadiness} />
+                          </section>
+                        )
+                      )}
+                      {sydekyk.workflow_enabled && !registryEntry?.hideReviewerAssignment && (
+                        <section className="p-5 sm:p-6">
+                          <ReviewerAssignment sydekykId={sydekyk.id} canManage />
+                        </section>
+                      )}
+                      {registryEntry?.playbookPanel && (
+                        <section className="p-5 sm:p-6">
+                          <registryEntry.playbookPanel />
+                        </section>
+                      )}
+                    </div>
                   </Card>
-                </div>
-
-                <div className={activeTab === "settings" ? "grid gap-6" : "hidden"}>
-                  <Card className="p-6">
-                    <AIEngineSection sydekyk={sydekyk} canManage={canConfigure} />
-                  </Card>
-                  {registryEntry?.setupSection && (
-                    <Card className="p-6">
-                      <registryEntry.setupSection sydekyk={sydekyk} canManage={canConfigure} onReadiness={setReadiness} />
-                    </Card>
-                  )}
-                  {sydekyk.workflow_enabled && !registryEntry?.hideReviewerAssignment && (
-                    <Card className="p-6">
-                      <ReviewerAssignment sydekykId={sydekyk.id} canManage={canConfigure} />
-                    </Card>
-                  )}
-                  {registryEntry?.playbookPanel && (
-                    <Card className="p-6">
-                      <registryEntry.playbookPanel />
-                    </Card>
-                  )}
-                </div>
-              </>
-            ) : active ? (
-              <>
-                {registryEntry?.operationsPanel && (
-                  <Card className="p-6">
-                    <registryEntry.operationsPanel sydekyk={sydekyk} canManage={canUse} />
-                  </Card>
-                )}
-                <Card className="p-6">
-                  <AIEngineSection sydekyk={sydekyk} canManage={canConfigure} />
-                </Card>
-                {registryEntry?.setupSection && (
-                  <Card className="p-6">
-                    <registryEntry.setupSection sydekyk={sydekyk} canManage={canConfigure} onReadiness={setReadiness} />
-                  </Card>
-                )}
-                {sydekyk.workflow_enabled && (
-                  <Card className="p-6">
-                    <ReviewerAssignment sydekykId={sydekyk.id} canManage={canConfigure} />
-                  </Card>
-                )}
-                {registryEntry?.playbookPanel && (
-                  <Card className="p-6">
-                    <registryEntry.playbookPanel />
-                  </Card>
-                )}
+                ) : null}
               </>
             ) : (
               <Card className="p-6 text-center text-sm text-body">
@@ -257,8 +299,8 @@ function SectionHeader({ title, action }: { title: string; action?: ReactNode })
 function EngineStatusBadge({ status }: { status: SydekykLLMConfig["status"] }) {
   if (status === "connected") {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold-400">
-        <span className="h-2 w-2 rounded-full bg-gold-400 shadow-[var(--shadow-sm)]" /> Connected
+      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-success-strong">
+        <span className="h-2 w-2 rounded-full bg-success shadow-[var(--shadow-sm)]" /> Good to go
       </span>
     );
   }
@@ -337,7 +379,7 @@ function AIEngineSection({ sydekyk, canManage }: { sydekyk: Sydekyk; canManage: 
             </div>
           </div>
           {testResult ? (
-            <p className={`mt-2 text-xs ${testResult.ok ? "text-gold-400" : "text-red-400"}`}>{testResult.message}</p>
+            <p className={`mt-2 text-xs ${testResult.ok ? "text-success-strong" : "text-danger-strong"}`}>{testResult.message}</p>
           ) : (
             config.status === "error" &&
             config.last_test_error && <p className="mt-2 text-xs text-red-400">{config.last_test_error}</p>
@@ -424,13 +466,13 @@ function EngineForm({
         <select className={selectClass} value={provider} onChange={(e) => setProvider(e.target.value as LLMProvider)}>
           <option value="power_core">Power Core (Sydekyks-hosted)</option>
           <option value="openai" disabled={!connected.has("openai")}>
-            OpenAI {!connected.has("openai") && "— connect in Settings"}
+            OpenAI {!connected.has("openai") && " -  connect in Settings"}
           </option>
           <option value="anthropic" disabled={!connected.has("anthropic")}>
-            Anthropic {!connected.has("anthropic") && "— connect in Settings"}
+            Anthropic {!connected.has("anthropic") && " -  connect in Settings"}
           </option>
           <option value="ollama_cloud" disabled={!connected.has("ollama_cloud")}>
-            Ollama Cloud {!connected.has("ollama_cloud") && "— connect in Settings"}
+            Ollama Cloud {!connected.has("ollama_cloud") && " -  connect in Settings"}
           </option>
         </select>
       </div>

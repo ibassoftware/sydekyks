@@ -1,4 +1,4 @@
-"""Mirror's duplicate-bill playbook — registered under 'mirror.duplicate_check'.
+"""Mirror's duplicate-bill playbook - registered under 'mirror.duplicate_check'.
 
 Runs over ONE existing Odoo vendor bill (id in `mission.trigger_context`). Compares it against the
 vendor's other bills (and cross-vendor records sharing a VAT/bank) in confidence tiers, uses AI only
@@ -21,7 +21,7 @@ from app.sydekyks.mirror.models import MirrorFinding, MirrorRecurringPattern, Mi
 
 PLAYBOOK_KEY = "mirror.duplicate_check"
 
-# Superhero-themed step copy (Mirror is the AP watchdog that unmasks impostor bills) — flavour in the
+# Superhero-themed step copy (Mirror is the AP watchdog that unmasks impostor bills) - flavour in the
 # titles, but every description/failure stays plain so it's clear what actually happens.
 PLAYBOOK_STEPS = [
     {"key": "connect_odoo", "title": "Link up with Odoo",
@@ -32,10 +32,10 @@ PLAYBOOK_STEPS = [
      "likely_failures": "The bill was deleted or isn't a vendor bill."},
     {"key": "gather_candidates", "title": "Round up the suspects",
      "description": "Gather the vendor's other bills and any records sharing its Tax ID or bank account.",
-     "likely_failures": "None fatal — Mirror just has fewer bills to compare against."},
+     "likely_failures": "None fatal - Mirror just has fewer bills to compare against."},
     {"key": "detect", "title": "Unmask the duplicate",
-     "description": "Match by reference, by amount + date, and across split vendor records — then let the AI confirm sneaky look-alikes by their line items.",
-     "likely_failures": "None fatal — a clean bill simply scores zero and walks free."},
+     "description": "Match by reference, by amount + date, and across split vendor records - then let the AI confirm sneaky look-alikes by their line items.",
+     "likely_failures": "None fatal - a clean bill simply scores zero and walks free."},
     {"key": "record", "title": "Sound the alarm",
      "description": "Log the verdict to the bill's chatter and flag high-confidence duplicates for review.",
      "likely_failures": "Best-effort writes to Odoo."},
@@ -84,9 +84,9 @@ def _vendor(bill: dict) -> tuple[int | None, str | None]:
 def _build_note(bill, tier, confidence, reasons, matched_ids, suppressed) -> str:
     rows = ["<p><b>Mirror checked this bill for duplicates.</b></p>"]
     if not matched_ids:
-        rows.append("<p>No duplicates found — this bill looks unique.</p>")
+        rows.append("<p>No duplicates found - this bill looks unique.</p>")
     else:
-        verdict = "Suppressed (marked recurring)" if suppressed else f"Possible duplicate — {confidence}% confidence"
+        verdict = "Suppressed (marked recurring)" if suppressed else f"Possible duplicate - {confidence}% confidence"
         rows.append(f"<p><b>{verdict}</b> (matched {len(matched_ids)} bill(s), tier: {tier}).</p>")
         if reasons:
             rows.append("<p>" + "; ".join(reasons) + "</p>")
@@ -180,7 +180,7 @@ def run(db: Session, mission: Mission) -> None:
             if cv_conf > confidence:
                 tier, confidence = "cross_vendor", cv_conf
 
-        # AI adjudication is the primary verdict — it judges the candidates the deterministic layer
+        # AI adjudication is the primary verdict - it judges the candidates the deterministic layer
         # found (it can't invent a match), weighing vendor/ref/amount/date/line-items holistically.
         # An exact-reference hit is already near-certain, so we skip the (billable) call there.
         if matched and tier != "exact":
@@ -227,13 +227,13 @@ def run(db: Session, mission: Mission) -> None:
         if is_duplicate:
             tenant_issues.report_issue(
                 db, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id, kind="mirror_duplicate",
-                title=f"Possible duplicate bill — {vendor_name or 'vendor'} {bill.get('ref') or ''}".strip(),
+                title=f"Possible duplicate bill - {vendor_name or 'vendor'} {bill.get('ref') or ''}".strip(),
                 detail=f"{confidence}% confidence ({tier}). " + "; ".join(reasons), mission_id=mission.id,
             )
             review_assignment.assign_on_flag(
                 db, client, tenant_id=mission.tenant_id, sydekyk_id=mission.sydekyk_id,
                 model="account.move", res_id=int(move_id),
-                summary=f"Possible duplicate ({confidence}%) — {vendor_name or 'vendor'} {bill.get('ref') or ''}".strip(),
+                summary=f"Possible duplicate ({confidence}%) - {vendor_name or 'vendor'} {bill.get('ref') or ''}".strip(),
                 note="<p>Why: " + "; ".join(reasons) + ".</p>" if reasons else None,
                 steps=[
                     "Open this bill and the matched bill(s) side by side to compare vendor, reference, amount and lines.",

@@ -65,6 +65,7 @@ def _settings_out(s: LedgerTenantSettings) -> LedgerSettingsOut:
         auto_create_partner=s.auto_create_partner,
         auto_post_enabled=s.auto_post_enabled,
         auto_post_threshold=s.auto_post_threshold,
+        purchase_order_match_enabled=s.purchase_order_match_enabled,
         ledger_vision_ok=s.ledger_vision_ok,
         ledger_vision_tested_at=s.ledger_vision_tested_at.isoformat() if s.ledger_vision_tested_at else None,
         estimated_hourly_wage=s.estimated_hourly_wage,
@@ -86,6 +87,7 @@ def update_settings(
     s.auto_create_partner = payload.auto_create_partner
     s.auto_post_enabled = payload.auto_post_enabled
     s.auto_post_threshold = payload.auto_post_threshold
+    s.purchase_order_match_enabled = payload.purchase_order_match_enabled
     s.estimated_hourly_wage = payload.estimated_hourly_wage
     s.estimated_minutes_per_bill = payload.estimated_minutes_per_bill
     db.commit()

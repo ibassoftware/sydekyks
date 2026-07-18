@@ -151,6 +151,7 @@ def _get_or_create_config(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UU
 
 @router.get("/sydekyks/{sydekyk_id}/llm-config", response_model=SydekykLLMConfigOut)
 def get_sydekyk_llm_config(sydekyk_id: uuid.UUID, user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
+    permissions.assert_can_configure(db, user, sydekyk_id)
     _get_visible_sydekyk(db, user.tenant_id, sydekyk_id)
     config = (
         db.query(TenantSydekykLLMConfig)

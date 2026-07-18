@@ -1,4 +1,4 @@
-"""Shield's package seed — sets the playbook_key + gadget requirement (Odoo) on the base Shield
+"""Shield's package seed - sets the playbook_key + gadget requirement (Odoo) on the base Shield
 catalog row (created by app/seed.py). Shield analyses existing bills, so it accepts no uploads."""
 
 from sqlalchemy.orm import Session

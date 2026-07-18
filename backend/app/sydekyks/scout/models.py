@@ -24,7 +24,7 @@ class ScoutTenantSettings(Base):
     min_score_threshold: Mapped[int] = mapped_column(Integer, nullable=False, default=60)
     # Extra tenant criteria fed to the AI scorer on top of the job description.
     scoring_rubric: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # Dashboard "estimated $ saved" assumptions — manual time to screen/score one candidate.
+    # Dashboard "estimated $ saved" assumptions - manual time to screen/score one candidate.
     estimated_hourly_wage: Mapped[float] = mapped_column(Float, nullable=False, default=25.0)
     estimated_minutes_per_candidate: Mapped[float] = mapped_column(Float, nullable=False, default=15.0)
     cron_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
@@ -37,7 +37,7 @@ class ScoutTenantSettings(Base):
 
 
 class ScoutApplicant(Base):
-    """A scored applicant — powers the scoring dashboard and the future learning loop."""
+    """A scored applicant - powers the scoring dashboard and the future learning loop."""
 
     __tablename__ = "scout_applicants"
 

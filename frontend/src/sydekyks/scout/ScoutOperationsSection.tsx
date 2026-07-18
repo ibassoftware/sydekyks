@@ -5,7 +5,7 @@ import { MissionList } from "../../components/MissionList";
 import { useMissionRefresh } from "../../lib/useMissionRefresh";
 
 /**
- * Scout's operations panel — the batch "Run now" action on top plus a live Recent Missions list.
+ * Scout's operations panel - the batch "Run now" action on top plus a live Recent Missions list.
  * Scout has no upload dropzone (it reads résumés from Odoo itself), so this stands in for Ledger/
  * Decode's DocumentIntakeSection. Running missions surface in the global activity toast just like an
  * upload does; this list observes active Missions through SSE so they flip to Done in place.
@@ -38,7 +38,7 @@ export function ScoutOperationsSection({ sydekyk, canManage }: { sydekyk: Sydeky
       const r = await api.post<RunNowResult>("/tenant/scout/run-now");
       setRunMsg(
         r.data.queued === 0
-          ? "No un-scored applicants found — everyone's already scored."
+          ? "No un-scored applicants found - everyone's already scored."
           : `Scoring ${r.data.queued} applicant${r.data.queued === 1 ? "" : "s"}…`,
       );
       load();
@@ -59,7 +59,7 @@ export function ScoutOperationsSection({ sydekyk, canManage }: { sydekyk: Sydeky
           </p>
         </div>
         {canManage && (
-          <Button className="px-4 py-2 text-xs" disabled={running || !ready} onClick={runNow}>
+          <Button disabled={running || !ready} onClick={runNow}>
             {running ? "Starting…" : "Run Scout now"}
           </Button>
         )}
@@ -74,9 +74,9 @@ export function ScoutOperationsSection({ sydekyk, canManage }: { sydekyk: Sydeky
         {!missions ? (
           <p className="mt-2 text-sm text-[#8a7f6d]">Loading…</p>
         ) : missions.length === 0 ? (
-          <p className="mt-2 text-sm text-[#8a7f6d]">No missions yet — run Scout to start scoring applicants.</p>
+          <p className="mt-2 text-sm text-[#8a7f6d]">No missions yet - run Scout to start scoring applicants.</p>
         ) : (
-          <div className="mt-2 overflow-hidden rounded-lg border border-ink-700">
+          <div className="mt-2 min-w-0">
             <MissionList missions={missions} onReload={load} showSydekyk={false} />
           </div>
         )}

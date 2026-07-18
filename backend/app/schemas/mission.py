@@ -43,6 +43,9 @@ class MissionOut(BaseModel):
     parent_mission_id: uuid.UUID | None = None
     root_mission_id: uuid.UUID | None = None
     attempt_number: int = 1
+    ai_calls: int = 0
+    tokens_used: int = 0
+    ai_capacity_seconds: float = 0.0
     created_at: datetime
     completed_at: datetime | None
 

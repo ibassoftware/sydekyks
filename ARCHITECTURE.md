@@ -31,10 +31,19 @@ A single Sydekyk can be chat-only, workflow-only, or both — the two capabiliti
 - `frontend/src/index.css` maps TypeUI’s agnostic tokens into the Tailwind theme and CSS custom properties. Components consume semantic tokens instead of raw colors.
 - `frontend/src/components/ui.tsx` owns the shared button, input, card, badge, and page-shell treatments. Page-specific code should compose these primitives rather than inventing alternatives.
 - The HQ dashboard loads one bounded projection from `GET /api/tenant/command-center`. The backend computes dashboard totals, the latest Mission sample, agent insights, readiness, and small work queues sequentially with one request-scoped database session. Insight panels and `AgentQuickAction` receive that initial data as props instead of launching a browser fan-out. Individual panel endpoints remain available for focused refreshes after a mutation.
+- The Command Center exposes a sticky, horizontally scrollable jump navigator for Overview, Quick Launch, AI Capacity, and each active agent panel. Agent panels own stable `agent-<slug>` anchors, so the dashboard remains navigable as the roster grows without adding another data request.
 - The HQ launchpad delegates workflow-specific commands to `frontend/src/components/AgentQuickAction.tsx`. It uses the readiness included in the command-center projection before exposing an action, invokes each agent's native command API (upload, run-now, or document creation), and sends configuration failures back to that agent's Settings surface. Generic "run agent" controls are deliberately avoided because Sydekyks have different operating models.
+- Every active agent detail follows one capability-aware workspace contract. **Actions** mounts only use-authorized commands and Recent Missions; **Settings** mounts configuration/engine/integration panels only for `can_configure`. Backend configuration reads and writes enforce the same permission, so hiding a tab is not the security boundary.
+- Mission list responses include a page-scoped aggregate of `usage_records` (`ai_calls`, `tokens_used`, and estimated GPU-seconds as AI capacity). The aggregate is one query per Mission page, never one query per card. `MissionList` is the single presentation shared by the dashboard, Missions, upload agents, and non-upload operation panels.
 - Missions owns the operational attention model. `/hq/missions?view=attention` combines standing configuration blockers and Missions flagged for human review into one chronological, responsive queue. `/hq/issues` is a backward-compatible redirect, not a second data surface.
 - Public marketing pages use the same TypeUI contract as authenticated HQ agent-detail surfaces. Product semantics and mission behavior remain independent of the presentation layer.
 - Accessibility guardrails take precedence over decorative direction: WCAG contrast is measured, color is never the only state cue, focus remains visible, targets are at least 44px, layouts reflow at 320px, and motion respects `prefers-reduced-motion`.
+
+### 2.2 Odoo-native operating rules
+
+- Nudge excludes opportunities carrying the tenant-configured CRM tag (default `Nudge-skip`). The tag is resolved read-only by exact name, checked in the bounded poller, and checked again in the per-opportunity playbook to close the queue-to-run race window. Legacy snooze records remain honored for backward compatibility but are no longer the primary UI.
+- Nudge automation runs at minute 12 and 42 of every hour. Settings responses include the human schedule label, last sweep, and computed next UTC run so the frontend can display the next local run time without exposing worker terminology.
+- Ledger's purchase-order check is tenant opt-in. Vision extraction captures both PO and upstream source/SO references; Ledger resolves an exact `purchase.order.name` or `purchase.order.origin`, then compares vendor, currency, total, and aggregate quantities. Missing, ambiguous, or mismatched references prevent auto-posting, preserve the bill as a draft, and create an actionable review activity.
 
 ## 3. Themed domain vocabulary
 
@@ -110,6 +119,10 @@ mission_steps (mode=workflow_run missions)
 
 usage_records (Power Meter)
   id, tenant_id, mission_id, model, prompt_tokens, completion_tokens, cost, created_at
+
+system_incidents (Command Center system watch)
+  id, tenant_id (nullable), mission_id (nullable), source, method, path,
+  status_code, error_type, message, traceback, resolved, created_at
 
 subscriptions
   id, tenant_id, plan, stripe_customer_id, stripe_subscription_id,
@@ -266,6 +279,7 @@ open browser observer does not reserve a PostgreSQL pool connection for the dura
 - Single cloud provider, container-based (e.g. ECS/Fargate-style or a PaaS) — no Kubernetes for v1.
 - Background jobs run through arq + Redis in a worker process separate from the request-serving backend, handling Playbook execution and other durable jobs. Bounded, expiring Redis Streams carry replayable Mission observation events between workers and API replicas; Postgres remains the source of truth.
 - SQLAlchemy pools are configured explicitly per process. The production API defaults to 15 persistent connections plus 15 overflow; the worker uses 5 plus 10 overflow. Pool timeout, pre-ping, and recycling are configured through `DATABASE_POOL_*` settings. This is headroom, not a substitute for bounded request concurrency: the command-center aggregate and early SSE session release are the primary safeguards against pool starvation.
+- The API records unhandled exceptions and explicit 5xx responses in `system_incidents`; top-level Mission runner crashes are recorded with tenant/Mission attribution in addition to the Mission's own failed state. A bounded process-memory fallback captures the incident without waiting on a saturated PostgreSQL pool and is flushed into PostgreSQL after recovery. `/api/admin/incidents` powers the super-admin System watch; tenant users only receive a safe incident reference.
 - **Scheduler** component (e.g. Celery beat or equivalent) fires scheduled Signals on their cron expression.
 - **Webhook receiver**: a per-tenant, per-Playbook endpoint (e.g. `/webhooks/{tenant_id}/{playbook_id}`) accepts inbound event Signals; validated via the Playbook's `webhook_secret` before enqueueing a run.
 - Environment separation: dev / staging / production, each with its own Postgres, LiteLLM proxy config, and Stripe test/live keys.

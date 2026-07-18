@@ -1,4 +1,4 @@
-"""Quill dashboard — because proposals are the most token-intensive work on the platform (long HTML in
+"""Quill dashboard - because proposals are the most token-intensive work on the platform (long HTML in
 and out on every revision), the card leads with tokens + AI cost, then the time/$ saved vs writing a
 proposal by hand. Also: proposals created, how many reached "final", and the top customers.
 """

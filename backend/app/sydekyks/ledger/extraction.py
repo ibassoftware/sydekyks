@@ -7,7 +7,7 @@ from app.services.vision_ai import document_to_image_uris, llm_completion  # noq
 
 
 _CLASSIFY_PROMPT = """You are Ledger, an accounts-payable assistant. Look at the attached image(s) \
-and decide whether this is a vendor bill / invoice / receipt for goods or services — i.e. something \
+and decide whether this is a vendor bill / invoice / receipt for goods or services - i.e. something \
 that should become an Odoo vendor bill. Respond with ONLY a JSON object (no prose, no markdown \
 fences) with exactly these keys:
 
@@ -19,7 +19,7 @@ fences) with exactly these keys:
 
 Err on the side of "is_bill": true for anything that plausibly represents a purchase or expense \
 owed to a vendor, even if some fields are missing, blurry, or unusually formatted. Only answer \
-false for content that is clearly NOT a bill — e.g. an unrelated photo, a letter, a contract, a \
+false for content that is clearly NOT a bill - e.g. an unrelated photo, a letter, a contract, a \
 resume, an ID card, a blank/unreadable page, or a screenshot unrelated to a purchase."""
 
 _EXTRACTION_PROMPT = """You are Ledger, a meticulous accounts-payable assistant. You are given an \
@@ -31,6 +31,8 @@ image of a single vendor bill / invoice. Extract its data and respond with ONLY 
   "vendor_tax_id": string or null,
   "invoice_number": string or null,
   "invoice_date": "YYYY-MM-DD" or null,
+  "purchase_order_reference": purchase order reference printed on the bill or null,
+  "sales_order_reference": sales order or source reference printed on the bill or null,
   "currency": 3-letter ISO code or null,
   "line_items": [{"description": string, "quantity": number, "unit_price": number, "amount": number}],
   "subtotal": number or null,
@@ -66,6 +68,8 @@ class BillExtraction:
     vendor_tax_id: str | None = None
     invoice_number: str | None = None
     invoice_date: str | None = None
+    purchase_order_reference: str | None = None
+    sales_order_reference: str | None = None
     currency: str | None = None
     subtotal: float | None = None
     tax_amount: float | None = None
@@ -94,6 +98,8 @@ def _coerce(raw: dict) -> BillExtraction:
         vendor_tax_id=raw.get("vendor_tax_id") or None,
         invoice_number=(str(raw["invoice_number"]) if raw.get("invoice_number") else None),
         invoice_date=raw.get("invoice_date") or None,
+        purchase_order_reference=(str(raw["purchase_order_reference"]).strip() if raw.get("purchase_order_reference") else None),
+        sales_order_reference=(str(raw["sales_order_reference"]).strip() if raw.get("sales_order_reference") else None),
         currency=(str(raw["currency"]).upper() if raw.get("currency") else None),
         subtotal=(float(raw["subtotal"]) if raw.get("subtotal") is not None else None),
         tax_amount=(float(raw["tax_amount"]) if raw.get("tax_amount") is not None else None),
@@ -133,7 +139,7 @@ def extract_bill_data(
 @dataclass
 class BillMatch:
     """The AI's grounded match of the extracted bill against what's ACTUALLY configured in the
-    tenant's Odoo — every id here MUST be validated by the caller against what was actually
+    tenant's Odoo - every id here MUST be validated by the caller against what was actually
     offered (an id outside that list is a hallucination and must never be trusted)."""
 
     currency_id: int | None = None
@@ -168,7 +174,7 @@ Respond with ONLY a JSON object (no prose, no markdown fences):
   "reasoning": short string explaining your choices
 }}
 
-You MUST only return ids that are EXACTLY present in the lists above — never invent an id. If \
+You MUST only return ids that are EXACTLY present in the lists above - never invent an id. If \
 unsure about any field, return null for it rather than guessing."""
 
 
@@ -193,7 +199,7 @@ def match_bill_to_odoo(
     }
     history_hint = (
         f"\nThis vendor's prior bills were usually coded to expense account id {historical_account_id} "
-        "— prefer it unless the line items clearly suggest a different account."
+        " -  prefer it unless the line items clearly suggest a different account."
         if historical_account_id is not None else ""
     )
     prompt = _MATCH_PROMPT_TEMPLATE.format(

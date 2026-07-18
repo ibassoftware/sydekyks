@@ -1,4 +1,4 @@
-"""Nudge dashboard — the ranked "value-at-risk" follow-up queue is the product. Headline metric is
+"""Nudge dashboard - the ranked "value-at-risk" follow-up queue is the product. Headline metric is
 "follow-ups never missed" = stale opps caught / open opps tracked. Also: follow-ups drafted, revenue
 at risk, which stages go stale most, and the time/$ saved vs writing follow-ups by hand.
 """
@@ -38,7 +38,7 @@ def _item_out(r: NudgeFinding, base_url: str | None) -> dict:
 
 
 def pending_nudges(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID, *, limit: int, offset: int) -> dict:
-    """Paged follow-up queue — drafted nudges awaiting the rep's send/dismiss, highest value-at-risk first."""
+    """Paged follow-up queue - drafted nudges awaiting the rep's send/dismiss, highest value-at-risk first."""
     base = db.query(NudgeFinding).filter(
         NudgeFinding.tenant_id == tenant_id, NudgeFinding.sydekyk_id == sydekyk_id,
         NudgeFinding.human_decision.is_(None),
@@ -62,7 +62,7 @@ def compute_insights(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) -
     drafted = sum(1 for r in rows if r.activity_created)
     # Distinct stale opps caught (a given opp may be nudged more than once across cycles).
     stale_caught = len({r.odoo_lead_id for r in rows})
-    # Headline "revenue at risk" is the REAL pipeline value still exposed — the expected_revenue of the
+    # Headline "revenue at risk" is the REAL pipeline value still exposed - the expected_revenue of the
     # undecided stale deals, de-duplicated per opp so a deal nudged twice isn't counted twice. (The
     # weighted `value_at_risk` = revenue × urgency stays purely as the queue's sort key; showing it as
     # dollars would overstate exposure, e.g. a $22.5k deal 20× past tolerance reading as $450k.)

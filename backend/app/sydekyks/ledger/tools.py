@@ -2,7 +2,7 @@
 
 Empty for v1: Ledger's pipeline is a deterministic sequence of playbook steps, not agentic
 tool-calling where the model chooses what to invoke. This file exists for convention consistency
-— a future agentic Sydekyk would populate its own tools.py and call `register_tool(...)` here,
+ -  a future agentic Sydekyk would populate its own tools.py and call `register_tool(...)` here,
 requiring no changes to the core Mission engine.
 """
 

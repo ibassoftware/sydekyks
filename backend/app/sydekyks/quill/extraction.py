@@ -1,10 +1,10 @@
-"""Quill's AI steps — the parts that need a model.
+"""Quill's AI steps - the parts that need a model.
 
 `generate_proposal_stream` turns a template + the rep's notes (+ optional grounded Odoo facts) into a
 polished HTML proposal, streamed over `vision_ai.llm_stream` so the rep watches it write itself (raw
 HTML, not a JSON envelope). `refine_proposal` is the "Ask Quill" co-editing turn: given the current
 HTML and an instruction, it returns the FULL updated HTML plus a short chat reply and a one-line
-summary of what changed — it stays buffered on `vision_ai.llm_completion` (structured multi-field
+summary of what changed - it stays buffered on `vision_ai.llm_completion` (structured multi-field
 output, not renderable as a partial).
 
 Grounding discipline (§12): every factual claim about the customer must trace to a fact we passed in.
@@ -14,12 +14,12 @@ If a fact isn't supplied, the draft says "confirm" rather than inventing.
 from app.services import vision_ai
 
 _GENERATE_TEMPLATE = """You are Quill, a proposal writer. Produce a polished, client-ready business \
-proposal as clean semantic HTML (a document fragment — headings, paragraphs, lists, and a simple \
+proposal as clean semantic HTML (a document fragment - headings, paragraphs, lists, and a simple \
 table where useful; NO <html>/<head>/<body> wrapper, no inline styles, no markdown fences).
 
 Use the TEMPLATE below as the structure and tone to follow, and fill it out from the rep's NOTES. \
 Only state facts about the customer that appear in the NOTES or GROUNDED FACTS; never invent numbers, \
-names, dates, or commitments — where a detail is missing, write a clear "[confirm …]" placeholder.
+names, dates, or commitments - where a detail is missing, write a clear "[confirm …]" placeholder.
 
 TEMPLATE ({template_format}):
 {template}
@@ -27,17 +27,17 @@ TEMPLATE ({template_format}):
 NOTES FROM THE REP:
 {notes}
 
-GROUNDED FACTS (from Odoo — authoritative, may be empty):
+GROUNDED FACTS (from Odoo - authoritative, may be empty):
 {facts}
 
-Respond with ONLY the proposal itself as an HTML fragment — begin with a single <h1> holding a short \
+Respond with ONLY the proposal itself as an HTML fragment - begin with a single <h1> holding a short \
 proposal title, then the sections. No JSON, no <html>/<head>/<body> wrapper, no markdown fences, and no \
 commentary before or after the fragment."""
 
 
 _REFINE_TEMPLATE = """You are Quill, editing an in-progress proposal for a sales rep. You are given the \
 CURRENT proposal HTML and the rep's INSTRUCTION. Return the FULL updated HTML fragment with the \
-requested change applied — change only what's asked, and preserve everything else exactly: existing \
+requested change applied - change only what's asked, and preserve everything else exactly: existing \
 structure, wording you weren't asked to touch, and especially any images (keep every \
 <img src="/api/tenant/quill/assets/..."> tag intact). No <html>/<body> wrapper, no markdown fences, \
 no invented facts.
@@ -81,7 +81,7 @@ def generate_proposal_stream(
     `(ok, msg, {html, title, customer} | None, meta)` once the full HTML fragment is assembled. Title
     is derived from the leading heading; customer is grounded by the playbook, not the model."""
     prompt = _GENERATE_TEMPLATE.format(
-        template=(template_body or "(no template — use a standard proposal structure)").strip(),
+        template=(template_body or "(no template - use a standard proposal structure)").strip(),
         template_format=template_format or "html",
         notes=(notes or "(no notes supplied)").strip(),
         facts=_fmt_facts(facts),
@@ -94,7 +94,7 @@ def generate_proposal_stream(
                 on_delta(event["text"])
         elif event["type"] == "error":
             return False, event["msg"], None, event["meta"]
-        else:  # done — full assembled text + usage/cost meta
+        else:  # done - full assembled text + usage/cost meta
             html, meta = event["text"], event["meta"]
 
     html = vision_ai.strip_code_fences(html)

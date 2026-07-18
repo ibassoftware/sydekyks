@@ -1,10 +1,8 @@
-import { useState } from "react";
-import { api } from "../../lib/api";
 import { Badge } from "../../components/ui";
 import { formatMoney } from "../../lib/format";
 
 /** Renders a Nudge Mission result. Three shapes: a pipeline "sweep" (the run receipt), a follow-up
- * on one opp (drafted / skipped / still-fresh), and — on any opp-scoped result — a quick "pause this
+ * on one opp (drafted / skipped / still-fresh), and - on any opp-scoped result - a quick "pause this
  * deal" action so a rep can whitelist a legitimately-quiet deal without leaving the mission. */
 export function NudgeMissionSummary({ summary }: { summary: Record<string, unknown> }) {
   if (summary.mode === "nudge_sweep") return <SweepSummary summary={summary} />;
@@ -24,8 +22,9 @@ export function NudgeMissionSummary({ summary }: { summary: Record<string, unkno
   const currency = (summary.currency as string) ?? "";
 
   const SKIP_LABEL: Record<string, string> = {
-    snoozed: "Paused deal — skipped",
-    cadence: "Recently nudged — skipped",
+    snoozed: "Paused deal - skipped",
+    odoo_tag: "Skipped by Odoo tag",
+    cadence: "Recently nudged - skipped",
     future_activity: "Next touch already scheduled",
   };
 
@@ -44,9 +43,9 @@ export function NudgeMissionSummary({ summary }: { summary: Record<string, unkno
         {skipped ? (
           <Badge tone="neutral">{SKIP_LABEL[skipped] ?? "Skipped"}</Badge>
         ) : stale === false ? (
-          <Badge tone="gold">Still fresh — no nudge needed</Badge>
+          <Badge tone="gold">Still fresh - no nudge needed</Badge>
         ) : overdue ? (
-          <Badge tone="danger">Existing activity overdue — surfaced, not duplicated</Badge>
+          <Badge tone="danger">Existing activity overdue - surfaced, not duplicated</Badge>
         ) : activityCreated ? (
           <Badge tone="gold">Follow-up drafted{salesperson ? ` for ${salesperson}` : ""}</Badge>
         ) : (
@@ -61,11 +60,13 @@ export function NudgeMissionSummary({ summary }: { summary: Record<string, unkno
         <div className="rounded-lg border border-gold-700/30 bg-gold-500/[0.05] px-3 py-2">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-gold-400/90">Suggested follow-up</p>
           <p className="mt-1 text-sm text-[#d8cdb9]">{draftSubject}</p>
-          <p className="mt-1 text-[11px] text-[#8a7f6d]">Draft only — the rep edits and sends from Odoo.</p>
+          <p className="mt-1 text-[11px] text-[#8a7f6d]">Draft only - the rep edits and sends from Odoo.</p>
         </div>
       )}
 
-      {leadId !== undefined && skipped !== "snoozed" && <PauseDeal leadId={leadId} oppName={opp} />}
+      {leadId !== undefined && !skipped && (
+        <p className="text-[11px] text-body">To exclude this opportunity from future checks, add your configured Nudge skip tag in Odoo.</p>
+      )}
     </div>
   );
 }
@@ -74,16 +75,18 @@ function SweepSummary({ summary }: { summary: Record<string, unknown> }) {
   const open = (summary.open_total as number) ?? 0;
   const scheduled = (summary.scheduled as number) ?? 0;
   const snoozed = (summary.snoozed as number) ?? 0;
+  const tagged = (summary.tagged_skip as number) ?? 0;
   const recent = (summary.recently_nudged as number) ?? 0;
   const queued = (summary.enqueued as number) ?? (summary.stale_enqueued as number) ?? 0;
 
   // Every open opportunity is accounted for: handled elsewhere, paused, recently nudged, or queued
   // for a closer look this run (the per-opp missions show each queued one's outcome).
   const rows: { label: string; n: number; hint: string }[] = [
-    { label: "Have an upcoming activity", n: scheduled, hint: "a next touch is already planned — left alone" },
-    { label: "Recently nudged", n: recent, hint: "inside the cadence window — not nagged again" },
+    { label: "Have an upcoming activity", n: scheduled, hint: "a next touch is already planned - left alone" },
+    { label: "Recently nudged", n: recent, hint: "inside the cadence window - not nagged again" },
     { label: "Paused / whitelisted", n: snoozed, hint: "you told Nudge to leave these alone" },
-    { label: "Queued for a closer look", n: queued, hint: "checked below — some may turn out still fresh" },
+    { label: "Skipped by Odoo tag", n: tagged, hint: "excluded by your Nudge skip rule" },
+    { label: "Queued for a closer look", n: queued, hint: "checked below - some may turn out still fresh" },
   ].filter((r) => r.n > 0);
 
   return (
@@ -99,35 +102,11 @@ function SweepSummary({ summary }: { summary: Record<string, unknown> }) {
             <li key={r.label} className="flex items-baseline gap-2 text-xs">
               <span className="w-6 shrink-0 text-right font-semibold text-[#ede6da]">{r.n}</span>
               <span className="text-[#b9ad98]">{r.label}</span>
-              <span className="text-[#8a7f6d]">— {r.hint}</span>
+              <span className="text-[#8a7f6d]"> -  {r.hint}</span>
             </li>
           ))}
         </ul>
       )}
     </div>
-  );
-}
-
-/** Quick "leave this deal alone" — whitelists the opp via the snooze endpoint (no date = never). */
-function PauseDeal({ leadId, oppName }: { leadId: number; oppName: string }) {
-  const [state, setState] = useState<"idle" | "busy" | "done">("idle");
-  async function pause() {
-    setState("busy");
-    try {
-      await api.post("/tenant/nudge/snoozes", { odoo_lead_id: leadId, snooze_until: null, note: `Paused from mission: ${oppName}` });
-      setState("done");
-    } catch {
-      setState("idle");
-    }
-  }
-  if (state === "done") return <p className="text-[11px] font-semibold text-gold-400">Paused — Nudge will leave this deal alone.</p>;
-  return (
-    <button
-      onClick={pause}
-      disabled={state === "busy"}
-      className="w-fit rounded-md border border-ink-600 bg-ink-800/60 px-2.5 py-1 text-[11px] font-semibold text-[#b9ad98] hover:bg-ink-700 disabled:opacity-50"
-    >
-      {state === "busy" ? "Pausing…" : "Pause this deal"}
-    </button>
   );
 }

@@ -10,7 +10,7 @@ function scoreTone(score: number): string {
   return score >= 85 ? "bg-gold-400" : score >= 70 ? "bg-amber-500" : "bg-red-500";
 }
 
-/** Recruitment (scoring) dashboard card — a triage cockpit: pipeline health by role with an
+/** Recruitment (scoring) dashboard card - a triage cockpit: pipeline health by role with an
  * expandable shortlist, the common gaps/strengths themes, and the score distribution. */
 export function ScoutInsightsSection({ initialData }: { initialData?: ScoutInsights | null } = {}) {
   const currency = useTenantCurrency();
@@ -57,7 +57,7 @@ export function ScoutInsightsSection({ initialData }: { initialData?: ScoutInsig
         <Stat value={String(data.average_score)} label="Avg score" />
       </div>
 
-      {/* Pipeline health by role — the manager's worklist. Expand a role for its shortlist. */}
+      {/* Pipeline health by role - the manager's worklist. Expand a role for its shortlist. */}
       <div className="mt-6">
         <p className="text-xs font-semibold uppercase tracking-wider text-[#8a7f6d]">Pipeline by role</p>
         <div className="mt-2 divide-y divide-ink-700/60 overflow-hidden rounded-lg border border-ink-700">
@@ -67,7 +67,7 @@ export function ScoutInsightsSection({ initialData }: { initialData?: ScoutInsig
         </div>
       </div>
 
-      {/* What the pool is missing vs. bringing — the AI-only insight that drives sourcing/JD tweaks. */}
+      {/* What the pool is missing vs. bringing - the AI-only insight that drives sourcing/JD tweaks. */}
       {(data.common_weaknesses.length > 0 || data.common_strengths.length > 0) && (
         <div className="mt-6 grid gap-6 sm:grid-cols-2">
           <ThemeList title="Most common gaps" items={data.common_weaknesses} tone="gap" />

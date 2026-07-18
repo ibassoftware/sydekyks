@@ -12,7 +12,7 @@ _EXPENSE_TYPES = ["expense", "expense_direct_cost"]
 
 # Fields we already populate on create; any *other* required field on a custom instance triggers
 # the adaptive-review path in create_vendor_bill.
-_FIELDS_WE_SET = {"partner_id", "invoice_date", "ref", "invoice_line_ids", "move_type"}
+_FIELDS_WE_SET = {"partner_id", "invoice_date", "ref", "invoice_line_ids", "move_type", "invoice_origin"}
 # Required fields Odoo auto-defaults, so their absence from our payload is fine.
 _AUTO_DEFAULTED = {"currency_id", "journal_id", "date", "auto_post", "name", "company_id", "state"}
 
@@ -71,7 +71,7 @@ def default_expense_account_id(client: OdooClient) -> int | None:
 
 
 def list_expense_accounts(client: OdooClient) -> list[dict]:
-    """The tenant's chart of accounts, filtered to expense-type accounts — so an AI matching a
+    """The tenant's chart of accounts, filtered to expense-type accounts - so an AI matching a
     bill's line items (e.g. "software subscription" -> an IT/Software expense account) can choose
     from what's REALLY configured here, not just history or a single generic default."""
     return client.search_read(
@@ -80,12 +80,46 @@ def list_expense_accounts(client: OdooClient) -> list[dict]:
 
 
 def list_active_purchase_taxes(client: OdooClient) -> list[dict]:
-    """Every active purchase tax configured in this Odoo instance — id, name, and rate — so an AI
+    """Every active purchase tax configured in this Odoo instance - id, name, and rate - so an AI
     can match a bill's stated tax against a REAL, specific tax rate instead of the code defaulting
     to whatever happened to be set on the expense account."""
     return client.search_read(
         "account.tax", [["type_tax_use", "=", "purchase"], ["active", "=", True]], ["id", "name", "amount"]
     )
+
+
+def find_purchase_order(client: OdooClient, reference: str) -> dict | None:
+    """Match either the PO number or its upstream source/SO reference."""
+    rows = client.search_read(
+        "purchase.order",
+        ["|", ["name", "=ilike", reference.strip()], ["origin", "=ilike", reference.strip()]],
+        ["id", "name", "origin", "partner_id", "amount_total", "currency_id", "order_line", "state"],
+        limit=2,
+    )
+    return rows[0] if len(rows) == 1 else None
+
+
+def check_purchase_order(po: dict, *, partner_id: int, total: float, currency: str | None,
+                         line_items: list[dict], client: OdooClient) -> tuple[bool, list[str]]:
+    """Deterministic header and quantity checks against the referenced purchase order."""
+    mismatches: list[str] = []
+    po_partner = po.get("partner_id") or []
+    if not po_partner or po_partner[0] != partner_id:
+        mismatches.append("vendor does not match the purchase order")
+    if abs(float(po.get("amount_total") or 0) - float(total or 0)) > 0.01:
+        mismatches.append("total does not match the purchase order")
+    po_currency = po.get("currency_id") or []
+    if currency and (not po_currency or str(po_currency[1]).upper() != currency.upper()):
+        mismatches.append("currency does not match the purchase order")
+    order_lines = client.execute_kw(
+        "purchase.order.line", "read", [po.get("order_line") or []],
+        {"fields": ["product_qty", "qty_received", "qty_invoiced"]},
+    ) if po.get("order_line") else []
+    bill_qty = sum(float(item.get("quantity") or 0) for item in line_items)
+    po_qty = sum(float(item.get("product_qty") or 0) for item in order_lines)
+    if bill_qty and po_qty and abs(bill_qty - po_qty) > 0.001:
+        mismatches.append("billed quantity does not match the purchase order")
+    return not mismatches, mismatches
 
 
 def create_vendor_bill(
@@ -99,16 +133,17 @@ def create_vendor_bill(
     narration: str,
     currency_id: int | None = None,
     tax_ids: list[int] | None = None,
+    invoice_origin: str | None = None,
 ) -> tuple[bool, str, int | None, list[str]]:
     """Creates a draft vendor bill. Returns (ok, message, move_id, unmet_required_fields).
 
     `currency_id`/`tax_ids` are resolved by the playbook's currency/tax steps and passed in
-    explicitly rather than left to Odoo's defaults — see PLAYBOOK_STEPS "resolve_currency" /
+    explicitly rather than left to Odoo's defaults - see PLAYBOOK_STEPS "resolve_currency" /
     "resolve_tax" for why (both are correctness fixes: Odoo previously silently used the company's
     default currency and no tax regardless of what the bill actually stated).
 
     On failure due to a missing required field (custom Odoo modules), introspects the model's
-    required fields and reports the ones we didn't set — so the Mission surfaces exactly what's
+    required fields and reports the ones we didn't set - so the Mission surfaces exactly what's
     blocking rather than an opaque error."""
     line_tax_cmd = [(6, 0, tax_ids)] if tax_ids else []
     lines = [
@@ -137,6 +172,8 @@ def create_vendor_bill(
         values["invoice_date"] = invoice_date
     if currency_id is not None:
         values["currency_id"] = currency_id
+    if invoice_origin:
+        values["invoice_origin"] = invoice_origin
 
     try:
         move_id = client.create("account.move", values)
@@ -152,7 +189,7 @@ def create_vendor_bill(
             return (
                 False,
                 f"Odoo requires field(s) Ledger couldn't populate: {', '.join(unmet)}. "
-                "This instance likely has custom required fields — needs manual review.",
+                "This instance likely has custom required fields - needs manual review.",
                 None,
                 unmet,
             )

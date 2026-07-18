@@ -1,7 +1,7 @@
-"""Seal dashboard — contracts are token-intensive work (long HTML in and out on every revision and
+"""Seal dashboard - contracts are token-intensive work (long HTML in and out on every revision and
 review), so the card leads with tokens + AI cost, then the time/$ saved vs writing and reviewing a
 contract by hand. The AI-only value line: contracts reviewed and how many HIGH-severity clauses were
-caught — the risk a template tool would have shipped unnoticed.
+caught - the risk a template tool would have shipped unnoticed.
 """
 
 import uuid

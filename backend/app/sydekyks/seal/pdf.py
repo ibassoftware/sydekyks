@@ -1,7 +1,7 @@
 """Contract HTML → PDF (WeasyPrint) + optional PDF merge (pypdf).
 
 Heavy/native imports (WeasyPrint pulls pango/cairo) are done lazily inside the functions so importing
-the Seal package for discovery never requires the system libraries to be present — only an actual
+the Seal package for discovery never requires the system libraries to be present - only an actual
 export call does. A missing dependency surfaces as a clean error to the caller.
 """
 
@@ -66,7 +66,7 @@ def build_document(content_html: str, *, title: str | None = None, page_size: st
 def render_html_to_pdf(document_html: str, *, base_url: str | None = None) -> bytes:
     """Render a full HTML document to PDF bytes via WeasyPrint."""
     try:
-        from weasyprint import HTML  # noqa: PLC0415 — lazy, avoids native deps at import time
+        from weasyprint import HTML  # noqa: PLC0415 - lazy, avoids native deps at import time
     except ImportError as exc:  # pragma: no cover
         raise RuntimeError(
             "PDF export needs WeasyPrint (and its system libraries pango/cairo/gdk-pixbuf). "

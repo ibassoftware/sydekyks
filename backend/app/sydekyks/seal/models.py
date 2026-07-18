@@ -19,7 +19,7 @@ class SealTenantSettings(Base):
     )
     # Default template a new contract starts from (nullable = blank editor).
     default_template_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
-    # The tenant's review playbook — the standard positions / risk tolerance the review turn is grounded in.
+    # The tenant's review playbook - the standard positions / risk tolerance the review turn is grounded in.
     review_guidelines: Mapped[str] = mapped_column(Text, nullable=False, default="")
     # Print setup + branding for the PDF export.
     page_size: Mapped[str] = mapped_column(String(12), nullable=False, default="A4")  # A4 | Letter
@@ -58,7 +58,7 @@ class SealTemplate(Base):
 
 
 class SealContract(Base):
-    """A contract document — the §12 draft store. The canonical content is HTML (`content_html`)."""
+    """A contract document - the §12 draft store. The canonical content is HTML (`content_html`)."""
 
     __tablename__ = "seal_contracts"
 
@@ -74,7 +74,7 @@ class SealContract(Base):
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft")  # draft | final
     template_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     counterparty_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    # Latest review run — findings carry `review_seq`; the highest is the live set.
+    # Latest review run - findings carry `review_seq`; the highest is the live set.
     review_seq: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     # Optional Odoo links (all optional).
     odoo_lead_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -141,7 +141,7 @@ class SealChatMessage(Base):
 class SealReviewFinding(Base):
     """One clause-level risk finding from a `seal.review` run. `clause_anchor` is the exact quoted text
     the finding refers to (traceable); accepting applies `suggested_redline` in place of that anchor.
-    Findings are versioned by `review_seq` — re-running review writes a fresh set and supersedes the
+    Findings are versioned by `review_seq` - re-running review writes a fresh set and supersedes the
     prior one (the contract's `review_seq` points at the live set)."""
 
     __tablename__ = "seal_review_findings"

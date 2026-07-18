@@ -18,7 +18,7 @@ from app.schemas.mission import MissionDetailOut, MissionOut, MissionPage, Missi
 from app.schemas.tenant_issue import MissionReviewStatusOut
 from app.services import gadget_links, mission_sse
 from app.services.error_display import friendly_message
-from app.services.missions import apply_mission_filters, retry_mission
+from app.services.missions import apply_mission_filters, retry_mission, usage_by_mission
 from app.services.queue import enqueue_mission
 
 router = APIRouter(prefix="/api/tenant", tags=["missions"], dependencies=[Depends(require_tenant_member)])
@@ -36,6 +36,7 @@ def _filename(db: Session, mission_id: uuid.UUID) -> str | None:
 def _mission_out(
     m: Mission, *, filename: str | None, source: str | None, sydekyk_name: str | None,
     last_step_key: str | None = None, initiated_by_email: str | None = None,
+    usage: dict[str, int | float] | None = None,
 ) -> MissionOut:
     """Tenant-facing serialization — error_message is sanitized (raw text stays in the DB and is
     what Command Center's admin endpoints return; see app/services/error_display.py)."""
@@ -57,6 +58,9 @@ def _mission_out(
         parent_mission_id=m.parent_mission_id,
         root_mission_id=m.root_mission_id,
         attempt_number=m.attempt_number,
+        ai_calls=int((usage or {}).get("ai_calls", 0)),
+        tokens_used=int((usage or {}).get("tokens_used", 0)),
+        ai_capacity_seconds=float((usage or {}).get("ai_capacity_seconds", 0.0)),
         created_at=m.created_at,
         completed_at=m.completed_at,
     )
@@ -106,7 +110,8 @@ def list_missions(
         .limit(min(limit, 100))
         .all()
     )
-    pairs = [(_mission_out(m, filename=fn, source=src, sydekyk_name=name), m) for m, fn, src, name in rows]
+    usage = usage_by_mission(db, [m.id for m, *_ in rows])
+    pairs = [(_mission_out(m, filename=fn, source=src, sydekyk_name=name, usage=usage.get(m.id)), m) for m, fn, src, name in rows]
     _attach_odoo_links(db, user.tenant_id, pairs)
     return [out for out, _ in pairs]
 
@@ -152,8 +157,9 @@ def list_all_missions(
     total = count_q.scalar() or 0
 
     rows = base.order_by(Mission.created_at.desc()).limit(limit).offset(offset).all()
+    usage = usage_by_mission(db, [m.id for m, *_ in rows])
     pairs = [
-        (_mission_out(m, filename=fn, source=src, sydekyk_name=name, initiated_by_email=email), m)
+        (_mission_out(m, filename=fn, source=src, sydekyk_name=name, initiated_by_email=email, usage=usage.get(m.id)), m)
         for m, fn, src, name, email in rows
     ]
     _attach_odoo_links(db, user.tenant_id, pairs)
@@ -180,6 +186,7 @@ def list_active_missions(user: User = Depends(require_tenant_member), db: Sessio
         .order_by(Mission.created_at.desc())
         .all()
     )
+    usage = usage_by_mission(db, [m.id for m, *_ in rows])
     out = []
     for m, fn, src, name in rows:
         last_step = (
@@ -189,7 +196,7 @@ def list_active_missions(user: User = Depends(require_tenant_member), db: Sessio
             .first()
         )
         out.append(_mission_out(m, filename=fn, source=src, sydekyk_name=name,
-                                last_step_key=last_step[0] if last_step else None))
+                                last_step_key=last_step[0] if last_step else None, usage=usage.get(m.id)))
     return out
 
 
@@ -252,6 +259,7 @@ def get_mission(mission_id: uuid.UUID, user: User = Depends(require_tenant_membe
         filename=doc[0] if doc else None,
         source=doc[1] if doc else None,
         sydekyk_name=sydekyk.name if sydekyk else None,
+        usage=usage_by_mission(db, [mission.id]).get(mission.id),
     )
     # Only the detail endpoint pays for this lookup (not list rows) — a link straight to the Odoo
     # bill this Mission created, if any.

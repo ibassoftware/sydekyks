@@ -10,10 +10,11 @@ import {
   type Sydekyk,
   type VisionTestResult,
 } from "../../lib/api";
-import { Badge, Button, Label } from "../../components/ui";
+import { Badge, Button, Input, Label } from "../../components/ui";
 import { GadgetRequirementList } from "../../components/GadgetRequirementList";
 import { LedgerReadinessCard } from "./LedgerReadinessCard";
 import { useTenantCurrency } from "../../lib/useTenantCurrency";
+import { SettingsBand, SettingsToggle } from "../SettingsLayout";
 
 /** VS-9 registry setup section for Ledger. Composes the readiness checklist (VS-1), gadget
  * assignment, the email-inbox experience (VS-2), business settings, and the vision test (VS-12). */
@@ -48,101 +49,90 @@ export function LedgerSettingsSection({
   }
 
   return (
-    <div className="grid gap-6">
-      <LedgerReadinessCard onReadiness={onReadiness} refreshKey={readinessKey} />
-
-      <IssuesQuickLink sydekykId={sydekyk.id} />
-
-      <div id="gadgets">
-        <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Integrations</p>
-        <div className="mt-3">
-          <GadgetRequirementList sydekykId={sydekyk.id} canManage={canManage} />
+    <>
+      <SettingsBand title="Readiness" description="What Ledger can use now and anything that needs your attention.">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(240px,0.6fr)]">
+          <LedgerReadinessCard onReadiness={onReadiness} refreshKey={readinessKey} showHeading={false} />
+          <IssuesQuickLink sydekykId={sydekyk.id} />
         </div>
-      </div>
+      </SettingsBand>
 
-      <EmailInboxBlock canManage={canManage} />
+      <SettingsBand id="gadgets" title="Connections" description="Where bills arrive and where Ledger records the result.">
+        <div className="grid gap-6 xl:grid-cols-2">
+          <div>
+            <h3 className="text-sm font-semibold text-heading">Odoo</h3>
+            <div className="mt-3"><GadgetRequirementList sydekykId={sydekyk.id} canManage={canManage} /></div>
+          </div>
+          <div className="border-t-2 border-ink-600 pt-6 xl:border-l-2 xl:border-t-0 xl:pl-6 xl:pt-0">
+            <EmailInboxBlock canManage={canManage} />
+          </div>
+        </div>
+      </SettingsBand>
 
-      <div id="ai-engine">
+      <SettingsBand id="ledger-automation" title="Automation" description="How confidently Ledger may turn a document into an Odoo bill.">
         <VisionTestBlock
           settings={settings}
           canManage={canManage}
           onTested={(s) => {
             setSettings(s);
-            setReadinessKey((k) => k + 1); // vision test changed readiness → re-fetch the checklist
+            setReadinessKey((k) => k + 1);
           }}
         />
-      </div>
 
-      {settings && (
-        <div className="grid gap-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Posting Rules</p>
-          <label className="flex items-center gap-2 text-sm text-[#ede6da]">
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-gold-500"
+        {settings && (
+          <div className="mt-6 border-t-2 border-ink-600 pt-2">
+            <SettingsToggle
+              label="Require a purchase-order match"
+              description="Check the Odoo order's vendor, currency, total, and quantities. Missing or mismatched references remain drafts for review."
+              checked={settings.purchase_order_match_enabled}
               disabled={!canManage || saving}
+              onChange={(checked) => save({ ...settings, purchase_order_match_enabled: checked })}
+            />
+            <SettingsToggle
+              label="Create missing vendors"
+              description="Add a new Odoo vendor when no matching record exists."
               checked={settings.auto_create_partner}
-              onChange={(e) => save({ ...settings, auto_create_partner: e.target.checked })}
-            />
-            Auto-create vendors in Odoo when not found
-          </label>
-
-          <label className="flex items-center gap-2 text-sm text-[#ede6da]">
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-gold-500"
               disabled={!canManage || saving}
-              checked={settings.auto_post_enabled}
-              onChange={(e) => save({ ...settings, auto_post_enabled: e.target.checked })}
+              onChange={(checked) => save({ ...settings, auto_create_partner: checked })}
             />
-            Auto-post vendor bills
-          </label>
-          {!settings.auto_post_enabled && (
-            <p className="-mt-2 text-xs text-[#8a7f6d]">
-              Every bill stays a draft in Odoo for a human to review and post.
-            </p>
-          )}
+            <SettingsToggle
+              label="Auto-post vendor bills"
+              description="Allow sufficiently confident bills to move beyond draft automatically."
+              checked={settings.auto_post_enabled}
+              disabled={!canManage || saving}
+              onChange={(checked) => save({ ...settings, auto_post_enabled: checked })}
+            />
 
-          {settings.auto_post_enabled && (
-            <div>
-              <Label>Auto-post threshold (confidence %)</Label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={5}
-                  className="flex-1 accent-gold-500"
-                  disabled={!canManage || saving}
-                  value={settings.auto_post_threshold}
-                  onChange={(e) => setSettings({ ...settings, auto_post_threshold: Number(e.target.value) })}
-                  onMouseUp={(e) => save({ ...settings, auto_post_threshold: Number((e.target as HTMLInputElement).value) })}
-                />
-                <span className="w-10 text-right text-sm text-[#ede6da]">{settings.auto_post_threshold}%</span>
+            {settings.auto_post_enabled && (
+              <div className="border-t-2 border-ink-600 py-5">
+                <Label>Auto-post threshold (confidence %)</Label>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="range" min={0} max={100} step={5}
+                    className="min-h-11 flex-1 accent-gold-500"
+                    disabled={!canManage || saving}
+                    value={settings.auto_post_threshold}
+                    onChange={(e) => setSettings({ ...settings, auto_post_threshold: Number(e.target.value) })}
+                    onMouseUp={(e) => save({ ...settings, auto_post_threshold: Number((e.target as HTMLInputElement).value) })}
+                  />
+                  <span className="w-12 text-right text-base font-semibold tabular-nums text-heading">{settings.auto_post_threshold}%</span>
+                </div>
+                <p className="mt-2 text-xs text-body">Currency, tax, and purchase-order checks can still prevent automatic posting.</p>
               </div>
-              <p className="mt-1 text-xs text-[#8a7f6d]">
-                Bills at or above this confidence are posted automatically; below, they wait as drafts.
-                A bill is also never auto-posted if its currency or tax couldn't be matched in Odoo.
-              </p>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
+      </SettingsBand>
 
       {settings && (
-        <div id="savings" className="grid gap-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Estimated Savings</p>
-          <p className="-mt-1 text-xs text-[#8a7f6d]">
-            Used to estimate the $ saved on your Dashboard — how much manual data entry a bill would otherwise take.
-          </p>
-          <div className="grid grid-cols-2 gap-4">
+        <SettingsBand id="savings" title="Value assumptions" description="The business inputs behind Ledger's money-saved estimate.">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Label>Hourly wage ({currency})</Label>
-              <input
+              <Input
                 type="number"
                 min={0}
                 step={0.5}
-                className="w-full rounded-md border border-ink-700 bg-ink-900 px-3 py-1.5 text-sm text-[#ede6da] disabled:opacity-60"
                 disabled={!canManage || saving}
                 value={settings.estimated_hourly_wage}
                 onChange={(e) => setSettings({ ...settings, estimated_hourly_wage: Number(e.target.value) })}
@@ -151,11 +141,10 @@ export function LedgerSettingsSection({
             </div>
             <div>
               <Label>Minutes to manually enter one bill</Label>
-              <input
+              <Input
                 type="number"
                 min={0}
                 step={0.5}
-                className="w-full rounded-md border border-ink-700 bg-ink-900 px-3 py-1.5 text-sm text-[#ede6da] disabled:opacity-60"
                 disabled={!canManage || saving}
                 value={settings.estimated_minutes_per_bill}
                 onChange={(e) => setSettings({ ...settings, estimated_minutes_per_bill: Number(e.target.value) })}
@@ -163,9 +152,10 @@ export function LedgerSettingsSection({
               />
             </div>
           </div>
-        </div>
+          <p className="mt-3 text-xs text-body">These values estimate the manual data-entry cost avoided on the Command Center dashboard.</p>
+        </SettingsBand>
       )}
-    </div>
+    </>
   );
 }
 
@@ -182,11 +172,11 @@ function IssuesQuickLink({ sydekykId }: { sydekykId: string }) {
   return (
     <Link
       to={`/hq/missions?view=attention&sydekyk_id=${sydekykId}`}
-      className="flex items-center justify-between rounded-lg border border-ink-700 px-4 py-3 transition-colors hover:border-gold-500/60"
+      className="flex min-h-28 items-center justify-between gap-4 rounded-[4px] border-2 border-ink-600 bg-ink-900 p-5 shadow-[var(--shadow-xs)] transition-colors hover:bg-ink-800 sm:p-6"
     >
       <div>
-        <p className="text-sm font-semibold text-[#ede6da]">Issues</p>
-        <p className="text-xs text-[#8a7f6d]">
+        <h3 className="text-sm font-semibold text-heading">Attention</h3>
+        <p className="mt-2 text-sm text-body">
           {total === 0 ? "Nothing needs attention" : `${total} ${total === 1 ? "thing needs" : "things need"} attention`}
         </p>
       </div>
@@ -225,11 +215,11 @@ function VisionTestBlock({
   const verified = settings?.ledger_vision_ok;
 
   return (
-    <div className="rounded-lg border border-ink-700 p-3">
+    <div>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-[#ede6da]">Ledger readiness test</p>
-          <p className="text-xs text-[#8a7f6d]">
+          <h3 className="text-sm font-semibold text-heading">Document reading test</h3>
+          <p className="mt-2 text-xs text-body">
             {verified === true
               ? "Your engine can read invoices."
               : verified === false
@@ -244,7 +234,7 @@ function VisionTestBlock({
         )}
       </div>
       {result && (
-        <p className={`mt-2 text-xs ${result.ok ? "text-gold-400" : "text-red-400"}`}>{result.message}</p>
+        <p className={`mt-2 text-xs ${result.ok ? "text-success-strong" : "text-danger-strong"}`}>{result.message}</p>
       )}
     </div>
   );
@@ -287,29 +277,29 @@ function EmailInboxBlock({ canManage }: { canManage: boolean }) {
 
   return (
     <div id="email">
-      <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Email intake (optional)</p>
+      <h3 className="text-sm font-semibold text-heading">Email intake <span className="font-normal text-body">(optional)</span></h3>
       {address ? (
         <div className="mt-3 rounded-lg border border-ink-700 p-3">
-          <p className="text-xs text-[#8a7f6d]">Forward or email bills to:</p>
+          <p className="text-xs text-body">Forward or email bills to:</p>
           <div className="mt-1 flex items-center justify-between gap-3">
             <code className="min-w-0 truncate text-sm text-gold-300">{address}</code>
             <Button variant="ghost" className="shrink-0 px-3 py-1 text-xs" onClick={copy}>
               {copied ? "Copied ✓" : "Copy"}
             </Button>
           </div>
-          <p className="mt-2 text-xs text-[#8a7f6d]">
+          <p className="mt-2 text-xs text-body">
             Send a bill (PDF or image) to this address; a Mission appears in history within a few seconds.
           </p>
         </div>
       ) : (
         <div className="mt-3">
-          <p className="text-sm text-[#8a7f6d]">No inbound email connected yet.</p>
+          <p className="text-sm text-body">No inbound email connected yet.</p>
           {canManage && (
             <Button variant="ghost" className="mt-2 px-3 py-1.5 text-xs" disabled={creating} onClick={createInbox}>
               {creating ? "Creating…" : "Create Email Inbox"}
             </Button>
           )}
-          {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
+          {error && <p className="mt-2 text-xs text-danger-strong">{error}</p>}
         </div>
       )}
     </div>

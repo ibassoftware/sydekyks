@@ -13,6 +13,7 @@ from app.models.mission import Mission, MissionDocument, MissionStep
 from app.models.postmark import PostmarkConfig
 from app.models.review_assignment import ReviewAssignment
 from app.models.sydekyk import Sydekyk, SydekykInstall
+from app.models.system_incident import SystemIncident
 from app.models.tenant import Tenant
 from app.models.tenant_issue import TenantIssue
 from app.models.usage_record import UsageDaily, UsageRecord
@@ -45,4 +46,5 @@ __all__ = [
     "PlanTier",
     "UserSydekykPermission",
     "PostmarkConfig",
+    "SystemIncident",
 ]

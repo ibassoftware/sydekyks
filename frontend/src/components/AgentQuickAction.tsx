@@ -11,7 +11,7 @@ import {
 import { toast } from "../lib/toast";
 import { Button, buttonClassName } from "./ui";
 
-type ReadinessStatus = "checking" | "ready" | "not_configured" | "not_ready" | "unavailable" | "no_access";
+type ReadinessStatus = "checking" | "ready" | "working" | "not_configured" | "not_ready" | "unavailable" | "no_access";
 
 const READINESS_ENDPOINTS: Record<string, string> = {
   nudge: "/tenant/nudge/readiness",
@@ -55,6 +55,7 @@ const RUN_ACTIONS: Record<string, { endpoint: string; label: string; runningLabe
 const STATUS_STYLE: Record<ReadinessStatus, string> = {
   checking: "border-ink-600 bg-ink-800 text-body",
   ready: "border-success bg-success-soft text-success",
+  working: "border-gold-700 bg-brand-softer text-gold-300",
   not_configured: "border-warning bg-warning-soft text-warning-fg",
   not_ready: "border-warning bg-warning-soft text-warning-fg",
   unavailable: "border-ink-600 bg-ink-800 text-body",
@@ -62,12 +63,13 @@ const STATUS_STYLE: Record<ReadinessStatus, string> = {
 };
 
 const STATUS_LABEL: Record<ReadinessStatus, string> = {
-  checking: "Checking readiness",
-  ready: "Ready for orders",
-  not_configured: "Not configured",
-  not_ready: "Not ready",
-  unavailable: "Readiness unavailable",
-  no_access: "Commander access required",
+  checking: "Rallying systems",
+  ready: "Standing ready",
+  working: "Mission underway",
+  not_configured: "Awaiting setup",
+  not_ready: "Orders blocked",
+  unavailable: "Signal unavailable",
+  no_access: "Restricted command",
 };
 
 export function AgentQuickAction({
@@ -162,41 +164,40 @@ export function AgentQuickAction({
     }
   }
 
-  async function uploadBills(files: File[]) {
+  async function uploadDocuments(files: File[], kind: "bills" | "résumés") {
     if (!files.length) return;
     setBusy(true);
     try {
       const form = new FormData();
       files.forEach((file) => form.append("files", file));
       await api.post(`/tenant/sydekyks/${agent.id}/documents`, form);
-      toast.success(`${files.length} bill${files.length === 1 ? "" : "s"} dispatched to Ledger.`);
+      const singular = kind === "bills" ? "bill" : "résumé";
+      toast.success(`${files.length} ${files.length === 1 ? singular : kind} dispatched to ${agent.name}.`);
     } catch {
-      toast.error("Ledger could not accept those bills.");
+      toast.error(`${agent.name} could not accept those ${kind}.`);
     } finally {
       setBusy(false);
     }
   }
 
-  function dropBills(event: DragEvent<HTMLButtonElement>) {
+  function dropDocuments(event: DragEvent<HTMLButtonElement>, kind: "bills" | "résumés") {
     event.preventDefault();
     setDragging(false);
-    if (!busy) uploadBills(Array.from(event.dataTransfer.files));
+    if (!busy) uploadDocuments(Array.from(event.dataTransfer.files), kind);
   }
 
   const ready = status === "ready";
   const checking = status === "checking";
   const actionVisible = ready || checking;
   const setupHref = `/hq/roster/${agent.id}?tab=settings`;
+  const displayStatus: ReadinessStatus = working ? "working" : status;
+  const uploadKind = agent.slug === "ledger" ? "bills" : "résumés";
 
   return (
-    <div className="mt-auto pt-5">
-      <div className={`inline-flex items-center gap-2 rounded-[2px] border-2 px-2 py-1 text-xs font-medium ${STATUS_STYLE[status]}`}>
-        <span className={`h-1.5 w-1.5 rounded-full ${ready ? "bg-success" : status === "checking" ? "bg-body" : "bg-warning"}`} aria-hidden="true" />
-        {STATUS_LABEL[status]}
-      </div>
-
+    <div className="mt-auto flex min-h-[180px] flex-col pt-4">
+      <div className="flex min-h-[116px] flex-1 flex-col justify-end">
       {!actionVisible ? (
-        <div className="mt-3 rounded-[4px] border-2 border-ink-700 bg-ink-900/50 p-3">
+        <div className="rounded-[4px] border-2 border-ink-700 bg-ink-900/50 p-3">
           {detail && <p className="line-clamp-2 text-xs leading-5 text-body">{detail}</p>}
           {agent.can_configure && (
             <Link to={setupHref} className="mt-2 inline-flex min-h-11 items-center text-sm font-medium text-gold-300 hover:text-heading">
@@ -204,36 +205,34 @@ export function AgentQuickAction({
             </Link>
           )}
         </div>
-      ) : agent.slug === "ledger" ? (
-        <div className="mt-3">
+      ) : agent.slug === "ledger" || agent.slug === "decode" ? (
+        <div>
           <button
             type="button"
             disabled={busy || !ready}
             onClick={() => fileRef.current?.click()}
-            onDragOver={(event) => { event.preventDefault(); if (!busy) setDragging(true); }}
+            onDragOver={(event) => { event.preventDefault(); if (!busy && ready) setDragging(true); }}
             onDragLeave={() => setDragging(false)}
-            onDrop={dropBills}
+            onDrop={(event) => dropDocuments(event, uploadKind)}
             className={`flex min-h-24 w-full flex-col items-center justify-center rounded-[4px] border-2 border-dashed px-4 py-3 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${dragging ? "border-gold-400 bg-brand-softer" : "border-ink-600 bg-ink-900/50 hover:border-gold-500 hover:bg-ink-800"}`}
           >
-            <span className="text-sm font-medium text-heading">{busy ? "Dispatching bills…" : "Drop bills to begin"}</span>
-            <span className="mt-1 text-xs text-body">{checking ? "Confirming Ledger readiness…" : "or browse PDF, PNG, JPG, WEBP"}</span>
+            <span className="text-sm font-medium text-heading">
+              {busy ? `Dispatching ${uploadKind}…` : agent.slug === "ledger" ? "Drop bills to begin" : "Drop résumés to decode"}
+            </span>
+            <span className="mt-1 text-xs text-body">{checking ? `Confirming ${agent.name} readiness…` : "or browse PDF, PNG, JPG, WEBP"}</span>
           </button>
-          <input ref={fileRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.webp" className="hidden" onChange={(event) => { uploadBills(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
+          <input ref={fileRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.webp" className="hidden" onChange={(event) => { uploadDocuments(Array.from(event.target.files ?? []), uploadKind); event.target.value = ""; }} />
         </div>
-      ) : agent.slug === "decode" ? (
-        ready
-          ? <Link to={`/hq/roster/${agent.id}`} className={buttonClassName("primary", "mt-3 w-full text-sm")}>Upload résumés</Link>
-          : <Button className="mt-3 w-full text-sm" disabled>Upload résumés</Button>
       ) : agent.slug === "quill" ? (
-        <Button className="mt-3 w-full text-sm" disabled={busy || !ready} onClick={() => createDocument("proposal")}>{busy ? "Opening workbench…" : "Start a proposal"}</Button>
+        <Button className="w-full text-sm" disabled={busy || !ready} onClick={() => createDocument("proposal")}>{busy ? "Opening workbench…" : "Start a proposal"}</Button>
       ) : agent.slug === "seal" ? (
-        <Button className="mt-3 w-full text-sm" disabled={busy || !ready} onClick={() => createDocument("contract")}>{busy ? "Opening workbench…" : "Start a contract"}</Button>
+        <Button className="w-full text-sm" disabled={busy || !ready} onClick={() => createDocument("contract")}>{busy ? "Opening workbench…" : "Start a contract"}</Button>
       ) : agent.slug === "signet" ? (
         ready
           ? <Link to={`/hq/roster/${agent.id}?new=1`} className={buttonClassName("primary", "mt-3 w-full text-sm")}>Prepare an envelope</Link>
           : <Button className="mt-3 w-full text-sm" disabled>Prepare an envelope</Button>
       ) : RUN_ACTIONS[agent.slug] ? (
-        <Button className="mt-3 w-full text-sm" disabled={!ready || busy || working} onClick={runNow}>
+        <Button className="w-full text-sm" disabled={!ready || busy || working} onClick={runNow}>
           {working ? "Mission underway" : busy ? RUN_ACTIONS[agent.slug].runningLabel : RUN_ACTIONS[agent.slug].label}
         </Button>
       ) : (
@@ -241,6 +240,14 @@ export function AgentQuickAction({
           ? <Link to={`/hq/roster/${agent.id}`} className={buttonClassName("primary", "mt-3 w-full text-sm")}>Enter command post</Link>
           : <Button className="mt-3 w-full text-sm" disabled>Enter command post</Button>
       )}
+      </div>
+
+      <div className="mt-3 flex min-h-11 items-center border-t-2 border-ink-700 pt-3">
+        <div className={`inline-flex items-center gap-2 rounded-[2px] border-2 px-2 py-1 text-xs font-medium ${STATUS_STYLE[displayStatus]}`}>
+          <span className={`h-2 w-2 rounded-full ${displayStatus === "ready" ? "bg-success" : displayStatus === "working" ? "animate-pulse bg-gold-300" : displayStatus === "checking" ? "bg-body" : "bg-warning"}`} aria-hidden="true" />
+          {STATUS_LABEL[displayStatus]}
+        </div>
+      </div>
     </div>
   );
 }

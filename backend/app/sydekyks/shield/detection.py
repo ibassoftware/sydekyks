@@ -1,6 +1,6 @@
 """Shield's fraud-risk rules (deterministic). Each rule inspects the gathered context and either
 fires a flag {code,label,weight,evidence} or returns None. The playbook gathers the Odoo data; these
-functions stay pure and testable. Framing is always 'warrants review', never an accusation — an AI
+functions stay pure and testable. Framing is always 'warrants review', never an accusation - an AI
 step (extraction.py) turns the fired flags into the auditor-facing narrative.
 
 Shield defers duplicate detection to Mirror, so there is deliberately no duplicate rule here.
@@ -39,7 +39,7 @@ def rule_bank_change_before_payment(bill, vendor_banks, *, recent_days, now) -> 
 
 
 def rule_employee_vendor_collision(vendor, vendor_banks, *, employee_bank_numbers, employee_ids) -> dict | None:
-    """Vendor bank account or Tax ID matching an employee — shell-vendor / collusion signal."""
+    """Vendor bank account or Tax ID matching an employee - shell-vendor / collusion signal."""
     shared = _san(vendor_banks) & employee_bank_numbers
     if shared:
         return {"code": "employee_vendor_collision", "weight": 35,
@@ -54,7 +54,7 @@ def rule_employee_vendor_collision(vendor, vendor_banks, *, employee_bank_number
 
 
 def rule_segregation_of_duties(*, bill_creator, vendor_creator, payment_creator) -> dict | None:
-    """Same user created the vendor and entered the bill, or entered and paid it — an SoD break."""
+    """Same user created the vendor and entered the bill, or entered and paid it - an SoD break."""
     reasons = []
     if bill_creator and vendor_creator and bill_creator == vendor_creator:
         reasons.append("the vendor record was created by the same user who entered this bill")
@@ -68,7 +68,7 @@ def rule_segregation_of_duties(*, bill_creator, vendor_creator, payment_creator)
 
 
 def rule_phantom_vendor(bill, vendor, *, recent_days, high_amount, now) -> dict | None:
-    """Brand-new vendor, little/no history, high first invoice — a phantom-vendor marker."""
+    """Brand-new vendor, little/no history, high first invoice - a phantom-vendor marker."""
     created = _parse_dt((vendor or {}).get("create_date"))
     if not created or (now - created).days > recent_days:
         return None

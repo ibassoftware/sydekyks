@@ -1,4 +1,4 @@
-/** Renders a Signet mission's outcome — invitations sent or reminders chased for an envelope. Reads
+/** Renders a Signet mission's outcome - invitations sent or reminders chased for an envelope. Reads
  * from `result_summary`. */
 export function SignetMissionSummary({ summary }: { summary: Record<string, unknown> }) {
   const title = (summary.title as string) || "the document";

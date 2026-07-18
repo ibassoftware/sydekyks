@@ -1,4 +1,4 @@
-"""Signet's core orchestration — token minting, install-guard, event logging, sending invitations and
+"""Signet's core orchestration - token minting, install-guard, event logging, sending invitations and
 reminders, sequential advancement, and final signed-PDF assembly. Deliberately AI-free: the optional
 AI email copy lives in the dispatch playbook (where a metered mission exists); everything here is
 deterministic so the reminder cron and the public signing endpoints never need the model.
@@ -23,7 +23,7 @@ from app.sydekyks.signet.models import SignetAsset, SignetEnvelope, SignetEvent,
 
 def ensure_installed(db: Session, tenant_id: uuid.UUID, slug: str) -> None:
     """Install a Sydekyk for a tenant if it isn't already (auto-install Seal on first handoff, and
-    Signet itself). Idempotent — a no-op when the install row already exists."""
+    Signet itself). Idempotent - a no-op when the install row already exists."""
     sydekyk = db.query(Sydekyk).filter(Sydekyk.slug == slug).first()
     if sydekyk is None:
         return
@@ -102,7 +102,7 @@ def _pending_signers(db: Session, envelope: SignetEnvelope) -> list[SignetSigner
 
 
 def recipients_for_send(db: Session, envelope: SignetEnvelope) -> list[SignetSigner]:
-    """Who should receive a link now — all pending for parallel, only the next in line for sequential."""
+    """Who should receive a link now - all pending for parallel, only the next in line for sequential."""
     pending = _pending_signers(db, envelope)
     if envelope.signing_order == "sequential":
         return pending[:1]
@@ -111,7 +111,7 @@ def recipients_for_send(db: Session, envelope: SignetEnvelope) -> list[SignetSig
 
 def deliver_invitation(db: Session, envelope: SignetEnvelope, signer: SignetSigner, *,
                        subject: str, body_html: str) -> bool:
-    """Deliver an (AI-written) invitation body — greeting is prepended deterministically so the model
+    """Deliver an (AI-written) invitation body - greeting is prepended deterministically so the model
     never has to render the signer's name."""
     link = signer_link(signer)
     if link is None:
@@ -234,7 +234,7 @@ def complete_envelope(db: Session, envelope: SignetEnvelope) -> None:
             db.flush()
             signed_asset_id = asset.id
         except RuntimeError:
-            signed_asset_id = None  # WeasyPrint unavailable — complete without the assembled PDF
+            signed_asset_id = None  # WeasyPrint unavailable - complete without the assembled PDF
 
     envelope.status = "completed"
     envelope.completed_at = now
@@ -258,7 +258,7 @@ def complete_envelope(db: Session, envelope: SignetEnvelope) -> None:
 # --- Reminder cron ---------------------------------------------------------------------------------
 
 def remind_envelope(db: Session, envelope: SignetEnvelope, *, force: bool = False) -> int:
-    """Send template reminders to the envelope's due signers — respecting the max-reminder cap always,
+    """Send template reminders to the envelope's due signers - respecting the max-reminder cap always,
     and the per-signer interval unless `force` (a manual "remind now"). Returns how many were sent.
     Skips a held envelope; expires an overdue one. Deterministic (no AI, no mission)."""
     now = datetime.now(timezone.utc)

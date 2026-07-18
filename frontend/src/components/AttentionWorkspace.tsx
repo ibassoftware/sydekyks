@@ -10,6 +10,8 @@ type AttentionItem =
   | { kind: "configuration"; timestamp: string; issue: TenantIssue }
   | { kind: "mission"; timestamp: string; mission: MissionReviewItem };
 
+const ATTENTION_PAGE_SIZE = 10;
+
 export function AttentionWorkspace({
   sydekyks,
   sydekykId,
@@ -28,6 +30,7 @@ export function AttentionWorkspace({
   const [showReviewed, setShowReviewed] = useState(Boolean(focusMission));
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(focusMission ? [focusMission] : []));
   const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
+  const [visibleCount, setVisibleCount] = useState(ATTENTION_PAGE_SIZE);
 
   const load = useCallback(() => {
     const params = sydekykId ? { sydekyk_id: sydekykId } : undefined;
@@ -114,10 +117,22 @@ export function AttentionWorkspace({
     ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [issues, normalizedQuery, showReviewed]);
 
+  useEffect(() => {
+    setVisibleCount(ATTENTION_PAGE_SIZE);
+  }, [normalizedQuery, showReviewed, sydekykId]);
+
+  useEffect(() => {
+    if (!focusMission) return;
+    const index = queue.findIndex((item) => item.kind === "mission" && item.mission.mission_id === focusMission);
+    if (index >= 0) setVisibleCount(Math.max(ATTENTION_PAGE_SIZE, index + 1));
+  }, [focusMission, queue]);
+
+  const visibleQueue = queue.slice(0, visibleCount);
+
   return (
-    <div className="mt-8 grid min-w-0 gap-8">
-      <Card className="p-6">
-        <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(14rem,20rem)_auto] lg:items-end">
+    <div className="mt-6 grid min-w-0 gap-6">
+      <Card className="p-4">
+        <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(14rem,20rem)_auto] lg:items-end">
           <div className="min-w-0">
             <label htmlFor="attention-search" className="mb-2 block text-sm font-medium text-heading">Search the attention queue</label>
             <Input
@@ -166,10 +181,10 @@ export function AttentionWorkspace({
           </section>
 
           <section aria-labelledby="attention-queue-title" className="min-w-0">
-            <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+            <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="text-xs font-medium uppercase tracking-[0.4px] text-gold-300">Unified workstream</p>
-                <h2 id="attention-queue-title" className="mt-3 text-2xl font-bold leading-none text-heading">Attention queue</h2>
+                <h2 id="attention-queue-title" className="mt-2 text-xl font-bold leading-none text-heading">Attention queue</h2>
               </div>
               <p className="text-sm text-body">Newest signals first</p>
             </div>
@@ -181,8 +196,8 @@ export function AttentionWorkspace({
                 <p className="mt-4 text-base text-body">No configuration blockers or mission decisions match this view.</p>
               </Card>
             ) : (
-              <div className="grid min-w-0 gap-4">
-                {queue.map((item) => item.kind === "configuration" ? (
+              <div className="grid min-w-0 gap-3">
+                {visibleQueue.map((item) => item.kind === "configuration" ? (
                   <ConfigurationAttentionCard
                     key={`config-${item.issue.id}`}
                     issue={item.issue}
@@ -199,16 +214,24 @@ export function AttentionWorkspace({
                     onChanged={load}
                   />
                 ))}
+                {visibleCount < queue.length && (
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-[4px] border-2 border-ink-600 bg-ink-900 p-3">
+                    <p className="text-sm text-body">Showing {visibleQueue.length} of {queue.length} attention items</p>
+                    <Button variant="ghost" onClick={() => setVisibleCount((count) => count + ATTENTION_PAGE_SIZE)}>
+                      Load {Math.min(ATTENTION_PAGE_SIZE, queue.length - visibleCount)} more
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </section>
 
           {issues.resolved_issues.length > 0 && (
-            <details className="rounded-[4px] border-2 border-ink-600 bg-ink-900 p-6 shadow-[var(--shadow-xs)]">
+            <details className="rounded-[4px] border-2 border-ink-600 bg-ink-900 p-4 shadow-[var(--shadow-xs)]">
               <summary className="flex min-h-11 cursor-pointer items-center text-base font-medium text-heading">
                 Resolved setup blockers ({issues.resolved_issues.length})
               </summary>
-              <div className="mt-6 grid gap-4">
+              <div className="mt-4 grid gap-3">
                 {issues.resolved_issues.map((issue) => (
                   <div key={issue.id} className="flex min-w-0 flex-col gap-4 border-t-2 border-ink-700 pt-4 first:border-0 first:pt-0 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
@@ -229,9 +252,9 @@ export function AttentionWorkspace({
 
 function AttentionStat({ label, value, emphasis = false }: { label: string; value: number; emphasis?: boolean }) {
   return (
-    <Card className="p-5">
+    <Card className="p-4">
       <p className="text-xs font-medium uppercase tracking-[0.4px] text-body">{label}</p>
-      <p className={`mt-4 text-4xl font-bold tabular-nums ${emphasis ? "text-warning-fg" : "text-heading"}`}>{value}</p>
+      <p className={`mt-2 text-3xl font-bold tabular-nums ${emphasis ? "text-warning-fg" : "text-heading"}`}>{value}</p>
     </Card>
   );
 }
@@ -248,8 +271,8 @@ function ConfigurationAttentionCard({
   onResolve: () => void;
 }) {
   return (
-    <article className="min-w-0 rounded-[4px] border-2 border-ink-600 bg-ink-900 p-5 shadow-[var(--shadow-xs)] sm:p-6">
-      <div className="flex min-w-0 flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+    <article className="min-w-0 rounded-[4px] border-2 border-l-4 border-ink-600 border-l-amber-500 bg-ink-900 p-4 shadow-[var(--shadow-xs)]">
+      <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 gap-4">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[4px] border-2 border-warning bg-warning-soft text-warning-fg">
             <WarningIcon className="h-5 w-5" />
@@ -259,9 +282,9 @@ function ConfigurationAttentionCard({
               <Badge tone="danger">Setup blocker</Badge>
               {issue.sydekyk_name && <Badge tone="neutral">{issue.sydekyk_name}</Badge>}
             </div>
-            <h3 className="mt-4 break-words text-xl font-bold leading-tight text-heading">{issue.title}</h3>
-            {issue.detail && <p className="mt-4 max-w-[65ch] break-words text-base leading-7 text-body">{issue.detail}</p>}
-            <p className="mt-4 text-sm text-body">Seen {issue.occurrence_count}× · last reported {timeAgo(issue.last_seen_at)}</p>
+            <h3 className="mt-3 break-words text-base font-bold leading-tight text-heading">{issue.title}</h3>
+            {issue.detail && <p className="mt-2 max-w-[65ch] break-words text-sm leading-6 text-body">{issue.detail}</p>}
+            <p className="mt-2 text-sm text-body">Seen {issue.occurrence_count}× · last reported {timeAgo(issue.last_seen_at)}</p>
             {issue.odoo_bill_url && (
               <a href={issue.odoo_bill_url} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex min-h-11 items-center text-base font-medium text-gold-300 hover:text-heading">
                 Open the affected draft in Odoo →
@@ -291,8 +314,8 @@ function MissionAttentionCard({
   const duration = mission.completed_at ? formatDuration(mission.created_at, mission.completed_at) : null;
 
   return (
-    <article id={`mission-${mission.mission_id}`} className="min-w-0 scroll-mt-24 rounded-[4px] border-2 border-ink-600 bg-ink-900 shadow-[var(--shadow-xs)]">
-      <button type="button" aria-expanded={expanded} onClick={onToggle} className="flex min-h-11 w-full min-w-0 items-start gap-4 p-5 text-left transition-colors hover:bg-ink-800 sm:p-6">
+    <article id={`mission-${mission.mission_id}`} className="min-w-0 scroll-mt-24 rounded-[4px] border-2 border-l-4 border-ink-600 border-l-red-500 bg-ink-900 shadow-[var(--shadow-xs)]">
+      <button type="button" aria-expanded={expanded} onClick={onToggle} className="flex min-h-11 w-full min-w-0 items-start gap-4 p-4 text-left transition-colors hover:bg-ink-800">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[4px] border-2 border-gold-700 bg-brand-softer text-gold-300">
           {mission.reviewed ? <CheckIcon className="h-5 w-5" /> : <DocIcon className="h-5 w-5" />}
         </span>
@@ -302,17 +325,17 @@ function MissionAttentionCard({
             {mission.sydekyk_name && <Badge tone="neutral">{mission.sydekyk_name}</Badge>}
             <ReviewBadge reviewed={mission.reviewed} needsReview />
           </span>
-          <span className={`mt-4 block break-words text-xl font-bold leading-tight ${label.muted ? "text-body" : "text-heading"}`}>{label.title}</span>
-          <span className="mt-3 block break-words text-sm leading-6 text-body">
+          <span className={`mt-3 block break-words text-base font-bold leading-tight ${label.muted ? "text-body" : "text-heading"}`}>{label.title}</span>
+          <span className="mt-2 block break-words text-sm leading-6 text-body">
             {mission.reason ?? "This mission was flagged for a command decision."}
             {duration ? ` · completed in ${duration}` : ""} · {timeAgo(mission.created_at)}
           </span>
-          <span className="mt-4 block text-sm font-medium text-gold-300">{expanded ? "Hide review controls" : "Open review controls"}</span>
+          <span className="mt-2 block text-sm font-medium text-gold-300">{expanded ? "Hide review controls" : "Open review controls"}</span>
         </span>
       </button>
 
       {expanded && (
-        <div className="min-w-0 border-t-2 border-ink-600 bg-ink-950/40 p-5 sm:p-6">
+        <div className="min-w-0 border-t-2 border-ink-600 bg-ink-950/40 p-4">
           {(mission.vendor_name || mission.invoice_number || mission.total != null || mission.duplicate) && (
             <dl className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {mission.vendor_name && <Detail label="Vendor" value={mission.vendor_name} />}
@@ -322,7 +345,7 @@ function MissionAttentionCard({
               {mission.posted != null && <Detail label="Auto-posted" value={mission.posted ? "Yes" : "No"} />}
             </dl>
           )}
-          <div className="mt-6 min-w-0">
+          <div className="mt-4 min-w-0">
             <ReviewActions
               target={{
                 missionId: mission.mission_id,

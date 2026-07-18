@@ -97,12 +97,12 @@ def get_playbook(user: User = Depends(require_tenant_member)):
 @router.post("/run-now", response_model=RunNowOut)
 async def run_now(user: User = Depends(require_tenant_member), db: Session = Depends(get_db)):
     """Manual trigger: enqueue a scoring Mission for every applicant not yet scored (unprocessed
-    only, ≤30) — the same routine the cron runs, on demand."""
+    only, ≤30) - the same routine the cron runs, on demand."""
     sydekyk = _scout_sydekyk(db, user)
     permissions.assert_can_use(db, user, sydekyk.id)
     s = _settings(db, user.tenant_id)
     queued = await recruitment_poll.enqueue_untagged_applicants(
         db, tenant_id=user.tenant_id, sydekyk_id=sydekyk.id, tag_name=s.processed_tag_name,
-        limit=s.cron_poll_limit, require_job=True,  # Scout scores against the job — skip unassigned applicants
+        limit=s.cron_poll_limit, require_job=True,  # Scout scores against the job - skip unassigned applicants
     )
     return RunNowOut(queued=queued)

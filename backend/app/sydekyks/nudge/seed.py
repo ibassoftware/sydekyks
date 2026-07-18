@@ -1,4 +1,4 @@
-"""Nudge's package seed — sets the playbook_key + gadget requirement (Odoo) on the base Nudge catalog
+"""Nudge's package seed - sets the playbook_key + gadget requirement (Odoo) on the base Nudge catalog
 row (created by app/seed.py). Nudge works existing opportunities, so it accepts no uploads."""
 
 from sqlalchemy.orm import Session

@@ -7,8 +7,8 @@ import { useTenantCurrency } from "../../lib/useTenantCurrency";
 
 const PAGE = 3;
 
-/** Mirror dashboard card — double-payments prevented ($) up top, then the PAGED review queue of
- * duplicates awaiting a decision (confirm / dismiss / mark-recurring — the learning loop). */
+/** Mirror dashboard card - double-payments prevented ($) up top, then the PAGED review queue of
+ * duplicates awaiting a decision (confirm / dismiss / mark-recurring - the learning loop). */
 export function MirrorInsightsSection({ initialData, initialQueue }: { initialData?: MirrorInsights | null; initialQueue?: MirrorFlagPage | null } = {}) {
   const currency = useTenantCurrency();
   const [data, setData] = useState<MirrorInsights | null>(initialData ?? null);
@@ -79,7 +79,7 @@ export function MirrorInsightsSection({ initialData, initialQueue }: { initialDa
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wider text-[#8a7f6d]">Review queue</p>
             <span className="text-[11px] text-[#8a7f6d]">
-              {offset + 1}–{Math.min(offset + PAGE, total)} of {total}
+              {offset + 1}-{Math.min(offset + PAGE, total)} of {total}
             </span>
           </div>
           <div className="mt-2 grid gap-2">
@@ -103,7 +103,7 @@ export function MirrorInsightsSection({ initialData, initialQueue }: { initialDa
                 <div className="mt-2 flex flex-wrap gap-2">
                   <DecisionBtn label="Confirm duplicate" tone="danger" onClick={() => decide(f, "confirmed_duplicate")} />
                   <DecisionBtn label="Not a duplicate" tone="ghost" onClick={() => decide(f, "not_duplicate")} />
-                  <DecisionBtn label="Recurring — stop flagging" tone="ghost" onClick={() => decide(f, "recurring")} />
+                  <DecisionBtn label="Recurring - stop flagging" tone="ghost" onClick={() => decide(f, "recurring")} />
                 </div>
               </div>
             ))}

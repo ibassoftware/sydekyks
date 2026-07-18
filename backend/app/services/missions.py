@@ -11,12 +11,14 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
 from app.models.mission import Mission, MissionDocument, MissionStep
 from app.models.sydekyk import Sydekyk
-from app.services import document_storage, mission_events
+from app.models.usage_record import UsageRecord
+from app.services import document_storage, mission_events, system_incidents
 
 # ---------------------------------------------------------------------------
 # Registries
@@ -291,6 +293,8 @@ def run_mission(mission_id: uuid.UUID) -> None:
         except Exception as exc:  # noqa: BLE001 — top-level guard, message surfaced to the UI
             db.rollback()
             mission = db.get(Mission, mission_id)
+            tenant_id = mission.tenant_id if mission is not None else None
+            playbook_key = mission.playbook_key if mission is not None else "unknown"
             if mission is not None:
                 mission.status = "failed"
                 mission.error_message = str(exc)[:2000]
@@ -303,6 +307,13 @@ def run_mission(mission_id: uuid.UUID) -> None:
                 mission_events.publish(mission.id, "mission.failed", {
                     "failure_category": mission.failure_category,
                 })
+            system_incidents.record_exception(
+                exc,
+                source="mission",
+                path=playbook_key,
+                tenant_id=tenant_id,
+                mission_id=mission_id,
+            )
             return
 
         # Runner is expected to set a terminal status; backfill if it forgot.
@@ -325,6 +336,36 @@ def run_mission(mission_id: uuid.UUID) -> None:
                 })
     finally:
         db.close()
+
+
+def usage_by_mission(db: Session, mission_ids: list[uuid.UUID]) -> dict[uuid.UUID, dict[str, int | float]]:
+    """Aggregate AI usage for a page of Missions in one query.
+
+    Keeping this page-scoped avoids both an N+1 query pattern and a broad dashboard fan-out while
+    still giving every Mission card its own token and compute-capacity footprint.
+    """
+    if not mission_ids:
+        return {}
+    rows = (
+        db.query(
+            UsageRecord.mission_id,
+            func.count(UsageRecord.id),
+            func.coalesce(func.sum(UsageRecord.total_tokens), 0),
+            func.coalesce(func.sum(UsageRecord.estimated_gpu_seconds), 0.0),
+        )
+        .filter(UsageRecord.mission_id.in_(mission_ids))
+        .group_by(UsageRecord.mission_id)
+        .all()
+    )
+    return {
+        mission_id: {
+            "ai_calls": int(ai_calls or 0),
+            "tokens_used": int(tokens or 0),
+            "ai_capacity_seconds": float(capacity or 0.0),
+        }
+        for mission_id, ai_calls, tokens, capacity in rows
+        if mission_id is not None
+    }
 
 
 # ---------------------------------------------------------------------------

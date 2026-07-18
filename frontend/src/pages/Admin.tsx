@@ -5,6 +5,7 @@ import { useAuth } from "../lib/auth";
 import { Badge, Button, Card, Input, Label, Modal, PageShell } from "../components/ui";
 import { Link, useNavigate } from "react-router-dom";
 import CommandCenterMetering from "./CommandCenterMetering";
+import { AdminSystemIncidents } from "../components/AdminSystemIncidents";
 
 const PROVIDER_LABELS: Record<string, string> = {
   openai: "OpenAI",
@@ -147,6 +148,7 @@ export default function Admin() {
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-10">
+        <AdminSystemIncidents />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-[#f5eee0]">HQs</h1>
@@ -446,7 +448,7 @@ function CommanderForm({ tenant, onClose, onSaved }: { tenant: Tenant; onClose: 
   return (
     <div className="w-full max-w-md rounded-xl border border-ink-600 bg-gradient-to-b from-ink-800 to-ink-900 p-6 shadow-2xl">
       <h2 className="text-lg font-semibold text-[#f5eee0]">Manage commander login</h2>
-      <p className="mt-1 text-sm text-[#b9ad98]">{tenant.name} — the HQ's commander account.</p>
+      <p className="mt-1 text-sm text-[#b9ad98]">{tenant.name} - the HQ's commander account.</p>
       <form onSubmit={save} className="mt-4 grid gap-4">
         <div>
           <Label>Commander email</Label>
@@ -619,7 +621,7 @@ function HostedAssignmentForm({ sydekyk, onClose }: { sydekyk: SydekykAdmin; onC
 
   return (
     <Card className="border-gold-600/40 p-7 shadow-[0_0_60px_-12px_rgba(212,168,40,0.5)]">
-      <h2 className="text-xl font-bold text-[#f5eee0]">Configure Engine — {sydekyk.name}</h2>
+      <h2 className="text-xl font-bold text-[#f5eee0]">Configure Engine - {sydekyk.name}</h2>
       <p className="mt-1 text-sm text-[#8a7f6d]">
         The real provider/model used whenever any tenant assigns Power Core to {sydekyk.name}. Hidden from tenants,
         shared across every tenant that uses it.
@@ -669,7 +671,7 @@ function HostedAssignmentForm({ sydekyk, onClose }: { sydekyk: SydekykAdmin; onC
           {error && <p className="text-sm text-red-400">{error}</p>}
           {saved && !error && (
             <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-gold-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-gold-400 shadow-[0_0_8px_2px_rgba(234,194,95,0.7)]" /> Saved —{" "}
+              <span className="h-1.5 w-1.5 rounded-full bg-gold-400 shadow-[0_0_8px_2px_rgba(234,194,95,0.7)]" /> Saved  - {" "}
               {sydekyk.name} will use this engine going forward.
             </p>
           )}
@@ -806,7 +808,7 @@ function PostmarkSettings() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <Label>Webhook Basic Auth — Username</Label>
+                <Label>Webhook Basic Auth - Username</Label>
                 <Input
                   value={authUser}
                   onChange={(e) => {
@@ -817,7 +819,7 @@ function PostmarkSettings() {
                 />
               </div>
               <div>
-                <Label>Webhook Basic Auth — Password</Label>
+                <Label>Webhook Basic Auth - Password</Label>
                 <Input
                   type="password"
                   value={authPass}
@@ -853,7 +855,7 @@ function PostmarkSettings() {
 
             <div className="rounded-lg border border-ink-700 bg-ink-900/60 p-4">
               <div className="flex items-center justify-between gap-3">
-                <Label>Webhook URL — set this in Postmark</Label>
+                <Label>Webhook URL - set this in Postmark</Label>
                 <Button variant="ghost" className="px-3 py-1.5 text-xs" onClick={copyWebhook}>
                   {copied ? "Copied" : "Copy"}
                 </Button>
@@ -868,7 +870,7 @@ function PostmarkSettings() {
                 </li>
                 <li>
                   Set that server's <strong>Inbound Webhook URL</strong> to the URL above (the
-                  <code className="text-[#ede6da]"> user:pass@</code> prefix is HTTP Basic Auth — Postmark does not sign
+                  <code className="text-[#ede6da]"> user:pass@</code> prefix is HTTP Basic Auth - Postmark does not sign
                   inbound webhooks, so this is how we verify the request came from Postmark).
                 </li>
                 <li>Send a bill to any HQ's inbox address; it appears under All Missions once processed.</li>

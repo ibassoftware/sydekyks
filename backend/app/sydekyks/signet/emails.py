@@ -1,4 +1,4 @@
-"""Signet's signing-email copy — a deterministic template path (always available) and an optional
+"""Signet's signing-email copy - a deterministic template path (always available) and an optional
 AI-written path (grounded in an optional "what to say" prompt). The AI path is metered like any other
 model call; the template is the guaranteed fallback when AI is off or unavailable.
 """
@@ -42,7 +42,7 @@ def reminder_template(*, signer_name: str, title: str, sender: str, reminder_num
     if reminder_number >= 3:
         lead = "This is a final reminder that your signature is still needed on"
     elif reminder_number == 2:
-        lead = "We wanted to follow up again — your signature is still needed on"
+        lead = "We wanted to follow up again - your signature is still needed on"
     else:
         lead = "A quick reminder that your signature is still needed on"
     body = (

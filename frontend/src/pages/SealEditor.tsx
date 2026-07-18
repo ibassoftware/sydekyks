@@ -173,7 +173,7 @@ export default function SealEditor() {
         toast.success(r.data.detail || "Sent to Odoo Sign");
         if (r.data.odoo_url) window.open(r.data.odoo_url, "_blank");
       } else {
-        // Native path — hand off to Signet to collect signatories and send.
+        // Native path - hand off to Signet to collect signatories and send.
         if (signetId) {
           navigate(`/hq/roster/${signetId}?contract=${contractId}&title=${encodeURIComponent(title)}`);
         } else {
@@ -249,7 +249,7 @@ export default function SealEditor() {
       {previewUrl && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-sm">
           <div className="flex items-center justify-between border-b border-ink-700 bg-ink-900 px-5 py-3">
-            <p className="font-display text-sm text-[#ede6da]">PDF preview — {title}</p>
+            <p className="font-display text-sm text-[#ede6da]">PDF preview - {title}</p>
             <div className="flex items-center gap-2">
               <Button className="px-3 py-1.5 text-xs" onClick={exportPdf}>Download</Button>
               <button onClick={closePreview} className="text-sm text-[#8a7f6d] hover:text-gold-300">Close ✕</button>
@@ -302,7 +302,7 @@ function GeneratePanel({ contractId, hasContent, onBusy, onGenerated }: {
             setExpanded(false);
           },
           onError: (msg) => {
-            // Failure arrives as an event once the stream is open — nothing was committed to the
+            // Failure arrives as an event once the stream is open - nothing was committed to the
             // editor (we render deltas into a throwaway preview), so there is nothing to roll back.
             settled = true;
             toast.error(msg || "Generation failed. Is an AI engine configured?");
@@ -341,7 +341,7 @@ function GeneratePanel({ contractId, hasContent, onBusy, onGenerated }: {
         <div>
           <Label>Template</Label>
           <select value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="w-full rounded-md border border-ink-600 bg-ink-900 px-3 py-2 text-sm text-[#ede6da] outline-none focus:border-gold-500">
-            <option value="">No template — standard structure</option>
+            <option value="">No template - standard structure</option>
             {templates.map((t) => (<option key={t.id} value={t.id}>{t.name}{t.is_builtin ? " (built-in)" : ""}</option>))}
           </select>
         </div>
@@ -431,7 +431,7 @@ function ChatPanel({ contractId, onBusy, onRewrite, canUndo, onUndo }: {
       </div>
       <div className="mt-2 flex-1 space-y-2 overflow-y-auto">
         {messages.length === 0 ? (
-          <p className="text-[11px] text-[#8a7f6d]">Ask Seal to revise the draft — “add a liability cap”, “make the term 3 years”, “tighten the confidentiality clause”.</p>
+          <p className="text-[11px] text-[#8a7f6d]">Ask Seal to revise the draft - “add a liability cap”, “make the term 3 years”, “tighten the confidentiality clause”.</p>
         ) : (
           messages.map((m) => (
             <div key={m.id} className={m.role === "user" ? "text-right" : ""}>
@@ -504,7 +504,7 @@ function ReviewPanel({ contractId, onBusy, onApplied }: {
       setReview((rv) => rv ? { ...rv, findings: rv.findings.map((x) => x.id === f.id ? r.data.finding : x) } : rv);
       if (decision === "accept") {
         if (r.data.applied) { onApplied(r.data.contract); toast.success("Redline applied"); }
-        else toast.success("Accepted (couldn't auto-apply — edit manually)");
+        else toast.success("Accepted (couldn't auto-apply - edit manually)");
       }
     } catch (e) {
       toast.error(errMsg(e, "Couldn't record the decision."));
@@ -520,7 +520,7 @@ function ReviewPanel({ contractId, onBusy, onApplied }: {
         <Button className="px-3 py-1.5 text-xs" disabled={busy} onClick={runReview}>{busy ? "Reviewing…" : review ? "↻ Re-review" : "Review contract"}</Button>
       </div>
       {!review ? (
-        <p className="mt-2 text-[11px] text-[#8a7f6d]">Seal reads the contract clause-by-clause and flags risky, one-sided, or missing clauses — with a suggested redline you accept or reject.</p>
+        <p className="mt-2 text-[11px] text-[#8a7f6d]">Seal reads the contract clause-by-clause and flags risky, one-sided, or missing clauses - with a suggested redline you accept or reject.</p>
       ) : review.findings.length === 0 ? (
         <p className="mt-2 text-[11px] text-emerald-300/80">No issues found against your review guidelines.</p>
       ) : (

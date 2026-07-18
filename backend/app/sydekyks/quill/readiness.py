@@ -1,4 +1,4 @@
-"""Quill readiness — the AI engine is REQUIRED (it writes and revises the proposal). Odoo is entirely
+"""Quill readiness - the AI engine is REQUIRED (it writes and revises the proposal). Odoo is entirely
 OPTIONAL: creating a quotation and merging its PDF are opt-in extras; Quill drafts, edits, and exports
 a PDF with no Odoo connection at all.
 """

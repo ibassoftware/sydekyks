@@ -1,4 +1,4 @@
-"""Scout's AI scoring call — reads a résumé (text-first, vision fallback) and scores the candidate
+"""Scout's AI scoring call - reads a résumé (text-first, vision fallback) and scores the candidate
 against the job description with an open-ended fitness analysis (highlights / strengths /
 weaknesses). Goes through the shared `vision_ai` plumbing; metered by the caller."""
 
@@ -20,15 +20,15 @@ class ResumeScore:
 
 _SCORE_TEMPLATE = """You are Scout, an expert technical recruiter. Read the candidate's résumé and \
 score how well they fit the role below. Judge overall résumé quality AND their specific fitness for \
-this position against EVERY requirement the hiring team specified — the description, the written \
+this position against EVERY requirement the hiring team specified - the description, the written \
 requirements, the expected degree, and the expected skills. Be honest and specific. Respond with \
 ONLY a JSON object (no prose, no markdown fences) with exactly these keys:
 {{
   "score": integer 0-100 (overall fit for THIS role, weighing all requirements below),
   "summary": one-sentence verdict,
-  "highlights": [short strings — the most notable things about this candidate],
-  "strengths": [short strings — where they meet the role's requirements],
-  "weaknesses": [short strings — requirements they miss or fall short on],
+  "highlights": [short strings - the most notable things about this candidate],
+  "strengths": [short strings - where they meet the role's requirements],
+  "weaknesses": [short strings - requirements they miss or fall short on],
   "fit_reasoning": short paragraph explaining the score against the requirements
 }}
 
@@ -46,10 +46,10 @@ def _strip_html(html: str) -> str:
 
 def _build_job_block(job: dict | None, job_title: str | None) -> str:
     """Render the job position's full requirement profile (description, requirements, expected degree,
-    expected skills) as the scoring rubric — grounded entirely in what HR set on the Odoo hr.job."""
+    expected skills) as the scoring rubric - grounded entirely in what HR set on the Odoo hr.job."""
     job = job or {}
     title = job.get("name") or job_title
-    lines = [f"Role: {title or '(unspecified — assess general résumé quality)'}"]
+    lines = [f"Role: {title or '(unspecified - assess general résumé quality)'}"]
     desc = _strip_html(job.get("description") or "")
     if desc:
         lines.append(f"Job description:\n{desc[:3500]}")
@@ -60,7 +60,7 @@ def _build_job_block(job: dict | None, job_title: str | None) -> str:
     if job.get("expected_skills"):
         lines.append("Expected skills: " + ", ".join(job["expected_skills"][:40]))
     if not desc and not job.get("requirements"):
-        lines.append("(No written description/requirements available — assess general employability.)")
+        lines.append("(No written description/requirements available - assess general employability.)")
     return "\n\n".join(lines)
 
 

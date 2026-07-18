@@ -5,6 +5,7 @@ import { GadgetRequirementList } from "../../components/GadgetRequirementList";
 import { ReadinessList } from "../ReadinessList";
 import { useTenantCurrency } from "../../lib/useTenantCurrency";
 import type { SydekykSetupProps } from "../registry";
+import { SettingsBand, SettingsColumns, SettingsToggle } from "../SettingsLayout";
 
 export function ScoutSettingsSection({ sydekyk, canManage, onReadiness }: SydekykSetupProps) {
   const currency = useTenantCurrency();
@@ -31,27 +32,22 @@ export function ScoutSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
   }
 
   return (
-    <div className="grid gap-6">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Readiness</p>
-        <div className="mt-3">{readiness ? <ReadinessList items={readiness.items} /> : <p className="text-sm text-[#8a7f6d]">Loading…</p>}</div>
-      </div>
+    <>
+      <SettingsBand title="Readiness" description="What Scout can use now and anything that needs your attention.">
+        {readiness ? <ReadinessList items={readiness.items} /> : <p className="text-sm text-body">Loading...</p>}
+      </SettingsBand>
 
-      <div id="gadgets" className="border-t border-ink-700 pt-6">
-        <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Integrations</p>
-        <div className="mt-3">
-          <GadgetRequirementList sydekykId={sydekyk.id} canManage={canManage} />
-        </div>
-      </div>
+      <SettingsBand id="gadgets" title="Connections" description="Choose the Odoo recruitment workspace whose applicants Scout should score.">
+        <GadgetRequirementList sydekykId={sydekyk.id} canManage={canManage} />
+      </SettingsBand>
 
       {settings && (
-        <div className="grid gap-3 border-t border-ink-700 pt-6">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Scoring Settings</p>
-          <p className="-mt-1 text-xs text-[#8a7f6d]">
-            Scout scores each candidate against their job position in Odoo — its description, requirements, expected degree,
+        <SettingsBand title="Scoring policy" description="Control how Scout identifies processed applicants and schedules new scoring work.">
+          <p className="text-sm text-body">
+            Scout scores each candidate against their job position in Odoo - its description, requirements, expected degree,
             and expected skills. Tune the criteria by editing the job position in Odoo.
           </p>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="mt-5 max-w-md">
             <div>
               <Label>Processed tag</Label>
               <Input
@@ -62,17 +58,14 @@ export function ScoutSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <label className="flex items-center gap-2 text-sm text-[#ede6da]">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-gold-500"
-                disabled={!canManage || saving}
-                checked={settings.cron_enabled}
-                onChange={(e) => save({ ...settings, cron_enabled: e.target.checked })}
-              />
-              Score new applicants automatically (cron)
-            </label>
+          <div className="mt-5 border-t-2 border-ink-600 pt-2">
+            <SettingsToggle
+              label="Score new applicants automatically"
+              description="Checks Odoo every 15 minutes for applicants that have not received the processed tag."
+              disabled={!canManage || saving}
+              checked={settings.cron_enabled}
+              onChange={(checked) => save({ ...settings, cron_enabled: checked })}
+            />
             <div>
               <Label>Per-run cap (max 30)</Label>
               <Input
@@ -86,15 +79,12 @@ export function ScoutSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
               />
             </div>
           </div>
-          <p className="text-xs text-[#8a7f6d]">The cron requires the background worker to be running.</p>
-        </div>
+        </SettingsBand>
       )}
 
       {settings && (
-        <div className="grid gap-3 border-t border-ink-700 pt-6">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gold-500">Estimated Savings</p>
-          <p className="-mt-1 text-xs text-[#8a7f6d]">Powers the “$ saved” metric on your Dashboard.</p>
-          <div className="grid grid-cols-2 gap-4">
+        <SettingsBand title="Value assumptions" description="The business inputs behind Scout's time-saved and money-saved estimates.">
+          <SettingsColumns>
             <div>
               <Label>Hourly wage ({currency})</Label>
               <Input
@@ -119,9 +109,9 @@ export function ScoutSettingsSection({ sydekyk, canManage, onReadiness }: Sydeky
                 onBlur={(e) => save({ ...settings, estimated_minutes_per_candidate: Number(e.target.value) })}
               />
             </div>
-          </div>
-        </div>
+          </SettingsColumns>
+        </SettingsBand>
       )}
-    </div>
+    </>
   );
 }

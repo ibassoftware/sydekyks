@@ -12,7 +12,7 @@ function fmtTokens(n: number): string {
   return String(n);
 }
 
-/** Seal dashboard card — leads with tokens + AI cost, then the AI-only value: contracts reviewed and
+/** Seal dashboard card - leads with tokens + AI cost, then the AI-only value: contracts reviewed and
  * high-severity clauses caught (the risk a template tool would have shipped unnoticed). */
 export function SealInsightsSection({ initialData }: { initialData?: SealInsights | null } = {}) {
   const currency = useTenantCurrency();

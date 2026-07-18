@@ -28,7 +28,7 @@ class QuillTenantSettings(Base):
     # Savings assumptions.
     estimated_hourly_wage: Mapped[float] = mapped_column(Float, nullable=False, default=45.0)
     estimated_minutes_per_proposal: Mapped[float] = mapped_column(Float, nullable=False, default=45.0)
-    # Default Odoo toggles (all optional — Quill works with no Odoo at all).
+    # Default Odoo toggles (all optional - Quill works with no Odoo at all).
     auto_create_quotation: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     merge_quotation_pdf: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     upload_to_quotation: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
@@ -60,7 +60,7 @@ class QuillTemplate(Base):
 
 
 class QuillProposal(Base):
-    """A proposal document — the §12 draft store. The canonical content is HTML (`content_html`)."""
+    """A proposal document - the §12 draft store. The canonical content is HTML (`content_html`)."""
 
     __tablename__ = "quill_proposals"
 

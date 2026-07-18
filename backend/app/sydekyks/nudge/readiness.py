@@ -1,6 +1,4 @@
-"""Nudge readiness — Odoo (with CRM) is required; the AI engine is OPTIONAL (it only writes the
-follow-up draft; staleness detection and the To-Do creation run without it, just with a plainer note).
-"""
+"""Nudge readiness. Odoo with CRM and an AI engine are both required."""
 
 import uuid
 
@@ -39,10 +37,16 @@ def compute_readiness(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) 
         .first()
     )
     if llm and llm.litellm_virtual_key_encrypted and llm.litellm_model_alias:
-        items.append(_item("ai_engine", "AI Engine (optional)", "ok", f"{llm.provider}", None, None))
+        provider_name = {
+            "power_core": "Power Core",
+            "openai": "OpenAI",
+            "anthropic": "Anthropic",
+            "ollama_cloud": "Ollama Cloud",
+        }.get(llm.provider, llm.provider)
+        items.append(_item("ai_engine", "AI Engine", "ok", f"{provider_name} is good to go", None, None))
     else:
-        items.append(_item("ai_engine", "AI Engine (optional)", "warn",
-                           "Follow-up drafts are plainer until an engine is set.", "Configure AI Engine", "#ai-engine"))
+        items.append(_item("ai_engine", "AI Engine", "blocked",
+                           "An AI engine is required to draft follow-ups.", "Configure AI Engine", "#ai-engine"))
 
     can_upload = not any(i["state"] == "blocked" for i in items)
     return {"items": items, "can_upload": can_upload}

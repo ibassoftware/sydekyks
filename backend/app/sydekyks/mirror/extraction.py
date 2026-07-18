@@ -1,8 +1,8 @@
 """Mirror's AI judgment. The deterministic tiers (detection.py) surface CANDIDATE matches grounded in
-real data — same vendor, same reference, same amount, shared VAT/bank. The model then adjudicates
+real data - same vendor, same reference, same amount, shared VAT/bank. The model then adjudicates
 holistically: given the candidate bill and the specific bills it was matched against (with their line
 items), is this truly the same purchase billed twice? It weighs vendor identity, reference, amount,
-date proximity and line-item meaning — so a coincidental same-round-amount is cleared while a
+date proximity and line-item meaning - so a coincidental same-round-amount is cleared while a
 resubmitted invoice under a fresh number is caught. The model can only judge the candidates the
 deterministic layer found; it cannot invent a match.
 """
@@ -11,7 +11,7 @@ from app.services import vision_ai
 
 _ADJUDICATE_TEMPLATE = """You are Mirror, an accounts-payable duplicate detector. A candidate vendor \
 bill was matched against one or more existing bills by deterministic checks. Judge, holistically, \
-whether the candidate is TRULY a duplicate of any of them — i.e. the same purchase billed more than \
+whether the candidate is TRULY a duplicate of any of them - i.e. the same purchase billed more than \
 once. Weigh vendor identity, reference number, amount, how close the dates are, and whether the line \
 items describe the same goods/services (by meaning, not exact text).
 

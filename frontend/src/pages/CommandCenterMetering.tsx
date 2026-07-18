@@ -307,7 +307,7 @@ function ModelRatesEditor({ rates, onChange }: { rates: ModelRate[]; onChange: (
   return (
     <div className="mt-3 grid gap-2">
       {rates.length === 0 && (
-        <p className="text-sm text-[#8a7f6d]">No per-model multipliers yet — models default to ×1.0.</p>
+        <p className="text-sm text-[#8a7f6d]">No per-model multipliers yet - models default to ×1.0.</p>
       )}
       {rates.map((r) => (
         <ModelRateRow key={r.model} rate={r} onSave={(m) => upsert(r.model, m)} onRemove={() => remove(r.model)} />
@@ -404,7 +404,7 @@ function TenantPlanModal({
 
   return (
     <Card className="border-gold-600/40 p-7 shadow-[0_0_60px_-12px_rgba(212,168,40,0.5)]">
-      <h2 className="text-xl font-bold text-[#f5eee0]">Plan — {tenant.tenant_name}</h2>
+      <h2 className="text-xl font-bold text-[#f5eee0]">Plan - {tenant.tenant_name}</h2>
       <p className="mt-1 text-sm text-[#8a7f6d]">
         Pick a plan tier, or override its caps for this HQ. Leave an override blank to inherit the plan default.
       </p>

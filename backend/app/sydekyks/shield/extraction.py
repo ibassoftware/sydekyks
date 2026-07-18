@@ -1,9 +1,9 @@
-"""Shield's AI judgment. The deterministic rules (detection.py) fire grounded, factual signals — a
+"""Shield's AI judgment. The deterministic rules (detection.py) fire grounded, factual signals - a
 bank change on an unpaid bill, an employee bank match, an SoD break. The model then reasons over
 those signals PLUS the bill and vendor context to produce a holistic risk assessment: it weighs the
 signals in context (a bank change on a brand-new high-value vendor is graver than on a long-trusted
 one), can surface additional things worth a look, and writes the auditor briefing. Framing is strict:
-it describes risk and recommends review — it never accuses or concludes fraud.
+it describes risk and recommends review - it never accuses or concludes fraud.
 """
 
 from app.services import vision_ai
@@ -13,7 +13,7 @@ risk signals that fired on it, then give a holistic risk assessment for a human 
 signals IN CONTEXT (e.g. a vendor bank-account change is far more concerning on a brand-new, \
 high-value vendor than on a long-established one; several weak signals together can matter more than \
 one alone). You may note additional things worth checking. This is ADVISORY ONLY: describe risk and \
-recommend review — NEVER accuse anyone, and NEVER state a conclusion of fraud or wrongdoing.
+recommend review - NEVER accuse anyone, and NEVER state a conclusion of fraud or wrongdoing.
 
 Bill: {bill}
 Vendor context: {vendor}

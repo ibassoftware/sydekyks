@@ -1,4 +1,4 @@
-"""Render a Seal contract to PDF bytes — shared by the Seal export endpoint and by Signet (which turns
+"""Render a Seal contract to PDF bytes - shared by the Seal export endpoint and by Signet (which turns
 a finished contract into the source document for a signing envelope). Keeps the inline-image + branding
 logic in one place so both callers produce identical PDFs.
 """

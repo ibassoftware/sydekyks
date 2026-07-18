@@ -4,7 +4,7 @@ import { Button } from "../../components/ui";
 import { MissionList } from "../../components/MissionList";
 import { useMissionRefresh } from "../../lib/useMissionRefresh";
 
-/** Mirror's operations panel — the batch "Check now" scan on top plus a live Recent Missions list.
+/** Mirror's operations panel - the batch "Check now" scan on top plus a live Recent Missions list.
  * Mirror reads existing bills from Odoo (no upload), so this stands in for the upload dropzone. */
 export function MirrorOperationsSection({ sydekyk, canManage }: { sydekyk: Sydekyk; canManage: boolean }) {
   const [missions, setMissions] = useState<Mission[] | null>(null);
@@ -34,7 +34,7 @@ export function MirrorOperationsSection({ sydekyk, canManage }: { sydekyk: Sydek
       const r = await api.post<RunNowResult>("/tenant/mirror/run-now");
       setRunMsg(
         r.data.queued === 0
-          ? "No new bills to check — all caught up."
+          ? "No new bills to check - all caught up."
           : `Checking ${r.data.queued} bill${r.data.queued === 1 ? "" : "s"} for duplicates…`,
       );
       load();
@@ -55,7 +55,7 @@ export function MirrorOperationsSection({ sydekyk, canManage }: { sydekyk: Sydek
           </p>
         </div>
         {canManage && (
-          <Button className="px-4 py-2 text-xs" disabled={running || !ready} onClick={runNow}>
+          <Button disabled={running || !ready} onClick={runNow}>
             {running ? "Starting…" : "Check bills now"}
           </Button>
         )}
@@ -68,9 +68,9 @@ export function MirrorOperationsSection({ sydekyk, canManage }: { sydekyk: Sydek
         {!missions ? (
           <p className="mt-2 text-sm text-[#8a7f6d]">Loading…</p>
         ) : missions.length === 0 ? (
-          <p className="mt-2 text-sm text-[#8a7f6d]">No checks yet — run Mirror to scan your bills.</p>
+          <p className="mt-2 text-sm text-[#8a7f6d]">No checks yet - run Mirror to scan your bills.</p>
         ) : (
-          <div className="mt-2 overflow-hidden rounded-lg border border-ink-700">
+          <div className="mt-2 min-w-0">
             <MissionList missions={missions} onReload={load} showSydekyk={false} />
           </div>
         )}

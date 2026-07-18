@@ -1,4 +1,4 @@
-"""Mirror's package seed — sets the playbook_key + gadget requirement (Odoo) on the base Mirror
+"""Mirror's package seed - sets the playbook_key + gadget requirement (Odoo) on the base Mirror
 catalog row (created by app/seed.py). Mirror analyses existing bills, so it accepts no uploads."""
 
 from sqlalchemy.orm import Session

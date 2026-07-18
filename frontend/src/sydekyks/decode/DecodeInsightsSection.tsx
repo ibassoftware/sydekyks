@@ -5,7 +5,7 @@ import { Card } from "../../components/ui";
 import { AgentCardHeader } from "../../components/AgentCardHeader";
 import { useTenantCurrency } from "../../lib/useTenantCurrency";
 
-/** Recruitment (parsing) dashboard card — an intake monitor: where applicants are landing, how
+/** Recruitment (parsing) dashboard card - an intake monitor: where applicants are landing, how
  * clean the captured data is, the seniority mix, and the skills the pool brings. */
 export function DecodeInsightsSection({ initialData }: { initialData?: DecodeInsights | null } = {}) {
   const currency = useTenantCurrency();
@@ -44,7 +44,7 @@ export function DecodeInsightsSection({ initialData }: { initialData?: DecodeIns
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        {/* Where interest is landing — and how big the unrouted pool is. */}
+        {/* Where interest is landing - and how big the unrouted pool is. */}
         {data.applications_by_position.length > 0 && (
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-[#8a7f6d]">Applications by position</p>

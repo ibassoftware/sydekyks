@@ -12,7 +12,7 @@ function fmtTokens(n: number): string {
   return String(n);
 }
 
-/** Quill dashboard card — proposals are the most token-intensive work, so it leads with tokens + AI
+/** Quill dashboard card - proposals are the most token-intensive work, so it leads with tokens + AI
  * cost, then the time saved. Includes a ready "New proposal" quick action. */
 export function QuillInsightsSection({ initialData }: { initialData?: QuillInsights | null } = {}) {
   const currency = useTenantCurrency();
@@ -28,7 +28,7 @@ export function QuillInsightsSection({ initialData }: { initialData?: QuillInsig
     else load();
   }, [initialData, load]);
 
-  // The card appears once Quill is installed — even with zero proposals — so the New Proposal action is ready.
+  // The card appears once Quill is installed - even with zero proposals - so the New Proposal action is ready.
   if (!data || !data.activated) return null;
 
   async function newProposal() {

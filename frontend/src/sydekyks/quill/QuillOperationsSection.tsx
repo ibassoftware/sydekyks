@@ -6,7 +6,7 @@ import { Button, Input, Label, Modal } from "../../components/ui";
 import { toast } from "../../lib/toast";
 import type { OperationsProps } from "../registry";
 
-/** Quill's operations panel — the workbench entry point. Create a proposal (blank or from a template)
+/** Quill's operations panel - the workbench entry point. Create a proposal (blank or from a template)
  * and jump into the full-page editor, plus a list of recent proposals to reopen or delete. */
 export function QuillOperationsSection({ canManage }: OperationsProps) {
   const navigate = useNavigate();
@@ -45,7 +45,7 @@ export function QuillOperationsSection({ canManage }: OperationsProps) {
             await api.put(`/tenant/quill/proposals/${r.data.id}`, { content_html: html });
           }
         } catch {
-          /* non-fatal — the proposal still opens (blank), and Generate can fill it from the template */
+          /* non-fatal - the proposal still opens (blank), and Generate can fill it from the template */
         }
       }
       navigate(`/hq/quill/editor/${r.data.id}`);
@@ -104,7 +104,7 @@ export function QuillOperationsSection({ canManage }: OperationsProps) {
         {!page ? (
           <p className="mt-2 text-sm text-[#8a7f6d]">Loading…</p>
         ) : page.items.length === 0 ? (
-          <p className="mt-2 text-sm text-[#8a7f6d]">No proposals yet — create one to get started.</p>
+          <p className="mt-2 text-sm text-[#8a7f6d]">No proposals yet - create one to get started.</p>
         ) : (
           <div className="mt-2 grid gap-2">
             {page.items.map((p) => (
@@ -112,7 +112,7 @@ export function QuillOperationsSection({ canManage }: OperationsProps) {
                 <button onClick={() => navigate(`/hq/quill/editor/${p.id}`)} className="min-w-0 flex-1 text-left">
                   <span className="text-sm text-[#ede6da]">{p.title}</span>
                   {p.customer_name && <span className="ml-2 text-xs text-[#8a7f6d]">· {p.customer_name}</span>}
-                  {page.sees_all && p.owned_by && <span className="ml-2 text-[11px] text-[#7a7060]">— {p.owned_by}</span>}
+                  {page.sees_all && p.owned_by && <span className="ml-2 text-[11px] text-[#7a7060]"> -  {p.owned_by}</span>}
                 </button>
                 <span className={`rounded-full border px-2 py-0.5 text-[11px] ${
                   p.status === "final" ? "border-gold-600/50 bg-gold-500/10 text-gold-300" : "border-ink-600 bg-ink-800/60 text-[#b9ad98]"
@@ -132,7 +132,7 @@ export function QuillOperationsSection({ canManage }: OperationsProps) {
 }
 
 /** Create / edit / delete proposal templates. Built-ins are read-only (viewable, and "Duplicate" makes
- * an editable copy). Bodies are raw HTML or Markdown — template authors work in whichever they prefer. */
+ * an editable copy). Bodies are raw HTML or Markdown - template authors work in whichever they prefer. */
 function TemplatesManager({ canManage, onClose }: { canManage: boolean; onClose: () => void }) {
   const [list, setList] = useState<QuillTemplateSummary[]>([]);
   const [selected, setSelected] = useState<QuillTemplate | null>(null);
@@ -216,7 +216,7 @@ function TemplatesManager({ canManage, onClose }: { canManage: boolean; onClose:
           <div className="overflow-y-auto p-4">
             {editingBuiltin && (
               <p className="mb-3 rounded-md border border-gold-700/40 bg-gold-500/[0.06] px-3 py-2 text-xs text-gold-200">
-                Built-in template — read-only. Edit the name/body and “Save as new” to make your own editable copy.
+                Built-in template - read-only. Edit the name/body and “Save as new” to make your own editable copy.
               </p>
             )}
             <div className="grid gap-3">
@@ -248,7 +248,7 @@ function TemplatesManager({ canManage, onClose }: { canManage: boolean; onClose:
                   placeholder={format === "md" ? "# Proposal for [client]\n\n## Overview\n…" : "<h1>Proposal for [client]</h1>\n<p>…</p>"}
                   className="w-full rounded-md border border-ink-600 bg-ink-900 px-3 py-2 font-mono text-xs text-[#ede6da] outline-none focus:border-gold-500"
                 />
-                <p className="mt-1 text-[11px] text-[#8a7f6d]">Use bracketed placeholders like [client name] — Quill fills them from your notes when generating.</p>
+                <p className="mt-1 text-[11px] text-[#8a7f6d]">Use bracketed placeholders like [client name] - Quill fills them from your notes when generating.</p>
               </div>
               {canManage && (
                 <div className="flex items-center gap-2">

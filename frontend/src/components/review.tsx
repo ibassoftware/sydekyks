@@ -104,7 +104,7 @@ export function ReviewActions({ target, onChanged }: { target: ReviewTarget; onC
           </a>
         ) : (
           <span
-            title="No Odoo bill was created for this Mission — fix the issue in Odoo, then retry to create it."
+            title="No Odoo bill was created for this Mission - fix the issue in Odoo, then retry to create it."
             className="inline-flex min-h-11 items-center gap-2 rounded-[2px] border-2 border-ink-600 bg-ink-800 px-3 py-2 text-sm font-medium text-body"
           >
             <WarningIcon className="h-3.5 w-3.5" /> Odoo bill not created
