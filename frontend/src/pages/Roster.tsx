@@ -4,6 +4,7 @@ import { api, type Sydekyk } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useActivity } from "../lib/activity";
 import { Badge, Button, Card, buttonClassName } from "../components/ui";
+import { ConfirmUninstallModal } from "../components/ConfirmUninstallModal";
 import { HQShell } from "../components/HQShell";
 import { FUNCTION_GROUPS, functionGroupForSlug, type FunctionGroup } from "../sydekyks/registry";
 
@@ -14,6 +15,7 @@ export default function Roster() {
   const { activeSydekykIds } = useActivity();
   const [sydekyks, setSydekyks] = useState<Sydekyk[] | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<Sydekyk | null>(null);
   const [view, setView] = useState<RosterView>("all");
   const canManage = user?.role === "commander";
 
@@ -23,13 +25,29 @@ export default function Roster() {
 
   async function toggleInstall(sydekyk: Sydekyk) {
     if (!canManage || sydekyk.is_exclusive) return;
+    // Uninstall is destructive (wipes config) — confirm first via a dialog, never act on one click.
+    if (sydekyk.installed) {
+      setConfirmRemove(sydekyk);
+      return;
+    }
     setPendingId(sydekyk.id);
     try {
-      const res = sydekyk.installed
-        ? await api.delete<Sydekyk>(`/tenant/sydekyks/${sydekyk.id}/install`)
-        : await api.post<Sydekyk>(`/tenant/sydekyks/${sydekyk.id}/install`);
+      const res = await api.post<Sydekyk>(`/tenant/sydekyks/${sydekyk.id}/install`);
       const updated = res.data;
       setSydekyks((prev) => prev?.map((s) => (s.id === updated.id ? updated : s)) ?? null);
+    } finally {
+      setPendingId(null);
+    }
+  }
+
+  async function confirmUninstall() {
+    if (!confirmRemove) return;
+    setPendingId(confirmRemove.id);
+    try {
+      const res = await api.delete<Sydekyk>(`/tenant/sydekyks/${confirmRemove.id}/install`);
+      const updated = res.data;
+      setSydekyks((prev) => prev?.map((s) => (s.id === updated.id ? updated : s)) ?? null);
+      setConfirmRemove(null);
     } finally {
       setPendingId(null);
     }
@@ -119,6 +137,13 @@ export default function Roster() {
         )}
       </main>
       </div>
+      <ConfirmUninstallModal
+        sydekykName={confirmRemove?.name ?? ""}
+        open={confirmRemove !== null}
+        pending={pendingId === confirmRemove?.id}
+        onConfirm={confirmUninstall}
+        onClose={() => setConfirmRemove(null)}
+      />
     </HQShell>
   );
 }

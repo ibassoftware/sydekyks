@@ -13,7 +13,7 @@ from app.models.user import User
 from app.models.metering import PlanTier
 from app.schemas.dashboard import DashboardOut
 from app.schemas.sydekyk import SydekykOut
-from app.services import llm_provisioning, metering, permissions
+from app.services import llm_provisioning, metering, permissions, sydekyk_uninstall
 
 router = APIRouter(prefix="/api/tenant", tags=["tenant"], dependencies=[Depends(require_tenant_member)])
 
@@ -197,6 +197,9 @@ def uninstall_sydekyk(sydekyk_id: uuid.UUID, user: User = Depends(require_comman
     db.query(SydekykInstall).filter(
         SydekykInstall.tenant_id == user.tenant_id, SydekykInstall.sydekyk_id == sydekyk_id
     ).delete()
+    # Wipe this HQ's configuration for the Sydekyk so a reinstall starts fresh (settings, AI engine +
+    # revoked key, gadget assignments, access grants, reviewer assignment). Operational/history kept.
+    sydekyk_uninstall.purge_tenant_sydekyk_config(db, tenant_id=user.tenant_id, sydekyk=sydekyk)
     db.commit()
 
     return _to_out(sydekyk, installed=False, can_use=True, can_configure=True)  # require_commander → full access

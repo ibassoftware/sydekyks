@@ -57,3 +57,26 @@ def collect_seed_functions() -> list[Callable]:
         if callable(seed):
             seeds.append(seed)
     return seeds
+
+
+def delete_tenant_settings(db, model, tenant_id) -> None:
+    """Shared body for a package's `uninstall` hook: drop this HQ's row from a `*_tenant_settings`
+    table (all such tables are keyed by `tenant_id`)."""
+    db.query(model).filter(model.tenant_id == tenant_id).delete(synchronize_session=False)
+
+
+def collect_uninstall_functions() -> dict[str, Callable]:
+    """Map each Sydekyk slug -> its optional `uninstall(db, tenant_id)` teardown callable.
+
+    A package's `uninstall` hook removes only that Sydekyk's own tenant-scoped CONFIG (its
+    `*_tenant_settings` row) so a reinstall starts fresh. Operational and historical data (findings,
+    proposals, signed contracts/envelopes, missions) is intentionally left untouched. Cross-cutting
+    config (LLM engine, permissions, gadget assignments, reviewer assignment) is handled centrally in
+    services/sydekyk_uninstall.py, not here."""
+    hooks: dict[str, Callable] = {}
+    for pkg in discover_sydekyk_packages():
+        fn = getattr(pkg, "uninstall", None)
+        if callable(fn):
+            slug = pkg.__name__.rsplit(".", 1)[-1]
+            hooks[slug] = fn
+    return hooks

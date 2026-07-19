@@ -234,8 +234,15 @@ async def audit_review_assignees(ctx: dict) -> int:
     db = SessionLocal()
     try:
         targets = [(ra.tenant_id, ra.sydekyk_id) for ra in db.query(ReviewAssignment).all() if ra.odoo_user_ids]
+        # Only audit pairs whose Sydekyk the tenant still has installed — an uninstalled agent does no
+        # background work (uninstall also deletes its ReviewAssignment, so this is a safety net).
+        installed = {
+            (row[0], row[1]) for row in db.query(SydekykInstall.tenant_id, SydekykInstall.sydekyk_id).all()
+        }
         flagged = 0
         for tid, sid in targets:
+            if (tid, sid) not in installed:
+                continue
             bad = await asyncio.to_thread(ra_svc.audit_assignees, db, tenant_id=tid, sydekyk_id=sid)
             if bad:
                 flagged += 1

@@ -13,6 +13,7 @@ import {
 } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { Badge, Button, Card, Input, Label } from "../components/ui";
+import { ConfirmUninstallModal } from "../components/ConfirmUninstallModal";
 import { HQShell } from "../components/HQShell";
 import { DocumentIntakeSection } from "../components/DocumentIntakeSection";
 import { ReviewerAssignment } from "../components/ReviewerAssignment";
@@ -42,6 +43,7 @@ export default function SydekykDetail() {
   const canConfigure = sydekyk?.can_configure ?? isCommander;
   const [notFound, setNotFound] = useState(false);
   const [pending, setPending] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [readiness, setReadiness] = useState<LedgerReadiness | null>(null);
   const [reviewCount, setReviewCount] = useState(0);
   const registryEntry = registryForSlug(sydekyk?.slug);
@@ -96,12 +98,27 @@ export default function SydekykDetail() {
 
   async function toggleInstall() {
     if (!sydekyk || !isCommander || sydekyk.is_exclusive) return;
+    // Uninstall wipes this HQ's config for the Sydekyk — confirm via dialog before deleting.
+    if (sydekyk.installed) {
+      setConfirmRemove(true);
+      return;
+    }
     setPending(true);
     try {
-      const res = sydekyk.installed
-        ? await api.delete<Sydekyk>(`/tenant/sydekyks/${sydekyk.id}/install`)
-        : await api.post<Sydekyk>(`/tenant/sydekyks/${sydekyk.id}/install`);
+      const res = await api.post<Sydekyk>(`/tenant/sydekyks/${sydekyk.id}/install`);
       setSydekyk(res.data);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function confirmUninstall() {
+    if (!sydekyk) return;
+    setPending(true);
+    try {
+      const res = await api.delete<Sydekyk>(`/tenant/sydekyks/${sydekyk.id}/install`);
+      setSydekyk(res.data);
+      setConfirmRemove(false);
     } finally {
       setPending(false);
     }
@@ -283,6 +300,13 @@ export default function SydekykDetail() {
         )}
       </main>
       <TypeUIPanel />
+      <ConfirmUninstallModal
+        sydekykName={sydekyk?.name ?? ""}
+        open={confirmRemove}
+        pending={pending}
+        onConfirm={confirmUninstall}
+        onClose={() => setConfirmRemove(false)}
+      />
     </HQShell>
   );
 }

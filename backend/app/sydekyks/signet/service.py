@@ -301,11 +301,27 @@ def remind_envelope(db: Session, envelope: SignetEnvelope, *, force: bool = Fals
 
 
 def process_due_reminders(db: Session) -> int:
-    """Cron entry: scan sent/partially-signed envelopes and send due reminders. Returns the total sent."""
+    """Cron entry: scan sent/partially-signed envelopes and send due reminders. Returns the total sent.
+
+    Only HQs that currently have Signet installed are processed — uninstalling Signet must stop all
+    outbound signing reminders, not just hide the UI."""
+    signet = db.query(Sydekyk).filter(Sydekyk.slug == "signet").first()
+    if signet is None:
+        return 0
+    installed_tenant_ids = {
+        row[0] for row in db.query(SydekykInstall.tenant_id).filter(SydekykInstall.sydekyk_id == signet.id).all()
+    }
+    if not installed_tenant_ids:
+        return 0
+
     total = 0
     envelopes = (
         db.query(SignetEnvelope)
-        .filter(SignetEnvelope.status.in_(["sent", "partially_signed"]), SignetEnvelope.hold.is_(False))
+        .filter(
+            SignetEnvelope.tenant_id.in_(installed_tenant_ids),
+            SignetEnvelope.status.in_(["sent", "partially_signed"]),
+            SignetEnvelope.hold.is_(False),
+        )
         .all()
     )
     for envelope in envelopes:
