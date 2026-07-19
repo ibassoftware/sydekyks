@@ -93,7 +93,7 @@ export function LedgerSettingsSection({
           </StepCard>
           <StepCard n={4} title="Email inbox" optional status={byKey.get("email_inbox")}
             help="Optional — get a dedicated address to forward or email bills to.">
-            <EmailInboxBlock canManage={canManage} />
+            <EmailInboxBlock canManage={canManage} onChanged={refreshReadiness} />
           </StepCard>
         </ol>
       </SettingsBand>
@@ -310,7 +310,7 @@ function VisionTestBlock({
   );
 }
 
-function EmailInboxBlock({ canManage }: { canManage: boolean }) {
+function EmailInboxBlock({ canManage, onChanged }: { canManage: boolean; onChanged?: () => void }) {
   const [address, setAddress] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -330,6 +330,7 @@ function EmailInboxBlock({ canManage }: { canManage: boolean }) {
     try {
       const res = await api.post<EmailInboxOut>("/tenant/ledger/email-inbox", { name: "Ledger Inbox" });
       setAddress(res.data.inbound_address);
+      onChanged?.();
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.data?.detail) setError(err.response.data.detail);
       else setError("Couldn't create the inbox.");
@@ -347,7 +348,6 @@ function EmailInboxBlock({ canManage }: { canManage: boolean }) {
 
   return (
     <div id="email">
-      <h3 className="text-sm font-semibold text-heading">Email intake <span className="font-normal text-body">(optional)</span></h3>
       {address ? (
         <div className="mt-3 rounded-lg border border-ink-700 p-3">
           <p className="text-xs text-body">Forward or email bills to:</p>
