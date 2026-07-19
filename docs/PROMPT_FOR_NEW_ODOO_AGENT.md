@@ -55,7 +55,7 @@ Create `backend/app/sydekyks/<slug>/` with:
 
 | File | Responsibility |
 |------|----------------|
-| `__init__.py` | Import models/playbook/tools; re-export `router` + `seed`. Importing the package **registers the playbook** and makes it discoverable. |
+| `__init__.py` | Import models/playbook/tools; re-export `router` + `seed`, plus an optional `uninstall(db, tenant_id)` teardown hook that drops your `<agent>_tenant_settings` row (collected like `seed` — see §16). Importing the package **registers the playbook** and makes it discoverable. |
 | `playbook.py` | `PLAYBOOK_KEY = "<slug>.<verb>"`, `PLAYBOOK_STEPS` (list of `{key,title,description,likely_failures}`), `run(db, mission)`, and `register_playbook(PLAYBOOK_KEY, run)` at the bottom. |
 | `extraction.py` | The AI calls (classify, extract, map, score). All go through `app.services.vision_ai`; every returned Odoo id/option is **validated against real config**. |
 | `models.py` | `<Agent>TenantSettings` (per-tenant config) + `<Agent>Record` (a store of what it produced — powers the dashboard/insights). |
@@ -604,7 +604,9 @@ it. Apply these platform rules to every new agent:
   maintain in Odoo over a parallel application-only whitelist. Optional document-to-record checks,
   such as Ledger's PO verification, must be explicit tenant settings. Extract the reference, resolve
   it against live Odoo fields, compare deterministic business facts, block automatic posting on any
-  mismatch, and create an actionable review task rather than silently guessing.
+  mismatch, and create an actionable review task rather than silently guessing. **But a document that
+  cites no reference at all has nothing to match — post it normally, never hold it.** "Require a match"
+  means "match *when referenced*," not "reject everything unreferenced" (see §16).
 - **A browser command announces Mission discovery immediately.** Successful `run-now`, document
   upload, and retry responses dispatch the shared `sydekyks:mission-activity` event. The activity
   provider then re-reads `/tenant/missions/active`; do not wait for the periodic poll or require a
@@ -637,3 +639,60 @@ it. Apply these platform rules to every new agent:
   2px boundaries, 4px radius, 44px controls, written states, and the shared HQ background apply to
   Roster, Missions, Utility Belt, Team, Settings, and agent workspaces. Portraits remain original,
   uncropped identity assets—never tinted or dithered.
+
+## 16. Agent lifecycle — install, engine provisioning, and uninstall (the hard-won lessons)
+
+An agent isn't just a playbook; it has a **lifecycle** on each HQ — installed, engined, run, and
+eventually uninstalled. These are platform-wide rules learned the hard way (some from shipped bugs);
+wire every new agent to respect them.
+
+- **Install may auto-provision the engine.** On `POST /tenant/sydekyks/{id}/install`, if an admin has
+  set a **hosted assignment** for your Sydekyk, the platform defaults the HQ to **Power Core** and
+  issues its per-tenant LiteLLM virtual key (`llm_provisioning.default_to_power_core`) — so the agent
+  is usable with zero engine setup. It never overrides an existing choice and never blocks the install
+  if provisioning fails. Your package does nothing; just know a `TenantSydekykLLMConfig` may already
+  exist immediately after install.
+- **⚠️ Every cron/poll MUST gate on install — or uninstall won't stop it.** The worker's per-tenant
+  polls (`_poll_recruitment`, `_poll_bills`, `poll_nudge`) already `continue` when the
+  `(tenant, sydekyk)` has no `SydekykInstall` row. **Any new cron you add must do the same.** Two crons
+  that skipped this shipped bugs: `poll_signet` kept emailing external signers and
+  `audit_review_assignees` kept auditing — both *after* uninstall. A cron that ignores install status
+  turns an uninstall into a silent, still-running agent, and an **outbound** one (reminders, emails,
+  Odoo writes) keeps touching the world. Filter to installed HQs at the top of the cron body.
+- **Uninstall wipes CONFIG, preserves history — and it's a per-package hook.** `DELETE
+  /tenant/sydekyks/{id}/install` calls `services/sydekyk_uninstall.purge_tenant_sydekyk_config`, which
+  centrally removes the cross-cutting config for the `(tenant, sydekyk)`: the AI engine config
+  (**revoking the LiteLLM virtual key** via `revoke_tenant_config` — a dropped config otherwise
+  **orphans a live key**), the usage cache, Hero access grants, gadget assignments, and the reviewer
+  assignment. **Your package adds exactly one thing:** an `uninstall(db, tenant_id)` callable exported
+  from its `__init__.py` (collected generically by `collect_uninstall_functions()`, the same way `seed`
+  is) that deletes your settings row: `delete_tenant_settings(db, <Agent>TenantSettings, tenant_id)`.
+  **Operational and historical data is deliberately preserved** — findings, drafts, proposals, signed
+  contracts / e-sign envelopes, and mission audit history all survive an uninstall so a reinstall never
+  loses a legal record or trail. Dropping the settings row also clears the `cron_enabled` intent, so a
+  reinstall starts clean.
+- **Uninstall is destructive → confirm in a dialog, never one-click, never a JS `alert`/`confirm`.**
+  The Roster and detail pages gate uninstall behind `ConfirmUninstallModal` (a real `Modal`), stating
+  that config is deleted and setup is required on reinstall. Route any new uninstall entry point through
+  the same confirmation.
+- **The AI engine is a LiteLLM deployment; the platform owns its propagation.** An agent never talks to
+  a provider directly (§4). Each `(tenant, sydekyk)` engine is a LiteLLM model + a scoped virtual key.
+  **⚠️ Editing a provider's base URL/key must re-point every already-registered model** — writing the
+  credential row alone leaves the deployments on the stale endpoint. The platform now re-provisions on
+  credential change (`reprovision_hosted_for_provider` / `reprovision_byok_for_credential`); the running
+  proxy reflects DB changes on its **~20s poll — no restart needed** (never bake a proxy restart into a
+  flow). Provider base URLs must be **exact**: an OpenAI-compatible endpoint is `…/v1` — a bare host
+  returns an HTML web page and a 404, not JSON (this is exactly how the Ollama Cloud misconfig
+  presented).
+- **Surface provider/engine errors as guidance, not raw text.** Connection and vision tests translate
+  raw LiteLLM/provider failures through `litellm_admin.friendly_llm_error` (HTML body → "Base URL
+  misconfigured (…/v1)"; 404 → model/path not found; 401/403 → check the API key). **Never show
+  `<!doctype html>`, a `litellm.NotFoundError`, or a stack trace to an operator** — the raw string is a
+  debugging leak, not a message. If you add a new "test this connection" surface, run it through the
+  same translator.
+- **Prove a new engine can actually do the job, not just connect.** A plain completion "ping" proves
+  auth + routing; it does **not** prove the model can read a scanned bill. Ledger's `vision-test` sends
+  a bundled sample document through the real extraction path and persists a `*_vision_ok` flag that
+  readiness gates on. If your agent depends on a capability beyond text (vision, long-context, tools),
+  give it a capability test distinct from the connectivity test, and point the readiness "verify" action
+  at *that* control — not the generic engine test.
