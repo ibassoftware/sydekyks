@@ -1,20 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
 import {
   api,
   type EmailInboxOut,
-  type IssuesOut,
   type LedgerReadiness,
   type LedgerSettings,
+  type ReadinessItem,
+  type ReadinessState,
   type Sydekyk,
   type VisionTestResult,
 } from "../../lib/api";
 import { Badge, Button, Input, Label } from "../../components/ui";
+import { AIEngineSection } from "../../components/AIEngineSection";
 import { GadgetRequirementList } from "../../components/GadgetRequirementList";
-import { LedgerReadinessCard } from "./LedgerReadinessCard";
 import { useTenantCurrency } from "../../lib/useTenantCurrency";
 import { SettingsBand, SettingsToggle } from "../SettingsLayout";
+
+const STEP_STATE: Record<ReadinessState, { label: string; tone: "success" | "warning" | "danger"; badge: string }> = {
+  ok: { label: "Done", tone: "success", badge: "border-success bg-success text-ink-950" },
+  warn: { label: "To do", tone: "warning", badge: "border-warning text-warning" },
+  blocked: { label: "Required", tone: "danger", badge: "border-danger text-danger" },
+};
 
 /** VS-9 registry setup section for Ledger. Composes the readiness checklist (VS-1), gadget
  * assignment, the email-inbox experience (VS-2), business settings, and the vision test (VS-12). */
@@ -30,11 +36,28 @@ export function LedgerSettingsSection({
   const currency = useTenantCurrency();
   const [settings, setSettings] = useState<LedgerSettings | null>(null);
   const [saving, setSaving] = useState(false);
-  const [readinessKey, setReadinessKey] = useState(0); // bump to force the readiness card to re-fetch
+  const [readiness, setReadiness] = useState<LedgerReadiness | null>(null);
+  const [readinessKey, setReadinessKey] = useState(0); // bump to re-fetch readiness after a step changes
 
   useEffect(() => {
     api.get<LedgerSettings>("/tenant/ledger/settings").then((res) => setSettings(res.data));
   }, []);
+
+  useEffect(() => {
+    api.get<LedgerReadiness>("/tenant/ledger/readiness").then((res) => {
+      setReadiness(res.data);
+      onReadiness?.(res.data);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readinessKey]);
+
+  const refreshReadiness = () => setReadinessKey((k) => k + 1);
+  const byKey = new Map((readiness?.items ?? []).map((i) => [i.key, i]));
+  const odooStep = odooStatus(byKey);
+  const requiredSteps = [byKey.get("ai_engine"), byKey.get("vision"), odooStep].filter(
+    (s): s is ReadinessItem => Boolean(s),
+  );
+  const doneCount = requiredSteps.filter((s) => s.state === "ok").length;
 
   async function save(next: LedgerSettings) {
     setSettings(next);
@@ -50,33 +73,29 @@ export function LedgerSettingsSection({
 
   return (
     <>
-      <SettingsBand title="Setup steps" description="Complete these in order to get Ledger ready.">
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(240px,0.6fr)]">
-          <LedgerReadinessCard onReadiness={onReadiness} refreshKey={readinessKey} showHeading={false} />
-          <IssuesQuickLink sydekykId={sydekyk.id} />
-        </div>
-        <div className="mt-5 border-t-2 border-ink-600 pt-5">
-          <VisionTestBlock
-            settings={settings}
-            canManage={canManage}
-            onTested={(s) => {
-              setSettings(s);
-              setReadinessKey((k) => k + 1);
-            }}
-          />
-        </div>
-      </SettingsBand>
-
-      <SettingsBand id="gadgets" title="Connections" description="Where bills arrive and where Ledger records the result.">
-        <div className="grid gap-6 xl:grid-cols-2">
-          <div>
-            <h3 className="text-sm font-semibold text-heading">Odoo</h3>
-            <div className="mt-3"><GadgetRequirementList sydekykId={sydekyk.id} canManage={canManage} /></div>
-          </div>
-          <div className="border-t-2 border-ink-600 pt-6 xl:border-l-2 xl:border-t-0 xl:pl-6 xl:pt-0">
+      <SettingsBand id="gadgets" title="Get Ledger ready" description="Complete these steps to start processing bills.">
+        {readiness && (
+          <SetupProgress done={doneCount} total={requiredSteps.length} next={requiredSteps.find((s) => s.state !== "ok")} />
+        )}
+        <ol className="mt-5 grid gap-4">
+          <StepCard n={1} title="Set up the AI engine" status={byKey.get("ai_engine")}
+            help="Choose and verify the model that reads your bills.">
+            <AIEngineSection sydekyk={sydekyk} canManage={canManage} embedded onChanged={refreshReadiness} />
+          </StepCard>
+          <StepCard n={2} title="Read a test document" status={byKey.get("vision")} anchor="ledger-vision"
+            help="Confirm the engine can actually read an invoice before your first upload.">
+            <VisionTestBlock settings={settings} canManage={canManage}
+              onTested={(s) => { setSettings(s); refreshReadiness(); }} />
+          </StepCard>
+          <StepCard n={3} title="Connect Odoo" status={odooStep}
+            help="Where Ledger reads vendors and records the finished bill.">
+            <GadgetRequirementList sydekykId={sydekyk.id} canManage={canManage} categories={["erp"]} onChanged={refreshReadiness} />
+          </StepCard>
+          <StepCard n={4} title="Email inbox" optional status={byKey.get("email_inbox")}
+            help="Optional — get a dedicated address to forward or email bills to.">
             <EmailInboxBlock canManage={canManage} />
-          </div>
-        </div>
+          </StepCard>
+        </ol>
       </SettingsBand>
 
       <SettingsBand id="ledger-automation" title="Automation" description="How confidently Ledger may turn a document into an Odoo bill.">
@@ -160,29 +179,82 @@ export function LedgerSettingsSection({
   );
 }
 
-function IssuesQuickLink({ sydekykId }: { sydekykId: string }) {
-  const [issues, setIssues] = useState<IssuesOut | null>(null);
+/** Combine the two Odoo readiness rows (assigned + connection) into a single step status. */
+function odooStatus(byKey: Map<string, ReadinessItem>): ReadinessItem | undefined {
+  const assigned = byKey.get("odoo_assigned");
+  const connection = byKey.get("odoo_connection");
+  if (!assigned) return undefined;
+  if (assigned.state !== "ok") return assigned;
+  if (connection && connection.state !== "ok") return connection;
+  return assigned;
+}
 
-  useEffect(() => {
-    api.get<IssuesOut>("/tenant/issues", { params: { sydekyk_id: sydekykId } }).then((res) => setIssues(res.data));
-  }, [sydekykId]);
-
-  if (!issues) return null;
-  const total = issues.config_issues.length + issues.missions_needing_review.length;
-
+function SetupProgress({ done, total, next }: { done: number; total: number; next?: ReadinessItem }) {
+  const allDone = done >= total && total > 0;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   return (
-    <Link
-      to={`/hq/missions?view=attention&sydekyk_id=${sydekykId}`}
-      className="flex min-h-28 items-center justify-between gap-4 rounded-[4px] border-2 border-ink-600 bg-ink-900 p-5 shadow-[var(--shadow-xs)] transition-colors hover:bg-ink-800 sm:p-6"
-    >
-      <div>
-        <h3 className="text-sm font-semibold text-heading">Attention</h3>
-        <p className="mt-2 text-sm text-body">
-          {total === 0 ? "Nothing needs attention" : `${total} ${total === 1 ? "thing needs" : "things need"} attention`}
-        </p>
+    <div className="rounded-[4px] border-2 border-ink-600 bg-ink-900 p-5 shadow-[var(--shadow-xs)]">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-heading">
+            {allDone ? "Ledger is ready" : `Setup — ${done} of ${total} steps done`}
+          </p>
+          <p className="mt-1 text-xs text-body">
+            {allDone ? "You can upload or email bills now." : next ? `Next: ${next.label.toLowerCase()}.` : "Getting things ready…"}
+          </p>
+        </div>
+        <Badge tone={allDone ? "success" : "warning"}>{allDone ? "Ready" : "In progress"}</Badge>
       </div>
-      {total > 0 ? <Badge tone="danger">{total}</Badge> : <Badge tone="gold">All clear</Badge>}
-    </Link>
+      <div className="mt-3 h-2 w-full overflow-hidden rounded-full border border-ink-600 bg-ink-800">
+        <div className="h-full rounded-full bg-gold-500 transition-all" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function StepCard({
+  n,
+  title,
+  help,
+  status,
+  optional,
+  anchor,
+  children,
+}: {
+  n: number;
+  title: string;
+  help?: string;
+  status?: ReadinessItem;
+  optional?: boolean;
+  anchor?: string;
+  children: ReactNode;
+}) {
+  const st = status ? STEP_STATE[status.state] : null;
+  const done = status?.state === "ok";
+  return (
+    <li id={anchor} className="scroll-mt-24 rounded-[4px] border-2 border-ink-600 bg-ink-900 p-5 shadow-[var(--shadow-xs)]">
+      <div className="flex items-start gap-4">
+        <span
+          aria-hidden="true"
+          className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold tabular-nums ${
+            st?.badge ?? "border-ink-600 text-body"
+          }`}
+        >
+          {done ? "✓" : n}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-heading">
+              {title}
+              {optional && <span className="ml-2 text-xs font-normal text-body">optional</span>}
+            </h3>
+            {st && <Badge tone={st.tone}>{st.label}</Badge>}
+          </div>
+          {help && <p className="mt-1 text-xs leading-5 text-body">{help}</p>}
+          <div className="mt-4">{children}</div>
+        </div>
+      </div>
+    </li>
   );
 }
 
@@ -223,15 +295,12 @@ function VisionTestBlock({
         : null;
 
   return (
-    <div id="ledger-vision" className="scroll-mt-24">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold text-heading">Read a test document</h3>
-        {canManage && (
-          <Button variant="ghost" className="whitespace-nowrap px-3 py-1.5 text-xs" disabled={testing} onClick={runTest}>
-            {testing ? "Reading sample…" : "Test with a sample bill"}
-          </Button>
-        )}
-      </div>
+    <div>
+      {canManage && (
+        <Button variant="ghost" className="whitespace-nowrap px-3 py-1.5 text-xs" disabled={testing} onClick={runTest}>
+          {testing ? "Reading sample…" : "Test with a sample bill"}
+        </Button>
+      )}
       {status && (
         <p className={`mt-2 text-xs leading-5 ${status.ok ? "text-success-strong" : "text-danger-strong"}`}>
           {status.text}

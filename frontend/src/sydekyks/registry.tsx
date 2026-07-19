@@ -88,6 +88,9 @@ export interface SydekykRegistryEntry {
   /** The setup component supplies its own Card surfaces and should participate directly in the
    * Settings grid instead of being wrapped in one full-width Card. */
   setupSectionOwnsLayout?: boolean;
+  /** The setup section renders the AI engine itself (as a guided step), so SydekykDetail should NOT
+   * render the default standalone "AI engine" band. */
+  ownsEngineStep?: boolean;
   playbookPanel?: ComponentType;
   missionSummary?: ComponentType<{ summary: Record<string, unknown> }>;
   uploadContext?: ComponentType<UploadContextProps>;
@@ -296,6 +299,7 @@ const BY_SLUG: Record<string, SydekykRegistryEntry> = {
   ledger: {
     setupSection: LedgerSettingsSection,
     setupSectionOwnsLayout: true,
+    ownsEngineStep: true,
     playbookPanel: LedgerPlaybookPanel,
     missionSummary: LedgerMissionSummary,
     missionRowLabel: ledgerRowLabel,

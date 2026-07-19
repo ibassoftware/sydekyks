@@ -5,7 +5,18 @@ import { Label } from "./ui";
 const selectClass =
   "w-full rounded-md border border-ink-600 bg-ink-900 px-3 py-2 text-sm text-[#ede6da] outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500/50";
 
-export function GadgetRequirementList({ sydekykId, canManage }: { sydekykId: string; canManage: boolean }) {
+export function GadgetRequirementList({
+  sydekykId,
+  canManage,
+  categories,
+  onChanged,
+}: {
+  sydekykId: string;
+  canManage: boolean;
+  /** When set, only show requirements in these gadget categories (e.g. ["erp"]). */
+  categories?: string[];
+  onChanged?: () => void;
+}) {
   const [requirements, setRequirements] = useState<GadgetRequirement[] | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
 
@@ -28,16 +39,20 @@ export function GadgetRequirementList({ sydekykId, canManage }: { sydekykId: str
           r.requirement_id === req.requirement_id ? { ...r, assigned_link_id: linkId || null } : r
         ) ?? null
       );
+      onChanged?.();
     } finally {
       setSavingId(null);
     }
   }
 
-  if (!requirements || requirements.length === 0) return null;
+  const shown = categories
+    ? (requirements ?? []).filter((r) => categories.includes(r.gadget_category))
+    : requirements;
+  if (!shown || shown.length === 0) return null;
 
   return (
     <div className="grid gap-3">
-      {requirements.map((req) => (
+      {shown.map((req) => (
         <div key={req.requirement_id}>
           <Label>
             {req.label}
