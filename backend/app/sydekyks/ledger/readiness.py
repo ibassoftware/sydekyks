@@ -59,16 +59,21 @@ def compute_readiness(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) 
     settings_row = db.query(LedgerTenantSettings).filter(LedgerTenantSettings.tenant_id == tenant_id).first()
     vision_ok = bool(settings_row and settings_row.ledger_vision_ok)
 
-    if llm is None or not llm.litellm_virtual_key_encrypted or not llm.litellm_model_alias:
-        items.append(_item("ai_engine", "AI Engine", "blocked",
+    engine_ready = bool(llm and llm.litellm_virtual_key_encrypted and llm.litellm_model_alias)
+    if not engine_ready:
+        items.append(_item("ai_engine", "Set up the AI engine", "blocked",
                            "No AI engine configured for Ledger.", "Configure AI Engine", "#ai-engine"))
-    elif not vision_ok:
-        items.append(_item("ai_engine", "AI Engine", "warn",
-                           "Engine set, but not yet verified to read invoices. Run the document-reading "
-                           "test with a sample bill.", "Test document reading", "#ledger-vision"))
     else:
-        items.append(_item("ai_engine", "AI Engine", "ok",
-                           f"{llm.provider} · vision verified", None, None))
+        items.append(_item("ai_engine", "Set up the AI engine", "ok", f"{llm.provider} connected", None, None))
+
+    # --- Document-reading test (its own step, right after the engine) --------------------------
+    if vision_ok:
+        items.append(_item("vision", "Read a test document", "ok", "Verified", None, None))
+    elif not engine_ready:
+        items.append(_item("vision", "Read a test document", "warn", "Set up the AI engine first.", None, None))
+    else:
+        items.append(_item("vision", "Read a test document", "warn",
+                           "Not verified yet.", "Test with a sample bill", "#ledger-vision"))
 
     # --- Odoo assignment -----------------------------------------------------------------------
     odoo_link = _assigned_link(db, tenant_id, sydekyk_id, "erp")

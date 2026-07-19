@@ -50,10 +50,20 @@ export function LedgerSettingsSection({
 
   return (
     <>
-      <SettingsBand title="Readiness" description="What Ledger can use now and anything that needs your attention.">
+      <SettingsBand title="Setup steps" description="Complete these in order to get Ledger ready.">
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(240px,0.6fr)]">
           <LedgerReadinessCard onReadiness={onReadiness} refreshKey={readinessKey} showHeading={false} />
           <IssuesQuickLink sydekykId={sydekyk.id} />
+        </div>
+        <div className="mt-5 border-t-2 border-ink-600 pt-5">
+          <VisionTestBlock
+            settings={settings}
+            canManage={canManage}
+            onTested={(s) => {
+              setSettings(s);
+              setReadinessKey((k) => k + 1);
+            }}
+          />
         </div>
       </SettingsBand>
 
@@ -70,17 +80,8 @@ export function LedgerSettingsSection({
       </SettingsBand>
 
       <SettingsBand id="ledger-automation" title="Automation" description="How confidently Ledger may turn a document into an Odoo bill.">
-        <VisionTestBlock
-          settings={settings}
-          canManage={canManage}
-          onTested={(s) => {
-            setSettings(s);
-            setReadinessKey((k) => k + 1);
-          }}
-        />
-
         {settings && (
-          <div className="mt-6 border-t-2 border-ink-600 pt-2">
+          <div>
             <SettingsToggle
               label="Require a purchase-order match"
               description="When a bill cites a PO (or source order), cross-check the Odoo order's vendor, currency, total, and quantities — mismatches stay as drafts for review. Bills with no PO reference post normally."
@@ -213,31 +214,27 @@ function VisionTestBlock({
   }
 
   const verified = settings?.ledger_vision_ok;
+  const status = result
+    ? { ok: result.ok, text: result.message }
+    : verified === true
+      ? { ok: true, text: "Verified — your engine read a sample invoice." }
+      : verified === false
+        ? { ok: false, text: "Last run failed. Check the AI engine above, then retry." }
+        : null;
 
   return (
     <div id="ledger-vision" className="scroll-mt-24">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <h3 className="text-sm font-semibold text-heading">Document-reading test</h3>
-          <p className="mt-2 text-xs leading-5 text-body">
-            {verified === true
-              ? "Verified — your engine read a sample invoice correctly."
-              : verified === false
-                ? "Last run: your engine couldn't read the sample invoice. Check the AI Engine above, then try again."
-                : "Before your first real upload, confirm your AI engine can actually read a bill."}
-            {" "}This sends a built-in sample invoice through your engine and checks it extracts the details — it's
-            more thorough than the engine's plain connection test.
-          </p>
-        </div>
+        <h3 className="text-sm font-semibold text-heading">Read a test document</h3>
         {canManage && (
           <Button variant="ghost" className="whitespace-nowrap px-3 py-1.5 text-xs" disabled={testing} onClick={runTest}>
             {testing ? "Reading sample…" : "Test with a sample bill"}
           </Button>
         )}
       </div>
-      {result && (
-        <p className={`mt-2 text-xs leading-5 ${result.ok ? "text-success-strong" : "text-danger-strong"}`}>
-          {result.message}
+      {status && (
+        <p className={`mt-2 text-xs leading-5 ${status.ok ? "text-success-strong" : "text-danger-strong"}`}>
+          {status.text}
         </p>
       )}
     </div>
