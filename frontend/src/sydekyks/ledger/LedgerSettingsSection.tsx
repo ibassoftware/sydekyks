@@ -83,7 +83,7 @@ export function LedgerSettingsSection({
           <div className="mt-6 border-t-2 border-ink-600 pt-2">
             <SettingsToggle
               label="Require a purchase-order match"
-              description="Check the Odoo order's vendor, currency, total, and quantities. Missing or mismatched references remain drafts for review."
+              description="When a bill cites a PO (or source order), cross-check the Odoo order's vendor, currency, total, and quantities — mismatches stay as drafts for review. Bills with no PO reference post normally."
               checked={settings.purchase_order_match_enabled}
               disabled={!canManage || saving}
               onChange={(checked) => save({ ...settings, purchase_order_match_enabled: checked })}
@@ -215,26 +215,30 @@ function VisionTestBlock({
   const verified = settings?.ledger_vision_ok;
 
   return (
-    <div>
+    <div id="ledger-vision" className="scroll-mt-24">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-heading">Document reading test</h3>
-          <p className="mt-2 text-xs text-body">
+          <h3 className="text-sm font-semibold text-heading">Document-reading test</h3>
+          <p className="mt-2 text-xs leading-5 text-body">
             {verified === true
-              ? "Your engine can read invoices."
+              ? "Verified — your engine read a sample invoice correctly."
               : verified === false
-                ? "Last test: this engine couldn't read a sample invoice."
-                : "Confirm your AI engine can actually read a bill before the first upload."}
+                ? "Last run: your engine couldn't read the sample invoice. Check the AI Engine above, then try again."
+                : "Before your first real upload, confirm your AI engine can actually read a bill."}
+            {" "}This sends a built-in sample invoice through your engine and checks it extracts the details — it's
+            more thorough than the engine's plain connection test.
           </p>
         </div>
         {canManage && (
           <Button variant="ghost" className="whitespace-nowrap px-3 py-1.5 text-xs" disabled={testing} onClick={runTest}>
-            {testing ? "Testing…" : "Test with a sample bill"}
+            {testing ? "Reading sample…" : "Test with a sample bill"}
           </Button>
         )}
       </div>
       {result && (
-        <p className={`mt-2 text-xs ${result.ok ? "text-success-strong" : "text-danger-strong"}`}>{result.message}</p>
+        <p className={`mt-2 text-xs leading-5 ${result.ok ? "text-success-strong" : "text-danger-strong"}`}>
+          {result.message}
+        </p>
       )}
     </div>
   );

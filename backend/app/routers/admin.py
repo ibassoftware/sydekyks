@@ -18,7 +18,7 @@ from app.models.sydekyk import Sydekyk
 from app.models.system_incident import SystemIncident
 from app.models.tenant import Tenant
 from app.models.user import User
-from app.schemas.hosted_assignment import HostedAssignmentOut, HostedAssignmentUpdate
+from app.schemas.hosted_assignment import HostedAssignmentOut, HostedAssignmentTestResult, HostedAssignmentUpdate
 from app.schemas.postmark import PostmarkConfigOut, PostmarkConfigUpdate
 from app.schemas.metering import (
     MeteringConfigOut,
@@ -36,7 +36,7 @@ from app.schemas.sydekyk import SydekykAdminOut, SydekykModelUpdate
 from app.schemas.sydekyk_llm_config import SydekykUsageOut
 from app.schemas.system_incident import SystemIncidentPage
 from app.schemas.tenant import TenantCommanderUpdate, TenantCreate, TenantOut
-from app.services import gadget_links, llm_provisioning, metering, postmark_config, system_incidents
+from app.services import gadget_links, litellm_admin, llm_provisioning, metering, postmark_config, system_incidents
 from app.services.missions import apply_mission_filters, usage_by_mission
 from app.services.usage import get_sydekyk_total_usage
 
@@ -221,8 +221,21 @@ def update_provider_key(provider: str, payload: ProviderKeyUpdate, db: Session =
     key = _get_or_create_provider_key(db, provider)
     key.encrypted_api_key = encrypt_secret(payload.api_key)
     key.api_base = payload.api_base
+    db.flush()
+    # Propagate the new base URL / key to every Power Core model already backed by this provider.
+    # Without this, the stored LiteLLM deployments keep hitting the old endpoint until each hosted
+    # assignment is re-saved by hand — the exact trap that made a corrected base URL look ignored.
+    # The running proxy picks the change up from its DB on its next poll (~20s), no restart needed.
+    failures = llm_provisioning.reprovision_hosted_for_provider(
+        db, provider=provider, api_key=payload.api_key, api_base=key.api_base
+    )
     db.commit()
     db.refresh(key)
+    if failures:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Key saved, but re-pointing these agents failed: " + "; ".join(failures),
+        )
     return _to_provider_key_out(key)
 
 
@@ -337,6 +350,21 @@ def update_hosted_assignment(sydekyk_id: uuid.UUID, payload: HostedAssignmentUpd
     return HostedAssignmentOut(
         sydekyk_id=sydekyk_id, hosted_provider=assignment.hosted_provider, hosted_model=assignment.hosted_model
     )
+
+
+@router.post("/sydekyks/{sydekyk_id}/hosted-assignment/test", response_model=HostedAssignmentTestResult)
+def test_hosted_assignment(sydekyk_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Round-trip a real completion against this Sydekyk's shared Power Core model so the admin can
+    confirm the selected LLM actually responds — not just that it registered in LiteLLM."""
+    _get_roster_sydekyk(db, sydekyk_id)
+    assignment = db.query(SydekykHostedAssignment).filter(SydekykHostedAssignment.sydekyk_id == sydekyk_id).first()
+    if assignment is None or not assignment.litellm_model_alias:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Assign a Power Core engine for this Sydekyk before testing.",
+        )
+    ok, message = litellm_admin.test_completion_master(assignment.litellm_model_alias)
+    return HostedAssignmentTestResult(ok=ok, message=message if not ok else "Connected successfully.")
 
 
 @router.get("/sydekyks/{sydekyk_id}/usage", response_model=SydekykUsageOut)

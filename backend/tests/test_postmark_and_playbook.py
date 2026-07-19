@@ -125,3 +125,46 @@ def test_purchase_order_check_catches_business_mismatches():
     )
     assert ok is False
     assert len(mismatches) == 4
+
+
+def test_evaluate_purchase_order_skips_bills_with_no_reference():
+    """A bill that cites no PO/source reference must post normally, not be held for review."""
+    calls = []
+
+    class Client:
+        def search_read(self, *args, **kwargs):
+            calls.append(args)  # must never be called when there's no reference
+            return []
+
+    result = odoo_bills.evaluate_purchase_order(
+        Client(), order_reference=None, partner_id=27, total=100.0, currency="USD", line_items=[],
+    )
+    assert result["skipped"] is True
+    assert result["needs_review"] is False
+    assert result["purchase_order"] is None
+    assert calls == []  # no Odoo lookup attempted for a bill with no reference
+
+
+def test_evaluate_purchase_order_flags_missing_and_mismatched_references():
+    class MissingClient:
+        def search_read(self, *args, **kwargs):
+            return []  # no PO matches the reference
+
+    missing = odoo_bills.evaluate_purchase_order(
+        MissingClient(), order_reference="P00099", partner_id=27, total=100.0, currency="USD", line_items=[],
+    )
+    assert missing["needs_review"] is True and missing["matched"] is False
+
+    class MatchClient:
+        def search_read(self, *args, **kwargs):
+            return [{"id": 1, "name": "P00010", "partner_id": [27, "Azure"], "amount_total": 100.0,
+                     "currency_id": [1, "USD"], "order_line": [], "state": "purchase"}]
+
+        def execute_kw(self, *args, **kwargs):
+            return []
+
+    clean = odoo_bills.evaluate_purchase_order(
+        MatchClient(), order_reference="P00010", partner_id=27, total=100.0, currency="USD", line_items=[],
+    )
+    assert clean["matched"] is True and clean["needs_review"] is False
+    assert clean["purchase_order"]["name"] == "P00010"

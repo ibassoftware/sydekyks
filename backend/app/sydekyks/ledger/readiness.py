@@ -64,7 +64,8 @@ def compute_readiness(db: Session, tenant_id: uuid.UUID, sydekyk_id: uuid.UUID) 
                            "No AI engine configured for Ledger.", "Configure AI Engine", "#ai-engine"))
     elif not vision_ok:
         items.append(_item("ai_engine", "AI Engine", "warn",
-                           "Engine set, but not yet verified to read invoices.", "Test Ledger readiness", "#ai-engine"))
+                           "Engine set, but not yet verified to read invoices. Run the document-reading "
+                           "test with a sample bill.", "Test document reading", "#ledger-vision"))
     else:
         items.append(_item("ai_engine", "AI Engine", "ok",
                            f"{llm.provider} · vision verified", None, None))

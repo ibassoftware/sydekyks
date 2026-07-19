@@ -24,6 +24,7 @@ from app.schemas.team import (
     SydekykPermissionUpdate,
     TeamUserCreate,
     TeamUserOut,
+    TeamUserPasswordReset,
     TeamUserRoleUpdate,
 )
 
@@ -122,6 +123,25 @@ def delete_user(user_id: uuid.UUID, user: User = Depends(require_commander), db:
     if target.role == "commander" and _commander_count(db, user.tenant_id) <= 1:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="An HQ must keep at least one Commander")
     db.delete(target)  # cascades to user_sydekyk_permissions
+    db.commit()
+
+
+@router.post("/users/{user_id}/reset-password", status_code=status.HTTP_204_NO_CONTENT)
+def reset_user_password(
+    user_id: uuid.UUID,
+    payload: TeamUserPasswordReset,
+    user: User = Depends(require_commander),
+    db: Session = Depends(get_db),
+):
+    """A commander sets a new password for a member of their HQ and hands it over — mirrors how
+    initial passwords are set at creation. For their OWN password, use /auth/change-password."""
+    target = _get_tenant_user(db, user_id, user.tenant_id)
+    if target.id == user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Use Change Password for your own account",
+        )
+    target.hashed_password = hash_password(payload.password)
     db.commit()
 
 

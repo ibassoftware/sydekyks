@@ -182,8 +182,17 @@ def vision_test(user: User = Depends(require_tenant_member), db: Session = Depen
     db.commit()
 
     if passed:
-        return VisionTestResult(ok=True, message=f"Read the sample invoice (vendor: {bill.vendor_name}). Ready.")
-    return VisionTestResult(ok=False, message=f"This engine couldn't read the sample invoice. {msg}")
+        detail = f"vendor “{bill.vendor_name}”" if bill.vendor_name else "the vendor"
+        if bill.total is not None:
+            detail += f", total {bill.total:.2f}"
+        return VisionTestResult(
+            ok=True,
+            message=f"Success — your engine read the sample invoice ({detail}). Ledger is ready to process real bills.",
+        )
+    return VisionTestResult(
+        ok=False,
+        message=f"Your engine couldn't read the sample invoice. Check the AI Engine settings and try again. {msg}".strip(),
+    )
 
 
 @router.post("/email-inbox", response_model=EmailInboxOut, status_code=status.HTTP_201_CREATED)

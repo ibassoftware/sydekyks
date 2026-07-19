@@ -309,31 +309,25 @@ def run(db: Session, mission: Mission) -> None:
         po_review_reason: str | None = None
         order_reference = bill.purchase_order_reference or bill.sales_order_reference
         if settings.purchase_order_match_enabled:
-            if not order_reference:
-                po_needs_review = True
-                po_review_reason = "No purchase order or source reference was found on the bill."
-            else:
-                po = odoo_bills.find_purchase_order(client, order_reference)
-                if po is None:
-                    po_needs_review = True
-                    po_review_reason = f"No unique Odoo purchase order matches reference '{order_reference}'."
-                else:
-                    line_items_for_check = [
-                        {"description": li.description, "quantity": li.quantity,
-                         "unit_price": li.unit_price, "amount": li.amount}
-                        for li in bill.line_items
-                    ]
-                    po_ok, mismatches = odoo_bills.check_purchase_order(
-                        po, partner_id=partner_id, total=bill.total, currency=bill.currency,
-                        line_items=line_items_for_check, client=client,
-                    )
-                    if not po_ok:
-                        po_needs_review = True
-                        po_review_reason = "; ".join(mismatches).capitalize() + "."
-            record_step(db, mission, idx, "purchase_order_check", "gadget_call", "succeeded", output={
+            line_items_for_check = [
+                {"description": li.description, "quantity": li.quantity,
+                 "unit_price": li.unit_price, "amount": li.amount}
+                for li in bill.line_items
+            ]
+            po_result = odoo_bills.evaluate_purchase_order(
+                client, order_reference=order_reference, partner_id=partner_id,
+                total=bill.total, currency=bill.currency, line_items=line_items_for_check,
+            )
+            po = po_result["purchase_order"]
+            po_needs_review = po_result["needs_review"]
+            po_review_reason = po_result["reason"]
+            # A bill with no reference to match is a plain internal skip, not a gadget call.
+            step_kind = "internal" if po_result["skipped"] else "gadget_call"
+            record_step(db, mission, idx, "purchase_order_check", step_kind, "succeeded", output={
                 "enabled": True, "reference": order_reference,
                 "purchase_order": po.get("name") if po else None,
-                "matched": not po_needs_review, "review_reason": po_review_reason,
+                "matched": po_result["matched"], "skipped": po_result["skipped"],
+                "review_reason": po_review_reason,
             })
             idx += 1
         else:

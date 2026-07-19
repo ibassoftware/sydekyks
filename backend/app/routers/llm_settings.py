@@ -70,8 +70,19 @@ def update_provider_credential(
 
     cred.encrypted_api_key = encrypt_secret(payload.api_key)
     cred.api_base = payload.api_base
+    db.flush()
+    # Re-point every model this tenant already provisioned with this provider at the new base URL /
+    # key, so a corrected credential takes effect without re-saving each Sydekyk's engine by hand.
+    failures = llm_provisioning.reprovision_byok_for_credential(
+        db, tenant_id=user.tenant_id, provider=provider, api_key=payload.api_key, api_base=cred.api_base
+    )
     db.commit()
     db.refresh(cred)
+    if failures:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Credential saved, but re-pointing these agents failed: " + "; ".join(failures),
+        )
     return _to_credential_out(cred, provider)
 
 

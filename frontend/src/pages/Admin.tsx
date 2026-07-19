@@ -586,6 +586,8 @@ function HostedAssignmentForm({ sydekyk, onClose }: { sydekyk: SydekykAdmin; onC
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [testing, setTesting] = useState(false);
 
   useEffect(() => {
     api.get<HostedAssignment>(`/admin/sydekyks/${sydekyk.id}/hosted-assignment`).then((res) => {
@@ -608,6 +610,7 @@ function HostedAssignmentForm({ sydekyk, onClose }: { sydekyk: SydekykAdmin; onC
       });
       setAssignment(res.data);
       setSaved(true);
+      setTestResult(null);
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.data?.detail) {
         setError(err.response.data.detail);
@@ -616,6 +619,23 @@ function HostedAssignmentForm({ sydekyk, onClose }: { sydekyk: SydekykAdmin; onC
       }
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleTest() {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await api.post<{ ok: boolean; message: string }>(
+        `/admin/sydekyks/${sydekyk.id}/hosted-assignment/test`,
+      );
+      setTestResult(res.data);
+    } catch (err) {
+      const detail =
+        axios.isAxiosError(err) && err.response?.data?.detail ? err.response.data.detail : "Test failed.";
+      setTestResult({ ok: false, message: detail });
+    } finally {
+      setTesting(false);
     }
   }
 
@@ -675,10 +695,26 @@ function HostedAssignmentForm({ sydekyk, onClose }: { sydekyk: SydekykAdmin; onC
               {sydekyk.name} will use this engine going forward.
             </p>
           )}
+          {testResult && (
+            <p className={`text-sm ${testResult.ok ? "text-gold-400" : "text-red-400"}`}>{testResult.message}</p>
+          )}
 
           <div className="mt-2 flex items-center justify-end gap-3">
             <Button type="button" variant="ghost" onClick={onClose}>
               Close
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleTest}
+              disabled={testing || !assignment.hosted_model}
+              title={
+                assignment.hosted_model
+                  ? "Send a test prompt to the assigned engine"
+                  : "Save an engine assignment first"
+              }
+            >
+              {testing ? "Testing…" : "Test Connection"}
             </Button>
             <Button type="submit" disabled={submitting}>
               {submitting ? "Saving…" : "Save Assignment"}

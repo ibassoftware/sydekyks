@@ -1,7 +1,10 @@
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useState, type ComponentType, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useActivity } from "../lib/activity";
+import { Button, Card, Input, Label } from "./ui";
 import {
   BoltIcon,
   ChevronLeftIcon,
@@ -31,6 +34,7 @@ export function HQSidebar() {
   const location = useLocation();
   const { count, issuesCount } = useActivity();
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSE_KEY) === "1");
+  const [showChangePw, setShowChangePw] = useState(false);
 
   useEffect(() => {
     localStorage.setItem(COLLAPSE_KEY, collapsed ? "1" : "0");
@@ -124,6 +128,17 @@ export function HQSidebar() {
         )}
 
         <button
+          onClick={() => setShowChangePw(true)}
+          title={collapsed ? "Change password" : undefined}
+          className={`flex min-h-11 w-full items-center gap-3 rounded-[4px] px-3 py-2 text-sm font-medium text-body transition-colors hover:bg-ink-800 hover:text-heading ${
+            collapsed ? "justify-center" : ""
+          }`}
+        >
+          <GearIcon className="h-[18px] w-[18px] shrink-0" />
+          {!collapsed && <span>Change password</span>}
+        </button>
+
+        <button
           onClick={handleLogout}
           title={collapsed ? "Log out" : undefined}
           className={`flex min-h-11 w-full items-center gap-3 rounded-[4px] px-3 py-2 text-sm font-medium text-body transition-colors hover:bg-ink-800 hover:text-heading ${
@@ -142,6 +157,85 @@ export function HQSidebar() {
           {!collapsed && <span>Collapse</span>}
         </button>
       </div>
+      {showChangePw && <ChangePasswordModal onClose={() => setShowChangePw(false)} />}
     </aside>
+  );
+}
+
+function ChangePasswordModal({ onClose }: { onClose: () => void }) {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (next !== confirm) {
+      setError("New passwords don't match");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await api.post("/auth/change-password", { current_password: current, new_password: next });
+      setDone(true);
+    } catch (err) {
+      setError(
+        axios.isAxiosError(err) ? err.response?.data?.detail ?? "Failed to change password" : "Failed to change password",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <Card className="w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-lg font-semibold text-heading">Change password</h2>
+        {done ? (
+          <div className="mt-4">
+            <p className="text-sm font-semibold text-gold-400">Password updated.</p>
+            <div className="mt-4 flex justify-end">
+              <Button type="button" onClick={onClose}>
+                Done
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="mt-4 grid gap-4">
+            <div>
+              <Label>Current password</Label>
+              <Input type="password" required value={current} onChange={(e) => setCurrent(e.target.value)} />
+            </div>
+            <div>
+              <Label>New password</Label>
+              <Input
+                type="password"
+                required
+                minLength={8}
+                value={next}
+                onChange={(e) => setNext(e.target.value)}
+                placeholder="Min. 8 characters"
+              />
+            </div>
+            <div>
+              <Label>Confirm new password</Label>
+              <Input type="password" required minLength={8} value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+            </div>
+            {error && <p className="text-sm text-red-400">{error}</p>}
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="ghost" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? "Saving…" : "Update Password"}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Card>
+    </div>
   );
 }

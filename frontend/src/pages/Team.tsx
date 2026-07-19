@@ -11,6 +11,7 @@ export default function Team() {
   const [users, setUsers] = useState<TeamUser[] | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
+  const [resetTarget, setResetTarget] = useState<TeamUser | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function load() {
@@ -121,6 +122,15 @@ export default function Team() {
                         {!u.is_self && (
                           <Button
                             variant="ghost"
+                            className="px-3 py-1.5 text-xs"
+                            onClick={() => setResetTarget(u)}
+                          >
+                            Reset password
+                          </Button>
+                        )}
+                        {!u.is_self && (
+                          <Button
+                            variant="ghost"
                             className="px-3 py-1.5 text-xs text-red-400/80 hover:text-red-400"
                             disabled={removing === u.id}
                             onClick={() => removeUser(u)}
@@ -138,7 +148,78 @@ export default function Team() {
         </Card>
       </main>
       </div>
+      {resetTarget && (
+        <ResetPasswordModal user={resetTarget} onClose={() => setResetTarget(null)} />
+      )}
     </HQShell>
+  );
+}
+
+function ResetPasswordModal({ user, onClose }: { user: TeamUser; onClose: () => void }) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    try {
+      await api.post(`/tenant/team/users/${user.id}/reset-password`, { password });
+      setDone(true);
+    } catch (err) {
+      setError(
+        axios.isAxiosError(err) ? err.response?.data?.detail ?? "Failed to reset password" : "Failed to reset password",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <Card className="w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-lg font-semibold text-[#f5eee0]">Reset password</h2>
+        <p className="mt-1 text-xs text-[#8a7f6d]">
+          Set a new password for <span className="text-[#ede6da]">{user.email}</span> and share it with them. They can
+          change it themselves later from Settings.
+        </p>
+        {done ? (
+          <div className="mt-5">
+            <p className="text-sm font-semibold text-gold-400">Password updated. Share the new password with them.</p>
+            <div className="mt-4 flex justify-end">
+              <Button type="button" onClick={onClose}>
+                Done
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="mt-4 grid gap-4">
+            <div>
+              <Label>New password</Label>
+              <Input
+                type="text"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Min. 8 characters"
+              />
+            </div>
+            {error && <p className="text-sm text-red-400">{error}</p>}
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="ghost" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? "Saving…" : "Set Password"}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Card>
+    </div>
   );
 }
 

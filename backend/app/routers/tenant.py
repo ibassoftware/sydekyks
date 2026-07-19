@@ -13,7 +13,7 @@ from app.models.user import User
 from app.models.metering import PlanTier
 from app.schemas.dashboard import DashboardOut
 from app.schemas.sydekyk import SydekykOut
-from app.services import metering, permissions
+from app.services import llm_provisioning, metering, permissions
 
 router = APIRouter(prefix="/api/tenant", tags=["tenant"], dependencies=[Depends(require_tenant_member)])
 
@@ -179,6 +179,10 @@ def install_sydekyk(sydekyk_id: uuid.UUID, user: User = Depends(require_commande
     )
     if existing is None:
         db.add(SydekykInstall(tenant_id=user.tenant_id, sydekyk_id=sydekyk_id))
+        db.flush()
+        # Reduce setup: default the newly installed Sydekyk to Power Core when it's available, so
+        # the tenant doesn't have to pick an engine manually before using it.
+        llm_provisioning.default_to_power_core(db, user.tenant_id, sydekyk_id)
         db.commit()
 
     return _to_out(sydekyk, installed=True, can_use=True, can_configure=True)  # require_commander → full access

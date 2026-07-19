@@ -25,6 +25,10 @@ class TeamUserRoleUpdate(BaseModel):
     role: str
 
 
+class TeamUserPasswordReset(BaseModel):
+    password: str = Field(min_length=8)
+
+
 class SydekykPermissionOut(BaseModel):
     sydekyk_id: uuid.UUID
     sydekyk_name: str

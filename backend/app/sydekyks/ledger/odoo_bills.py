@@ -122,6 +122,39 @@ def check_purchase_order(po: dict, *, partner_id: int, total: float, currency: s
     return not mismatches, mismatches
 
 
+def evaluate_purchase_order(
+    client: OdooClient, *, order_reference: str | None, partner_id: int,
+    total: float | None, currency: str | None, line_items: list[dict],
+) -> dict:
+    """Full PO-match decision for one bill. Returns a dict the playbook records verbatim:
+    {matched, skipped, needs_review, reason, purchase_order}.
+
+    - Bill cites no PO/source reference -> skipped: there's nothing to match, so it must NOT be
+      held for review; it flows through the normal posting path (needs_review stays False).
+    - Reference present but no unique Odoo PO (missing or ambiguous) -> needs_review.
+    - Reference matches a PO but vendor/currency/total/quantities disagree -> needs_review.
+    - Clean match -> matched, no review.
+    """
+    if not order_reference:
+        return {"matched": None, "skipped": True, "needs_review": False, "reason": None, "purchase_order": None}
+    po = find_purchase_order(client, order_reference)
+    if po is None:
+        return {
+            "matched": False, "skipped": False, "needs_review": True,
+            "reason": f"No unique Odoo purchase order matches reference '{order_reference}'.",
+            "purchase_order": None,
+        }
+    po_ok, mismatches = check_purchase_order(
+        po, partner_id=partner_id, total=total, currency=currency, line_items=line_items, client=client,
+    )
+    if not po_ok:
+        return {
+            "matched": False, "skipped": False, "needs_review": True,
+            "reason": "; ".join(mismatches).capitalize() + ".", "purchase_order": po,
+        }
+    return {"matched": True, "skipped": False, "needs_review": False, "reason": None, "purchase_order": po}
+
+
 def create_vendor_bill(
     client: OdooClient,
     *,

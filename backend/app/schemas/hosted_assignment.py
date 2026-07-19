@@ -12,3 +12,8 @@ class HostedAssignmentOut(BaseModel):
 class HostedAssignmentUpdate(BaseModel):
     hosted_provider: str = Field(pattern="^(openai|anthropic|ollama_cloud)$")
     hosted_model: str = Field(min_length=1, max_length=150)
+
+
+class HostedAssignmentTestResult(BaseModel):
+    ok: bool
+    message: str

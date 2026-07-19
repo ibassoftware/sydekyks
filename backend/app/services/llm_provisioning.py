@@ -1,5 +1,9 @@
+from sqlalchemy.orm import Session
+
 from app.core.crypto import decrypt_secret, encrypt_secret
 from app.models.llm_provider import SydekykHostedAssignment, TenantSydekykLLMConfig
+from app.models.sydekyk import Sydekyk
+from app.models.tenant import Tenant
 from app.services import litellm_admin
 
 
@@ -117,3 +121,98 @@ def provision_power_core(config: TenantSydekykLLMConfig, assignment: SydekykHost
     config.litellm_model_id = assignment.litellm_model_id
     config.litellm_virtual_key_encrypted = encrypted_key
     return True, "ok"
+
+
+def default_to_power_core(db: Session, tenant_id, sydekyk_id) -> bool:
+    """When a Sydekyk is installed, wire it to the shared Power Core engine so the tenant can use it
+    right away instead of having to open the engine picker and Save. Only acts when an admin has
+    actually provisioned a hosted assignment for the Sydekyk, and never overrides an existing
+    config. Best-effort: a provisioning failure (e.g. proxy unreachable) just leaves the Sydekyk for
+    the user to configure manually — it never blocks the install. Returns True iff it provisioned."""
+    existing = (
+        db.query(TenantSydekykLLMConfig)
+        .filter(TenantSydekykLLMConfig.tenant_id == tenant_id, TenantSydekykLLMConfig.sydekyk_id == sydekyk_id)
+        .first()
+    )
+    if existing is not None:
+        return False
+    assignment = (
+        db.query(SydekykHostedAssignment)
+        .filter(SydekykHostedAssignment.sydekyk_id == sydekyk_id)
+        .first()
+    )
+    if assignment is None or not assignment.litellm_model_alias:
+        return False  # Power Core isn't available for this Sydekyk yet — leave it unconfigured.
+    config = TenantSydekykLLMConfig(tenant_id=tenant_id, sydekyk_id=sydekyk_id, provider="power_core")
+    db.add(config)
+    db.flush()
+    ok, message = provision_power_core(config, assignment)
+    config.status = "untested" if ok else "error"
+    config.last_test_error = None if ok else message
+    return ok
+
+
+def reprovision_hosted_for_provider(
+    db: Session, *, provider: str, api_key: str, api_base: str | None
+) -> list[str]:
+    """Re-push the given credentials to every already-registered Power Core model backed by this
+    provider. Called when the central provider key's base URL / api_key changes, so the LiteLLM
+    deployments stop pointing at the stale endpoint instead of waiting for each hosted assignment
+    to be re-saved by hand. Returns a list of "<slug>: <error>" strings (empty on full success).
+    Only touches assignments that were actually provisioned (have a litellm_model_id)."""
+    failures: list[str] = []
+    assignments = (
+        db.query(SydekykHostedAssignment)
+        .filter(
+            SydekykHostedAssignment.hosted_provider == provider,
+            SydekykHostedAssignment.litellm_model_id.isnot(None),
+        )
+        .all()
+    )
+    for assignment in assignments:
+        sydekyk = db.get(Sydekyk, assignment.sydekyk_id)
+        if sydekyk is None:
+            continue
+        ok, message = ensure_hosted_assignment_model(
+            assignment, alias=f"sydekyk-{sydekyk.slug}-core", api_key=api_key, api_base=api_base
+        )
+        if not ok:
+            failures.append(f"{sydekyk.slug}: {message}")
+    return failures
+
+
+def reprovision_byok_for_credential(
+    db: Session, *, tenant_id, provider: str, api_key: str, api_base: str | None
+) -> list[str]:
+    """BYOK counterpart to reprovision_hosted_for_provider: when a tenant edits their own provider
+    credential (base URL / api_key), re-push it to every model they've provisioned with that
+    provider. Returns a list of "<slug>: <error>" strings (empty on full success)."""
+    tenant = db.get(Tenant, tenant_id)
+    if tenant is None:
+        return []
+    failures: list[str] = []
+    configs = (
+        db.query(TenantSydekykLLMConfig)
+        .filter(
+            TenantSydekykLLMConfig.tenant_id == tenant_id,
+            TenantSydekykLLMConfig.provider == provider,
+            TenantSydekykLLMConfig.litellm_model_id.isnot(None),
+        )
+        .all()
+    )
+    for config in configs:
+        sydekyk = db.get(Sydekyk, config.sydekyk_id)
+        if sydekyk is None or not config.model:
+            continue
+        alias = f"tenant-{tenant.slug}-{sydekyk.slug}-{provider}"
+        ok, message = provision_byok(
+            config,
+            alias=alias,
+            provider=provider,
+            model=config.model,
+            api_key=api_key,
+            api_base=api_base,
+        )
+        if not ok:
+            failures.append(f"{sydekyk.slug}: {message}")
+    return failures
