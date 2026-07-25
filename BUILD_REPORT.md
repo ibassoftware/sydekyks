@@ -7,7 +7,7 @@
 | Product                         | Sydekyks Desktop 1.0.0                                         |
 | Report date                     | 2026-07-25 (Europe/Paris)                                      |
 | Audit branch                    | `feat/dynamic-sidekicks`                                       |
-| Tested implementation           | `7c65e2f4a525f525e28da706e453092f39af7e81`                     |
+| Tested implementation           | `db5608c1bf97be90146cb0b603ec955e719a0c26`                     |
 | Pre-refactor snapshot           | `976bbcbb03a5ccdbfa622e2287f82023a71d5bd9`                     |
 | Repository                      | `https://github.com/ibassoftware/sydekyks.git`                 |
 | Internal acceptance             | **PASS**                                                       |
@@ -24,6 +24,11 @@ Odoo access is now metadata-driven. Syd discovers models and fields from the con
 Automations are declarative specifications with manual, schedule, or inbound-email triggers. They pin a Sidekick version and capability fingerprint and stop for review if either drifts. The user describes the desired process; the application stores a constrained specification rather than generating arbitrary executable code.
 
 Ledger remains a sealed specialist workflow because its accounts-payable ingestion and review path has stricter deterministic controls.
+
+Provider-facing tool definitions now use a JSON Schema object at the root. The test suite converts
+every tool registered on Syd through Mastra's provider-schema compatibility layer and rejects any
+non-object root. This corrects the OpenAI registration failure previously reported for
+`writeOdooBusinessData`.
 
 The refactor changed 84 files, added 2,450 lines, and removed 8,516 lines. Obsolete specialist agents, services, tools, workflows, tests, UI branches, and styling were deleted rather than retained as dead compatibility paths.
 
@@ -81,6 +86,22 @@ A Markdown skill can explain how to perform a task, but cannot grant itself acce
 - Treats inbound email content and metadata as untrusted input.
 - Does not silently approve background writes: approval-required actions still require an interactive approval.
 
+### Ledger email-to-bill intake
+
+- Added read-only inspection and approval-gated configuration tools for Ledger's sealed inbox path.
+- Syd now distinguishes Ledger inbox processing from generic Sidekick automations.
+- A user can request a polling cadence in plain language; `1,440` minutes means once per day.
+- Review modes support review-everything, automatic high-confidence drafts, or automatic complete drafts.
+- Automatic handling still creates draft vendor bills only and retains duplicate, completeness, Odoo, and workflow controls.
+- Polling changes are retained in Gadget state and reconciled with the encrypted IMAP configuration on restart.
+- The chat, Automations, and Email Gadget UI now provide an example prompt for this path.
+
+### Provider tool-schema compatibility
+
+- Replaced the Odoo write tool's root discriminated union with a provider-compatible object schema.
+- Preserved operation-specific create/update/archive validation inside the tool.
+- Added a regression check over every tool registered on Syd.
+
 ### Data migration and rollback posture
 
 - The application database schema is upgraded to version 4.
@@ -90,13 +111,13 @@ A Markdown skill can explain how to perform a task, but cannot grant itself acce
 
 ## Verification evidence
 
-All commands below passed against implementation commit `7c65e2f4a525f525e28da706e453092f39af7e81`.
+All commands below passed against implementation commit `db5608c1bf97be90146cb0b603ec955e719a0c26`.
 
 | Area                                                     | Command                              | Result                              |
 | -------------------------------------------------------- | ------------------------------------ | ----------------------------------- |
 | Type safety                                              | `npm run typecheck`                  | PASS                                |
 | Lint                                                     | `npm run lint`                       | PASS                                |
-| Dynamic Sidekicks and generic Odoo mutation              | `npm run test:sidekicks`             | PASS                                |
+| Dynamic Sidekicks, provider schemas, and Odoo mutation   | `npm run test:sidekicks`             | PASS                                |
 | Syd Odoo metadata discovery and write gating             | `npm run test:syd-odoo-read`         | PASS                                |
 | Mission failure detail                                   | `npm run test:mission-errors`        | PASS                                |
 | Mission notifications                                    | `npm run test:mission-notifications` | PASS                                |
@@ -107,23 +128,27 @@ All commands below passed against implementation commit `7c65e2f4a525f525e28da70
 | Logging controls                                         | `npm run test:logging`               | PASS                                |
 | UI contrast                                              | `npm run test:ui-contrast`           | PASS; lowest text 6.80:1, UI 3.50:1 |
 | Production compilation                                   | `npm run build`                      | PASS                                |
-| Built worker authentication, health, first run, shutdown | `npm run test:smoke:worker`          | PASS on loopback port 55693         |
+| Built worker authentication, health, first run, shutdown | `npm run test:smoke:worker`          | PASS on loopback port 56934         |
 | Patch hygiene                                            | `git diff --check`                   | PASS                                |
 
-The Sidekick integration test creates a user-defined `Renewals` Sidekick, grants access to the custom demo model `x_rental.contract`, exercises create/update/archive operations, verifies mutation audit records, and confirms that a Sidekick without the capability is rejected.
+The Sidekick integration test converts every tool registered on Syd through Mastra's provider-schema
+adapter and confirms that each function has an object root. It also creates a user-defined `Renewals`
+Sidekick, grants access to the custom demo model `x_rental.contract`, exercises
+create/update/archive operations, verifies mutation audit records, and confirms that a Sidekick
+without the capability is rejected.
 
 ### Build output
 
 Mastra and Electron Vite production builds completed successfully on 2026-07-25.
 
-| Artifact                   |      Size | SHA-256                                                            |
-| -------------------------- | --------: | ------------------------------------------------------------------ |
-| `.mastra/output/index.mjs` |         — | `cd1cbfe3dafe25f192d8228029401a0f0a2f5b5e398ef011760be28871572446` |
-| `out/main/index.js`        | 595.88 kB | `a7b82d87e3eb7f66858426a325a3a031b327746c16ce25fddf5a4e2e5faff6a1` |
-| `out/preload/index.js`     |   4.38 kB | `732143a95ca186af8b05b07e897e147095bf7665e2e2ada29ae6188b726d1e90` |
-| `out/renderer/index.html`  |         — | `5078708c699a0a9e67fa0fa51070b6fcff899b4debf0b2deb2e7ebac549e2625` |
+| Artifact                   |        Size | SHA-256                                                            |
+| -------------------------- | ----------: | ------------------------------------------------------------------ |
+| `.mastra/output/index.mjs` | 1,876.35 kB | `3bd2e46afb9c9e21171cd426ce4cf2ab132c4b38e8b72c71a14fda9740875007` |
+| `out/main/index.js`        |   596.28 kB | `e4f95dc7c7d65a6ab47c63e94c2575c3c68c3c67262445ec323635912d0072fa` |
+| `out/preload/index.js`     |     4.38 kB | `732143a95ca186af8b05b07e897e147095bf7665e2e2ada29ae6188b726d1e90` |
+| `out/renderer/index.html`  |     0.60 kB | `05e0dbc9fdc623181ae708f6bb1f229f7cfd74c6736c300127f81ab9b673cf03` |
 
-The renderer JavaScript bundle is 1,408.00 kB and its CSS bundle is 86.72 kB.
+The renderer JavaScript bundle is 1,408.52 kB and its CSS bundle is 86.72 kB.
 
 ## Security and control assessment
 
@@ -133,6 +158,7 @@ The renderer JavaScript bundle is 1,408.00 kB and its CSS bundle is 86.72 kB.
 - Live Odoo metadata is checked before mutation, and source-system ACLs remain authoritative.
 - Hard record deletion is not exposed.
 - Inbound email does not receive authority merely by describing an action.
+- Changing recurring Ledger inbox handling requires native approval and creates an audit mission.
 - Automation version or capability drift fails closed.
 - Odoo mutations create Mission Control audit records with the acting Sidekick and affected record references.
 - Stored connection secrets use the existing operating-system `safeStorage` path.
