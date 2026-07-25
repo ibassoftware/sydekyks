@@ -40,9 +40,6 @@ function SkillFileDialog({
   useEffect(() => {
     const dialog = dialogRef.current
     if (dialog && !dialog.open) dialog.showModal()
-    return () => {
-      if (dialog?.open) dialog.close()
-    }
   }, [])
 
   const close = (): void => dialogRef.current?.close()

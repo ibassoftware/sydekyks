@@ -135,6 +135,26 @@ export const appRoutes = [
       }
     }
   }),
+  registerApiRoute('/sydekyks/chat/sessions', {
+    method: 'DELETE',
+    handler: async (c) => {
+      try {
+        const memory = await getSydMemory()
+        const { threads } = await memory.listThreads({
+          filter: { resourceId: sydChatResourceId },
+          perPage: false
+        })
+        for (const thread of threads) await memory.deleteThread(thread.id)
+        const replacement = await memory.createThread({
+          resourceId: sydChatResourceId,
+          metadata: { agentId: 'syd', surface: 'chat' }
+        })
+        return c.json({ deleted: threads.length, session: toChatSession(replacement) })
+      } catch (error) {
+        return c.json(errorResponse(error), 500)
+      }
+    }
+  }),
   registerApiRoute('/sydekyks/chat/sessions/:sessionId', {
     method: 'GET',
     handler: async (c) => {

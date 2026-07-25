@@ -59,6 +59,9 @@ export const loadChatSession = (sessionId: string): Promise<ChatSessionDetail> =
 export const deleteChatSession = (sessionId: string): Promise<{ deleted: boolean }> =>
   apiRequest(`/sydekyks/chat/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' })
 
+export const clearChatSessions = (): Promise<{ deleted: number; session: ChatSession }> =>
+  apiRequest('/sydekyks/chat/sessions', { method: 'DELETE' })
+
 export const startLedgerBill = (input: Record<string, unknown>): Promise<Mission> =>
   apiRequest<Mission>('/sydekyks/workflows/ledger/vendor-bill', {
     method: 'POST',

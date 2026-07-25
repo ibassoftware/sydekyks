@@ -18,6 +18,7 @@ interface AppShellProps {
   chatSessions: ChatSession[]
   activeChatSessionId?: string
   menuOpen: boolean
+  onClearChatSessions: () => Promise<boolean>
   onCreateChatSession: () => void
   onDeleteChatSession: (session: ChatSession) => void
   onMenuChange: (open: boolean) => void
@@ -35,6 +36,7 @@ export function AppShell({
   chatSessions,
   activeChatSessionId,
   menuOpen,
+  onClearChatSessions,
   onCreateChatSession,
   onDeleteChatSession,
   onMenuChange,
@@ -43,7 +45,9 @@ export function AppShell({
   serviceError
 }: AppShellProps): React.JSX.Element {
   const [compactNavigation, setCompactNavigation] = useState(false)
+  const [clearSessionsOpen, setClearSessionsOpen] = useState(false)
   const sidebarRef = useRef<HTMLElement>(null)
+  const clearSessionsButtonRef = useRef<HTMLButtonElement>(null)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const menuWasOpen = useRef(false)
   const unseenAttention =
@@ -97,6 +101,11 @@ export function AppShell({
       event.preventDefault()
       first.focus()
     }
+  }
+
+  const closeClearSessions = (): void => {
+    setClearSessionsOpen(false)
+    window.requestAnimationFrame(() => clearSessionsButtonRef.current?.focus())
   }
 
   return (
@@ -167,16 +176,30 @@ export function AppShell({
         <section aria-labelledby="sessions-title" className="session-navigation">
           <div className="session-navigation-heading">
             <h2 id="sessions-title">Sessions</h2>
-            <button
-              aria-label="New chat session"
-              className="session-new-button"
-              disabled={chatSessionBusy}
-              onClick={onCreateChatSession}
-              title="New chat session"
-              type="button"
-            >
-              <Icon name="plus" size={17} />
-            </button>
+            <div className="session-heading-actions">
+              <button
+                aria-expanded={clearSessionsOpen}
+                aria-haspopup="dialog"
+                className="session-clear-button"
+                disabled={chatSessionBusy || chatSessions.length === 0}
+                onClick={() => setClearSessionsOpen(true)}
+                ref={clearSessionsButtonRef}
+                title="Clear all chat sessions"
+                type="button"
+              >
+                Clear all
+              </button>
+              <button
+                aria-label="New chat session"
+                className="session-new-button"
+                disabled={chatSessionBusy}
+                onClick={onCreateChatSession}
+                title="New chat session"
+                type="button"
+              >
+                <Icon name="plus" size={17} />
+              </button>
+            </div>
           </div>
           <div className="session-list">
             {chatSessions.map((session) => (
@@ -221,6 +244,14 @@ export function AppShell({
             )}
           </div>
         </section>
+
+        {clearSessionsOpen && (
+          <ClearSessionsDialog
+            busy={chatSessionBusy}
+            onClose={closeClearSessions}
+            onConfirm={onClearChatSessions}
+          />
+        )}
 
         <div className="sidebar-spacer" />
         <div className={`gadget-mini-status ${gadget?.connected ? 'connected' : 'disconnected'}`}>
@@ -276,5 +307,101 @@ export function AppShell({
         <main id="main-content">{children}</main>
       </section>
     </div>
+  )
+}
+
+function ClearSessionsDialog({
+  busy,
+  onClose,
+  onConfirm
+}: {
+  busy: boolean
+  onClose: () => void
+  onConfirm: () => Promise<boolean>
+}): React.JSX.Element {
+  const dialogRef = useRef<HTMLDialogElement>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const working = busy || submitting
+
+  useEffect(() => {
+    const dialog = dialogRef.current
+    if (dialog && !dialog.open) dialog.showModal()
+  }, [])
+
+  const close = (): void => {
+    if (!working) dialogRef.current?.close()
+  }
+
+  const confirm = async (): Promise<void> => {
+    if (working) return
+    setSubmitting(true)
+    setFailed(false)
+    try {
+      if (await onConfirm()) dialogRef.current?.close()
+      else setFailed(true)
+    } catch {
+      setFailed(true)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <dialog
+      aria-describedby="clear-sessions-description"
+      aria-labelledby="clear-sessions-title"
+      aria-modal="true"
+      className="session-clear-dialog"
+      id="clear-sessions-dialog"
+      onCancel={(event) => {
+        if (working) event.preventDefault()
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) close()
+      }}
+      onClose={onClose}
+      ref={dialogRef}
+    >
+      <div className="session-clear-shell">
+        <div aria-hidden="true" className="session-clear-icon">
+          <Icon name="trash" size={20} />
+        </div>
+        <div className="session-clear-copy">
+          <p className="eyebrow">Permanent action</p>
+          <h2 id="clear-sessions-title">Clear all chat sessions?</h2>
+          <p id="clear-sessions-description">
+            This permanently deletes every local Syd chat and its message history. Sidekicks,
+            automations, missions, documents, and connections stay intact.
+          </p>
+          <p>A new empty session will open afterward.</p>
+        </div>
+        {failed && (
+          <p className="session-clear-error" role="alert">
+            Syd could not clear every session. The session list has been refreshed.
+          </p>
+        )}
+        <div className="session-clear-actions">
+          <button
+            autoFocus
+            className="secondary-button"
+            disabled={working}
+            onClick={close}
+            type="button"
+          >
+            Keep sessions
+          </button>
+          <button
+            className="primary-button danger-button"
+            disabled={working}
+            onClick={() => void confirm()}
+            type="button"
+          >
+            <Icon name="trash" size={16} />
+            {working ? 'Clearing…' : 'Clear all sessions'}
+          </button>
+        </div>
+      </div>
+    </dialog>
   )
 }

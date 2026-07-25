@@ -152,6 +152,28 @@ try {
     throw new Error('A newly created chat session inherited messages from another session')
   }
 
+  const clearedSessions = await requestJson('/sydekyks/chat/sessions', { method: 'DELETE' })
+  if (clearedSessions.deleted !== 3 || !clearedSessions.session?.id) {
+    throw new Error('Clear all did not delete every existing chat session and return a replacement')
+  }
+  const sessionsAfterClear = await requestJson('/sydekyks/chat/sessions')
+  if (
+    sessionsAfterClear.sessions.length !== 1 ||
+    sessionsAfterClear.sessions[0].id !== clearedSessions.session.id
+  ) {
+    throw new Error('Clear all did not leave exactly one clean replacement session')
+  }
+  const replacementDetail = await requestJson(
+    `/sydekyks/chat/sessions/${encodeURIComponent(clearedSessions.session.id)}`
+  )
+  if (replacementDetail.messages.length !== 0) {
+    throw new Error('The replacement session created by Clear all was not empty')
+  }
+  const bootstrapAfterClear = await requestJson('/sydekyks/bootstrap')
+  if (bootstrapAfterClear.emails.length !== 1) {
+    throw new Error('Clearing chat sessions unexpectedly deleted an uploaded document')
+  }
+
   await stop()
   if (worker.exitCode !== 0) {
     throw new Error(`Worker did not shut down cleanly (exit ${worker.exitCode}).\n${output}`)
@@ -160,7 +182,7 @@ try {
     throw new Error(`Worker shutdown reported SQLITE_BUSY.\n${output}`)
   }
   console.log(
-    `${packaged ? 'Packaged w' : 'W'}orker smoke passed on loopback port ${port}: auth, health, clean first run, and clean shutdown.`
+    `${packaged ? 'Packaged w' : 'W'}orker smoke passed on loopback port ${port}: auth, health, session clearing, clean first run, and clean shutdown.`
   )
 } finally {
   await stop()

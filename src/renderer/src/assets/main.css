@@ -324,6 +324,23 @@ svg {
   text-transform: uppercase;
 }
 
+.session-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.session-clear-button {
+  min-height: 44px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--text-soft);
+  background: transparent;
+  font-size: 10px;
+  font-weight: 700;
+}
+
 .session-new-button,
 .session-delete {
   display: grid;
@@ -341,6 +358,11 @@ svg {
 .session-delete:hover {
   color: var(--text);
   background: rgba(255, 255, 255, 0.045);
+}
+
+.session-clear-button:hover:not(:disabled) {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
 }
 
 .session-list {
@@ -417,6 +439,98 @@ svg {
 
 .session-error {
   color: var(--danger);
+}
+
+.session-clear-dialog {
+  width: min(500px, calc(100vw - 32px));
+  max-width: none;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border-strong));
+  border-radius: var(--radius-xl);
+  color: var(--text);
+  background: #0d0c0c;
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.58),
+    0 0 32px color-mix(in srgb, var(--danger) 8%, transparent);
+}
+
+.session-clear-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.74);
+  backdrop-filter: blur(8px);
+}
+
+.session-clear-shell {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 0 16px;
+  padding: 26px;
+}
+
+.session-clear-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--danger) 38%, transparent);
+  border-radius: 14px;
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 9%, transparent);
+}
+
+.session-clear-copy {
+  display: grid;
+  gap: 9px;
+}
+
+.session-clear-copy .eyebrow,
+.session-clear-copy h2,
+.session-clear-copy p {
+  margin: 0;
+}
+
+.session-clear-copy h2 {
+  font-size: 23px;
+  letter-spacing: -0.025em;
+}
+
+.session-clear-copy > p:not(.eyebrow) {
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.session-clear-error {
+  grid-column: 1 / -1;
+  margin: 18px 0 0;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--danger) 34%, transparent);
+  border-radius: var(--radius-sm);
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 7%, transparent);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.session-clear-actions {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  gap: 9px;
+  padding-top: 24px;
+}
+
+.session-clear-actions .danger-button {
+  border-color: color-mix(in srgb, var(--danger) 70%, white);
+  color: #fff;
+  background: color-mix(in srgb, var(--danger) 82%, #2c1016);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--danger) 18%, transparent);
+}
+
+.session-clear-actions .danger-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--danger) 60%, white);
+  background: color-mix(in srgb, var(--danger) 92%, #2c1016);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--danger) 26%, transparent);
 }
 
 .sidebar-spacer {

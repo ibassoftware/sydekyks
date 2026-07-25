@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AppShell } from './components/AppShell'
-import { createChatSession, deleteChatSession, listChatSessions, loadBootstrap } from './lib/api'
+import {
+  clearChatSessions,
+  createChatSession,
+  deleteChatSession,
+  listChatSessions,
+  loadBootstrap
+} from './lib/api'
 import type { BootstrapData, ChatSession, ViewId } from './lib/types'
 import { ChatView } from './views/ChatView'
 import { GadgetsView } from './views/GadgetsView'
@@ -145,6 +151,27 @@ function App(): React.JSX.Element {
     }
   }
 
+  const clearAllChatSessions = async (): Promise<boolean> => {
+    if (chatSessionBusy || chatSessions.length === 0) return false
+    setChatSessionActionBusy(true)
+    setChatSessionError(undefined)
+    try {
+      const { session } = await clearChatSessions()
+      setChatSessions([session])
+      setActiveChatSessionId(session.id)
+      setView('chat')
+      return true
+    } catch {
+      await refreshChatSessions(false)
+      setChatSessionError(
+        'Syd could not clear every chat session. The current session list was refreshed.'
+      )
+      return false
+    } finally {
+      setChatSessionActionBusy(false)
+    }
+  }
+
   return (
     <AppShell
       bootstrap={bootstrap}
@@ -154,6 +181,7 @@ function App(): React.JSX.Element {
       chatSessions={chatSessions}
       currentView={view}
       menuOpen={menuOpen}
+      onClearChatSessions={clearAllChatSessions}
       onCreateChatSession={() => void startNewChatSession()}
       onDeleteChatSession={(session) => void removeChatSession(session)}
       onMenuChange={setMenuOpen}
