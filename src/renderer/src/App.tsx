@@ -209,7 +209,6 @@ function App(): React.JSX.Element {
       {view === 'roster' && (
         <RosterView
           gadget={gadget}
-          onChanged={refresh}
           onOpenAutomations={() => {
             setMissionTab('automations')
             setView('missions')

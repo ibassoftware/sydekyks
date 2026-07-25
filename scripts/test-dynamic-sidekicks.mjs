@@ -21,6 +21,7 @@ const gateway = await read('src/mastra/gadgets/odoo-gateway.ts')
 const writer = await read('src/mastra/tools/odoo-business-write.ts')
 const schemas = await read('src/mastra/domain/schemas.ts')
 const store = await read('src/mastra/lib/app-store.ts')
+const roster = await read('src/renderer/src/views/RosterView.tsx')
 
 assert.match(syd, /skills:\s*async/)
 assert.match(syd, /createSkill\(/)
@@ -42,6 +43,10 @@ assert.match(schemas, /kind:\s*z\.literal\('email'\)/)
 assert.match(store, /sidekick_versions/)
 assert.match(store, /sidekick_capabilities/)
 assert.match(store, /automation_specs/)
+assert.match(roster, /View SKILL\.md/)
+assert.match(roster, /sidekick\.instructions/)
+assert.match(roster, /ReactMarkdown/)
+assert.match(roster, /Markdown source/)
 
 for (const removed of [
   'src/mastra/sydekyks/nudge/agent.ts',

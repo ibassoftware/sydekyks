@@ -3022,6 +3022,13 @@ textarea::placeholder {
   font-size: 11px;
   font-weight: 700;
 }
+.roster-skill-file-button {
+  align-self: flex-start;
+  min-height: 38px;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 7px 11px;
+}
 .roster-intelligence {
   display: flex;
   align-items: center;
@@ -3174,6 +3181,235 @@ textarea::placeholder {
 .principle-strip span {
   color: var(--text-muted);
   font-size: 10px;
+}
+
+.skill-file-dialog {
+  width: min(920px, calc(100vw - 40px));
+  max-width: none;
+  max-height: calc(100vh - 40px);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl);
+  color: var(--text);
+  background: #0a0a0a;
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.54),
+    0 0 0 1px rgba(195, 163, 255, 0.08),
+    0 0 34px rgba(195, 163, 255, 0.09);
+}
+
+.skill-file-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(8px);
+}
+
+.skill-file-shell {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  max-height: calc(100vh - 40px);
+}
+
+.skill-file-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px 28px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.skill-file-header h2 {
+  margin: 4px 0 9px;
+  font-size: 26px;
+  letter-spacing: -0.03em;
+}
+
+.skill-file-header code {
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+}
+
+.skill-file-close {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  background: transparent;
+  box-shadow: none;
+}
+
+.skill-file-close:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.skill-file-close:active {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.skill-file-tabs {
+  display: flex;
+  gap: 5px;
+  padding: 12px 28px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+}
+
+.skill-file-tabs button {
+  min-height: 38px;
+  padding: 8px 13px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--text-muted);
+  background: transparent;
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.skill-file-tabs button:hover {
+  border-color: var(--border);
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.skill-file-tabs button:active {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.skill-file-tabs button.active {
+  border-color: rgba(249, 164, 116, 0.3);
+  color: var(--text);
+  background: rgba(249, 164, 116, 0.11);
+}
+
+.skill-file-panel {
+  min-height: 360px;
+  padding: 26px 28px 34px;
+  overflow: auto;
+  outline: none;
+}
+
+.skill-file-panel[hidden] {
+  display: none;
+}
+
+.skill-markdown-preview {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.skill-markdown-preview > :first-child {
+  margin-top: 0;
+}
+
+.skill-markdown-preview > :last-child {
+  margin-bottom: 0;
+}
+
+.skill-markdown-preview h1,
+.skill-markdown-preview h2,
+.skill-markdown-preview h3 {
+  margin: 1.35em 0 0.55em;
+  color: var(--text);
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+.skill-markdown-preview h1 {
+  font-size: 30px;
+}
+
+.skill-markdown-preview h2 {
+  font-size: 22px;
+}
+
+.skill-markdown-preview h3 {
+  font-size: 17px;
+}
+
+.skill-markdown-preview p,
+.skill-markdown-preview ul,
+.skill-markdown-preview ol {
+  margin: 0 0 1em;
+}
+
+.skill-markdown-preview li + li {
+  margin-top: 0.35em;
+}
+
+.skill-markdown-preview strong {
+  color: var(--text);
+}
+
+.skill-markdown-preview code {
+  padding: 2px 5px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--primary-light);
+  background: rgba(249, 164, 116, 0.06);
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.88em;
+}
+
+.skill-markdown-preview blockquote {
+  margin: 1.2em 0;
+  padding: 3px 0 3px 16px;
+  border-left: 2px solid var(--secondary);
+  color: var(--text-muted);
+}
+
+.skill-markdown-preview a {
+  color: var(--primary-light);
+}
+
+.skill-markdown-source {
+  padding: 0;
+  background: #080808;
+}
+
+.skill-markdown-source pre {
+  min-width: max-content;
+  margin: 0;
+  padding: 26px 28px 34px;
+}
+
+.skill-markdown-source code {
+  color: #e9e3dc;
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.75;
+}
+
+.skill-file-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 28px;
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.skill-file-footer > span {
+  color: var(--text-soft);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.skill-file-footer button {
+  flex: 0 0 auto;
+  gap: 8px;
 }
 
 /* Inbound email */
@@ -4345,6 +4581,46 @@ textarea::placeholder {
   .roster-card {
     min-height: 320px;
     border-radius: var(--radius-lg);
+  }
+  .skill-file-dialog {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+    border-radius: var(--radius-lg);
+  }
+  .skill-file-shell {
+    max-height: calc(100vh - 24px);
+  }
+  .skill-file-header {
+    gap: 14px;
+    padding: 20px 18px 17px;
+  }
+  .skill-file-header h2 {
+    font-size: 22px;
+  }
+  .skill-file-header code {
+    overflow-wrap: anywhere;
+  }
+  .skill-file-tabs {
+    padding: 10px 18px;
+  }
+  .skill-file-panel {
+    min-height: 260px;
+    padding: 22px 18px 28px;
+  }
+  .skill-markdown-source {
+    padding: 0;
+  }
+  .skill-markdown-source pre {
+    padding: 22px 18px 28px;
+  }
+  .skill-file-footer {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 13px 18px 17px;
+  }
+  .skill-file-footer button {
+    justify-content: center;
+    width: 100%;
   }
   .connection-summary {
     grid-template-columns: 1fr;

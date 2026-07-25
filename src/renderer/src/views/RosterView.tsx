@@ -1,7 +1,169 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import type { OdooPublicStatus } from '../../../shared/ipc'
 import { Icon } from '../components/Icon'
 import type { Sidekick } from '../lib/types'
 import { portraitFor } from '../lib/sydekyk-portraits'
+
+type SkillFileTab = 'preview' | 'markdown'
+
+const skillFilePath = (sidekick: Sidekick): string =>
+  sidekick.source === 'preset'
+    ? `skills/${sidekick.id}/SKILL.md`
+    : `local-sidekicks/${sidekick.id}/SKILL.md`
+
+const skillMarkdown = (sidekick: Sidekick): string =>
+  [
+    '---',
+    `name: ${JSON.stringify(sidekick.id)}`,
+    `description: ${JSON.stringify(sidekick.description)}`,
+    '---',
+    '',
+    sidekick.instructions.trim(),
+    ''
+  ].join('\n')
+
+function SkillFileDialog({
+  onClose,
+  sidekick
+}: {
+  onClose: () => void
+  sidekick: Sidekick
+}): React.JSX.Element {
+  const dialogRef = useRef<HTMLDialogElement>(null)
+  const [tab, setTab] = useState<SkillFileTab>('preview')
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle')
+  const markdown = useMemo(() => skillMarkdown(sidekick), [sidekick])
+  const path = skillFilePath(sidekick)
+
+  useEffect(() => {
+    const dialog = dialogRef.current
+    if (dialog && !dialog.open) dialog.showModal()
+    return () => {
+      if (dialog?.open) dialog.close()
+    }
+  }, [])
+
+  const close = (): void => dialogRef.current?.close()
+
+  const selectTab = (nextTab: SkillFileTab, focus = false): void => {
+    setTab(nextTab)
+    if (focus) {
+      window.requestAnimationFrame(() => document.getElementById(`skill-tab-${nextTab}`)?.focus())
+    }
+  }
+
+  const handleTabKey = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    currentTab: SkillFileTab
+  ): void => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+    event.preventDefault()
+    const nextTab =
+      event.key === 'Home'
+        ? 'preview'
+        : event.key === 'End'
+          ? 'markdown'
+          : currentTab === 'preview'
+            ? 'markdown'
+            : 'preview'
+    selectTab(nextTab, true)
+  }
+
+  const copyMarkdown = async (): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(markdown)
+      setCopyState('copied')
+    } catch {
+      setCopyState('failed')
+    }
+  }
+
+  return (
+    <dialog
+      aria-labelledby="skill-file-title"
+      aria-modal="true"
+      className="skill-file-dialog"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) close()
+      }}
+      onClose={onClose}
+      ref={dialogRef}
+    >
+      <div className="skill-file-shell">
+        <header className="skill-file-header">
+          <div>
+            <p className="eyebrow">Current skill file · version {sidekick.version}</p>
+            <h2 id="skill-file-title">{sidekick.name}</h2>
+            <code>{path}</code>
+          </div>
+          <button aria-label="Close skill file" className="skill-file-close" onClick={close}>
+            <Icon name="close" size={18} />
+          </button>
+        </header>
+
+        <div aria-label="Skill file view" className="skill-file-tabs" role="tablist">
+          {(['preview', 'markdown'] as const).map((item) => (
+            <button
+              aria-controls={`skill-panel-${item}`}
+              aria-selected={tab === item}
+              className={tab === item ? 'active' : ''}
+              id={`skill-tab-${item}`}
+              key={item}
+              onClick={() => selectTab(item)}
+              onKeyDown={(event) => handleTabKey(event, item)}
+              role="tab"
+              tabIndex={tab === item ? 0 : -1}
+              type="button"
+            >
+              {item === 'preview' ? 'Readable preview' : 'Markdown source'}
+            </button>
+          ))}
+        </div>
+
+        <div
+          aria-labelledby="skill-tab-preview"
+          className="skill-file-panel skill-markdown-preview"
+          hidden={tab !== 'preview'}
+          id="skill-panel-preview"
+          role="tabpanel"
+          tabIndex={0}
+        >
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{sidekick.instructions}</ReactMarkdown>
+        </div>
+        <div
+          aria-labelledby="skill-tab-markdown"
+          className="skill-file-panel skill-markdown-source"
+          hidden={tab !== 'markdown'}
+          id="skill-panel-markdown"
+          role="tabpanel"
+          tabIndex={0}
+        >
+          <pre>
+            <code>{markdown}</code>
+          </pre>
+        </div>
+
+        <footer className="skill-file-footer">
+          <span>
+            {sidekick.source === 'preset'
+              ? 'Built-in source file'
+              : 'Chat-created skill stored in the local Sidekick database'}
+          </span>
+          <button className="secondary-button" onClick={() => void copyMarkdown()} type="button">
+            <Icon name={copyState === 'copied' ? 'check' : 'document'} size={16} />
+            {copyState === 'copied'
+              ? 'Copied'
+              : copyState === 'failed'
+                ? 'Copy failed'
+                : 'Copy Markdown'}
+          </button>
+        </footer>
+      </div>
+    </dialog>
+  )
+}
 
 export function RosterView({
   gadget,
@@ -9,10 +171,11 @@ export function RosterView({
   sidekicks
 }: {
   gadget: OdooPublicStatus
-  onChanged: () => Promise<void>
   onOpenAutomations: () => void
   sidekicks: Sidekick[]
 }): React.JSX.Element {
+  const [selectedSidekick, setSelectedSidekick] = useState<Sidekick>()
+
   return (
     <section className="page-view scroll-view" aria-labelledby="roster-title">
       <header className="view-header">
@@ -48,6 +211,14 @@ export function RosterView({
               <Icon name="sparkles" size={17} />
               <span>Markdown skill · version {sidekick.version}</span>
             </div>
+            <button
+              className="secondary-button roster-skill-file-button"
+              onClick={() => setSelectedSidekick(sidekick)}
+              type="button"
+            >
+              <Icon name="document" size={16} />
+              View SKILL.md
+            </button>
             <div className="capability-list">
               {sidekick.capabilities.length === 0 ? (
                 <span>Read-only until access is approved</span>
@@ -101,6 +272,13 @@ export function RosterView({
           </span>
         </div>
       </section>
+      {selectedSidekick && (
+        <SkillFileDialog
+          key={selectedSidekick.id}
+          onClose={() => setSelectedSidekick(undefined)}
+          sidekick={selectedSidekick}
+        />
+      )}
     </section>
   )
 }
