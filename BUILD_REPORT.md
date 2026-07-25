@@ -7,7 +7,7 @@
 | Product                         | Sydekyks Desktop 1.0.0                                         |
 | Report date                     | 2026-07-25 (Europe/Paris)                                      |
 | Audit branch                    | `feat/dynamic-sidekicks`                                       |
-| Tested implementation           | `db5608c1bf97be90146cb0b603ec955e719a0c26`                     |
+| Tested implementation           | `12e6b3c75c5214b6d6ad858db6f4d20a61f3224f`                     |
 | Pre-refactor snapshot           | `976bbcbb03a5ccdbfa622e2287f82023a71d5bd9`                     |
 | Repository                      | `https://github.com/ibassoftware/sydekyks.git`                 |
 | Internal acceptance             | **PASS**                                                       |
@@ -65,6 +65,10 @@ A Markdown skill can explain how to perform a task, but cannot grant itself acce
 - Added source-controlled Nudge, Mirror, and Shield starter skills under `skills/`, compiled into the packaged worker during the build.
 - Removed the runtime Nudge, Mirror, and Shield agents, delegation tools, intelligence services, manifests, specialist tools, and specialist workflows.
 - Replaced the fixed roster UI with a dynamic Sidekicks view.
+- Added an accessible `SKILL.md` viewer to each Sidekick card with a rendered preview, raw Markdown
+  source, version/source identity, keyboard-safe tabs, and copy-to-clipboard.
+- Built-in Sidekicks show their repository source path; chat-created skills are explicitly labeled
+  as local database records rather than physical source files.
 - Eliminated the deterministic interpretation of initials such as “MW”; Syd must resolve people from live Odoo data and must not guess an identity or record ID.
 
 ### Generic Odoo access
@@ -111,7 +115,7 @@ A Markdown skill can explain how to perform a task, but cannot grant itself acce
 
 ## Verification evidence
 
-All commands below passed against implementation commit `db5608c1bf97be90146cb0b603ec955e719a0c26`.
+All commands below passed against implementation commit `12e6b3c75c5214b6d6ad858db6f4d20a61f3224f`.
 
 | Area                                                     | Command                              | Result                              |
 | -------------------------------------------------------- | ------------------------------------ | ----------------------------------- |
@@ -128,7 +132,7 @@ All commands below passed against implementation commit `db5608c1bf97be90146cb0b
 | Logging controls                                         | `npm run test:logging`               | PASS                                |
 | UI contrast                                              | `npm run test:ui-contrast`           | PASS; lowest text 6.80:1, UI 3.50:1 |
 | Production compilation                                   | `npm run build`                      | PASS                                |
-| Built worker authentication, health, first run, shutdown | `npm run test:smoke:worker`          | PASS on loopback port 56934         |
+| Built worker authentication, health, first run, shutdown | `npm run test:smoke:worker`          | PASS on loopback port 57546         |
 | Patch hygiene                                            | `git diff --check`                   | PASS                                |
 
 The Sidekick integration test converts every tool registered on Syd through Mastra's provider-schema
@@ -146,9 +150,9 @@ Mastra and Electron Vite production builds completed successfully on 2026-07-25.
 | `.mastra/output/index.mjs` | 1,876.35 kB | `3bd2e46afb9c9e21171cd426ce4cf2ab132c4b38e8b72c71a14fda9740875007` |
 | `out/main/index.js`        |   596.28 kB | `e4f95dc7c7d65a6ab47c63e94c2575c3c68c3c67262445ec323635912d0072fa` |
 | `out/preload/index.js`     |     4.38 kB | `732143a95ca186af8b05b07e897e147095bf7665e2e2ada29ae6188b726d1e90` |
-| `out/renderer/index.html`  |     0.60 kB | `05e0dbc9fdc623181ae708f6bb1f229f7cfd74c6736c300127f81ab9b673cf03` |
+| `out/renderer/index.html`  |     0.60 kB | `2102c4f8d6a76b6c8a81b22a5ea970499dc4a597d45f82098d8bd6d98c74e37a` |
 
-The renderer JavaScript bundle is 1,408.52 kB and its CSS bundle is 86.72 kB.
+The renderer JavaScript bundle is 1,414.60 kB and its CSS bundle is 92.09 kB.
 
 ## Security and control assessment
 
