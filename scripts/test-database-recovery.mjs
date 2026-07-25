@@ -31,17 +31,20 @@ try {
     method: 'POST',
     body: {
       name: automationName,
-      ownerSydekykId: 'nudge',
-      workflowId: 'nudge-stale-opportunities',
-      schedule: {
-        kind: 'interval',
-        every: 3,
-        unit: 'days',
-        time: '09:00',
-        timezone: 'UTC',
-        anchorAt: new Date().toISOString()
+      sidekickId: 'nudge',
+      prompt: 'Review open opportunities and summarize which need attention.',
+      trigger: {
+        kind: 'schedule',
+        schedule: {
+          kind: 'interval',
+          every: 3,
+          unit: 'days',
+          time: '09:00',
+          timezone: 'UTC',
+          anchorAt: new Date().toISOString()
+        }
       },
-      inputData: { staleAfterDays: 2, limit: 20, notifyOnlyWhenAttention: true },
+      approvalMode: 'read-only',
       missedRunPolicy: 'run-on-start',
       status: 'draft'
     }

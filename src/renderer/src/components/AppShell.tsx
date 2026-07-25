@@ -5,7 +5,7 @@ import { Icon, type IconName } from './Icon'
 const navigation: Array<{ id: ViewId; label: string; icon: IconName }> = [
   { id: 'chat', label: 'Talk to Syd', icon: 'chat' },
   { id: 'missions', label: 'Mission Control', icon: 'bolt' },
-  { id: 'roster', label: 'Roster', icon: 'users' },
+  { id: 'roster', label: 'Sidekicks', icon: 'users' },
   { id: 'gadgets', label: 'Gadgets', icon: 'plug' }
 ]
 

@@ -61,10 +61,11 @@ const chatTransport = new DefaultChatTransport({
 
 const prompts = [
   'Help me process a vendor bill with Ledger.',
-  'Ask Nudge which opportunities need attention.',
-  'Ask Mirror to scan Odoo for duplicate vendor bills.',
-  'Have Shield assess and brief me on AP fraud risk.',
-  `Have Mirror scan for duplicates every 3 days at 9:00 (${localTimezone}).`
+  'Use Nudge to find opportunities that need attention.',
+  'Use Mirror to review Odoo for possible duplicate vendor bills.',
+  'Use Shield to prepare an AP risk brief.',
+  'Create a Sidekick called Renewals that reviews expiring contracts.',
+  `Every weekday at 9:00 (${localTimezone}), use Nudge to review open opportunities.`
 ]
 
 const workReportFromOutput = (output: unknown): AgentWorkReport | undefined => {
@@ -199,9 +200,9 @@ interface ChatToolPart {
 interface AutomationSummary {
   id: string
   name: string
-  ownerSydekykId: Automation['ownerSydekykId']
+  sidekickName: string
   status: Automation['status']
-  scheduleLabel: string
+  triggerLabel: string
 }
 
 const recordFrom = (value: unknown): Record<string, unknown> | undefined =>
@@ -219,15 +220,17 @@ const odooLookupFailureMessage = (errorText: string | undefined): string => {
 }
 
 const automationIdsFromInput = (input: unknown): string[] => {
-  const automationIds = recordFrom(input)?.automationIds
-  return Array.isArray(automationIds)
-    ? automationIds.filter((id): id is string => typeof id === 'string')
-    : []
+  const record = recordFrom(input)
+  const automationIds = record?.automationIds
+  if (Array.isArray(automationIds)) {
+    return automationIds.filter((id): id is string => typeof id === 'string')
+  }
+  return typeof record?.id === 'string' ? [record.id] : []
 }
 
 const automationSummariesFromOutput = (output: unknown): AutomationSummary[] => {
   const value = recordFrom(output)
-  const items = value?.automations ?? value?.deleted
+  const items = value?.automations
   if (!Array.isArray(items)) return []
   return items.flatMap((item) => {
     const automation = recordFrom(item)
@@ -235,9 +238,9 @@ const automationSummariesFromOutput = (output: unknown): AutomationSummary[] => 
       !automation ||
       typeof automation.id !== 'string' ||
       typeof automation.name !== 'string' ||
-      !['nudge', 'mirror', 'shield'].includes(String(automation.ownerSydekykId)) ||
+      typeof automation.sidekickName !== 'string' ||
       !['draft', 'active', 'paused', 'error'].includes(String(automation.status)) ||
-      typeof automation.scheduleLabel !== 'string'
+      typeof automation.triggerLabel !== 'string'
     ) {
       return []
     }
@@ -455,20 +458,24 @@ export function ChatView({
     }
   }
 
-  const decideAutomationDeletion = async (approvalId: string, approved: boolean): Promise<void> => {
+  const decideToolApproval = async (
+    approvalId: string,
+    approved: boolean,
+    refresh = true
+  ): Promise<void> => {
     setApprovalBusy(approvalId)
     setApprovalError(undefined)
-    if (approved) automationRefreshPending.current = true
+    if (approved && refresh) automationRefreshPending.current = true
     try {
       await addToolApprovalResponse({
         id: approvalId,
         approved,
-        reason: approved ? 'Confirmed in Syd chat' : 'Kept by the user',
+        reason: approved ? 'Confirmed in Syd chat' : 'Declined by the user',
         options: { body: { sessionId } }
       })
     } catch (cause) {
       automationRefreshPending.current = false
-      setApprovalError(friendlyError(cause, 'The automation decision could not be saved.'))
+      setApprovalError(friendlyError(cause, 'The approval decision could not be saved.'))
     } finally {
       setApprovalBusy(undefined)
     }
@@ -490,7 +497,7 @@ export function ChatView({
             <strong>{intelligenceReady ? 'Ready' : 'Setup required'}</strong>
             <span>
               {intelligenceReady
-                ? 'Ledger, Nudge, Mirror, and Shield are ready'
+                ? 'Ledger workflow and Sidekick skills are ready'
                 : 'Connect an AI provider'}
             </span>
           </div>
@@ -552,12 +559,8 @@ export function ChatView({
                     const toolPart = part as unknown as ChatToolPart
                     if (toolPart.type.startsWith('tool-')) {
                       const toolType = normalizedToolType(toolPart.type)
-                      const isAutomationList =
-                        toolType.includes('listautomations') ||
-                        toolType.includes('listsydautomations')
-                      const isAutomationDeletion =
-                        toolType.includes('deleteautomations') ||
-                        toolType.includes('deletesydautomations')
+                      const isAutomationList = toolType.includes('listautomations')
+                      const isAutomationDeletion = toolType.includes('deleteautomation')
                       if (isAutomationList || isAutomationDeletion) {
                         const inputIds = automationIdsFromInput(toolPart.input)
                         const outputAutomations = automationSummariesFromOutput(toolPart.output)
@@ -569,9 +572,9 @@ export function ChatView({
                                   knownAutomations.get(id) ?? {
                                     id,
                                     name: id,
-                                    ownerSydekykId: 'nudge' as const,
+                                    sidekickName: 'Sidekick',
                                     status: 'draft' as const,
-                                    scheduleLabel: 'Current schedule'
+                                    triggerLabel: 'Current trigger'
                                   }
                               )
                         const output = recordFrom(toolPart.output)
@@ -584,8 +587,10 @@ export function ChatView({
                         const completed = toolPart.state === 'output-available'
                         const approvalId = requested ? toolPart.approval?.id : undefined
                         const count = isAutomationList
-                          ? Number(output?.totalMatches ?? outputAutomations.length)
-                          : Number(output?.deletedCount ?? targets.length)
+                          ? outputAutomations.length
+                          : output?.deleted === true
+                            ? 1
+                            : targets.length
                         return (
                           <div
                             className={`automation-tool-card${requested ? ' approval-needed' : ''}${failed ? ' failed' : ''}`}
@@ -628,7 +633,7 @@ export function ChatView({
                                   <li key={automation.id}>
                                     <span>{automation.name}</span>
                                     <small>
-                                      {automation.ownerSydekykId} · {automation.status}
+                                      {automation.sidekickName} · {automation.status}
                                     </small>
                                   </li>
                                 ))}
@@ -642,7 +647,7 @@ export function ChatView({
                                 <button
                                   className="ghost-button"
                                   disabled={approvalBusy === approvalId}
-                                  onClick={() => void decideAutomationDeletion(approvalId, false)}
+                                  onClick={() => void decideToolApproval(approvalId, false)}
                                   type="button"
                                 >
                                   Keep automations
@@ -650,10 +655,109 @@ export function ChatView({
                                 <button
                                   className="primary-button danger-button"
                                   disabled={approvalBusy === approvalId}
-                                  onClick={() => void decideAutomationDeletion(approvalId, true)}
+                                  onClick={() => void decideToolApproval(approvalId, true)}
                                   type="button"
                                 >
                                   Delete {targets.length === 1 ? 'automation' : 'automations'}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      }
+                      const requested = toolPart.state === 'approval-requested'
+                      const approvalId = requested ? toolPart.approval?.id : undefined
+                      const isSidekickManagement = toolType.includes('sidekick')
+                      const isAutomationManagement = toolType.includes('automation')
+                      const isOdooBusinessWrite =
+                        toolType.includes('writeodoobusinessdata') ||
+                        toolType.includes('writeodoobusiness')
+                      if (
+                        (requested ||
+                          isSidekickManagement ||
+                          isAutomationManagement ||
+                          isOdooBusinessWrite) &&
+                        !isAutomationList
+                      ) {
+                        const failed = toolPart.state === 'output-error'
+                        const completed = toolPart.state === 'output-available'
+                        const denied = toolPart.state === 'output-denied'
+                        const input = recordFrom(toolPart.input)
+                        const records = completed ? odooRecordRefsFromOutput(toolPart.output) : []
+                        const title = isOdooBusinessWrite
+                          ? `Approve Odoo ${String(input?.operation ?? 'change')}`
+                          : toolType.includes('grant')
+                            ? 'Approve capability'
+                            : toolType.includes('createsidekick')
+                              ? 'Approve new Sidekick'
+                              : toolType.includes('updatesidekick')
+                                ? 'Approve Sidekick change'
+                                : toolType.includes('createautomation')
+                                  ? 'Approve automation'
+                                  : 'Approve requested change'
+                        return (
+                          <div
+                            className={`automation-tool-card${requested ? ' approval-needed' : ''}${failed ? ' failed' : ''}`}
+                            key={`${message.id}-${index}`}
+                          >
+                            <div className="automation-tool-heading">
+                              <span className="automation-tool-icon">
+                                <Icon
+                                  name={isOdooBusinessWrite ? 'database' : 'sparkles'}
+                                  size={17}
+                                />
+                              </span>
+                              <div>
+                                <strong>{title}</strong>
+                                <span>
+                                  {failed
+                                    ? 'Syd could not complete this change'
+                                    : denied
+                                      ? 'No change was made'
+                                      : completed
+                                        ? 'Approved change completed'
+                                        : requested
+                                          ? 'Paused until you decide'
+                                          : 'Preparing the change'}
+                                </span>
+                              </div>
+                            </div>
+                            {requested && input && (
+                              <pre className="automation-tool-error">
+                                {JSON.stringify(input, null, 2)}
+                              </pre>
+                            )}
+                            {failed && toolPart.errorText && (
+                              <p className="automation-tool-error">{toolPart.errorText}</p>
+                            )}
+                            {records.length > 0 && (
+                              <div className="odoo-record-links">
+                                {records.map((record) => (
+                                  <OdooRecordLink
+                                    gadget={gadget}
+                                    key={`${record.model}-${record.id}`}
+                                    record={record}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                            {requested && approvalId && (
+                              <div className="automation-tool-actions">
+                                <button
+                                  className="ghost-button"
+                                  disabled={approvalBusy === approvalId}
+                                  onClick={() => void decideToolApproval(approvalId, false)}
+                                  type="button"
+                                >
+                                  Decline
+                                </button>
+                                <button
+                                  className="primary-button"
+                                  disabled={approvalBusy === approvalId}
+                                  onClick={() => void decideToolApproval(approvalId, true)}
+                                  type="button"
+                                >
+                                  Approve
                                 </button>
                               </div>
                             )}
@@ -719,14 +823,7 @@ export function ChatView({
                           </div>
                         )
                       }
-                      const handoffType = toolPart.type.toLocaleLowerCase()
-                      const specialist = handoffType.includes('nudge')
-                        ? 'Nudge'
-                        : handoffType.includes('mirror')
-                          ? 'Mirror'
-                          : handoffType.includes('shield')
-                            ? 'Shield'
-                            : 'Ledger'
+                      const specialist = 'Ledger'
                       const failed = toolPart.state === 'output-error'
                       const completed = toolPart.state === 'output-available'
                       const workReport = completed

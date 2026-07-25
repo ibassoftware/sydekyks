@@ -1,7 +1,6 @@
 import type {
   ApiErrorBody,
   Automation,
-  AutomationSchedule,
   BootstrapData,
   ChatSession,
   ChatSessionDetail,
@@ -129,10 +128,10 @@ export const updateInboundReviewPolicy = (
 
 export interface AutomationInput {
   name: string
-  ownerSydekykId: Automation['ownerSydekykId']
-  workflowId: Automation['workflowId']
-  schedule: AutomationSchedule
-  inputData: Automation['inputData']
+  sidekickId: string
+  prompt: string
+  trigger: Automation['trigger']
+  approvalMode: Automation['approvalMode']
   missedRunPolicy: Automation['missedRunPolicy']
   status: 'draft' | 'active'
 }
@@ -166,21 +165,3 @@ export const runAutomationNow = (automationId: string): Promise<Mission> =>
 
 export const deleteAutomation = (automationId: string): Promise<{ deleted: boolean }> =>
   apiRequest(`/sydekyks/automations/${automationId}`, { method: 'DELETE' })
-
-export const runNudgeCheck = (staleAfterDays = 2): Promise<Mission> =>
-  apiRequest('/sydekyks/workflows/nudge/stale-opportunities', {
-    method: 'POST',
-    body: JSON.stringify({ staleAfterDays, limit: 50, notifyOnlyWhenAttention: true })
-  })
-
-export const runMirrorCheck = (lookbackDays = 365): Promise<Mission> =>
-  apiRequest('/sydekyks/workflows/mirror/duplicate-bills', {
-    method: 'POST',
-    body: JSON.stringify({ lookbackDays, limit: 50, notifyOnlyWhenAttention: true })
-  })
-
-export const runShieldReview = (lookbackDays = 90): Promise<Mission> =>
-  apiRequest('/sydekyks/workflows/shield/fraud-review', {
-    method: 'POST',
-    body: JSON.stringify({ lookbackDays, limit: 50, notifyOnlyWhenAttention: true })
-  })

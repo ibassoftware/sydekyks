@@ -11,15 +11,6 @@ import { appRoutes } from './server/routes'
 import { ledgerAgent } from './sydekyks/ledger/agent'
 import { billIntelligenceAgent } from './sydekyks/ledger/intelligence-agent'
 import { ledgerVendorBillWorkflow } from './sydekyks/ledger/workflows/vendor-bill'
-import { nudgeAgent } from './sydekyks/nudge/agent'
-import { nudgeIntelligenceAgent } from './sydekyks/nudge/intelligence-agent'
-import { nudgeStaleOpportunitiesWorkflow } from './sydekyks/nudge/workflows/stale-opportunities'
-import { mirrorAgent } from './sydekyks/mirror/agent'
-import { mirrorIntelligenceAgent } from './sydekyks/mirror/intelligence-agent'
-import { mirrorDuplicateBillsWorkflow } from './sydekyks/mirror/workflows/duplicate-bills'
-import { shieldAgent } from './sydekyks/shield/agent'
-import { shieldIntelligenceAgent } from './sydekyks/shield/intelligence-agent'
-import { shieldFraudReviewWorkflow } from './sydekyks/shield/workflows/fraud-review'
 
 class ProcessScopedLibSQLStore extends LibSQLStore {
   /**
@@ -49,19 +40,10 @@ export const mastra = new Mastra({
   agents: {
     syd: sydAgent,
     ledger: ledgerAgent,
-    billIntelligence: billIntelligenceAgent,
-    nudge: nudgeAgent,
-    nudgeIntelligence: nudgeIntelligenceAgent,
-    mirror: mirrorAgent,
-    mirrorIntelligence: mirrorIntelligenceAgent,
-    shield: shieldAgent,
-    shieldIntelligence: shieldIntelligenceAgent
+    billIntelligence: billIntelligenceAgent
   },
   workflows: {
     ledgerVendorBillWorkflow,
-    nudgeStaleOpportunitiesWorkflow,
-    mirrorDuplicateBillsWorkflow,
-    shieldFraudReviewWorkflow,
     automationDispatcherWorkflow
   },
   server: {

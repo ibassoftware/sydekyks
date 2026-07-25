@@ -19,7 +19,6 @@ function App(): React.JSX.Element {
   const [chatStreamingBusy, setChatStreamingBusy] = useState(false)
   const [chatSessionError, setChatSessionError] = useState<string>()
   const notifiedApprovals = useRef(new Set<string>())
-  const notifiedAutomationMissions = useRef(new Set<string>())
 
   const refresh = useCallback(async (): Promise<void> => {
     try {
@@ -88,54 +87,6 @@ function App(): React.JSX.Element {
         missionId: mission.id,
         title: 'Sydekyks needs your approval',
         body: `${mission.sydekyk}: ${mission.summary}`
-      })
-    }
-  }, [bootstrap?.missions])
-
-  useEffect(() => {
-    for (const mission of bootstrap?.missions ?? []) {
-      const notification =
-        mission.kind === 'nudge.stale-opportunities'
-          ? {
-              count: Number(mission.result?.result?.attentionCount ?? 0),
-              attentionTitle: (count: number) =>
-                `Nudge found ${count} ${count === 1 ? 'opportunity' : 'opportunities'} to revisit`,
-              clearTitle: 'Nudge completed a pipeline check'
-            }
-          : mission.kind === 'mirror.duplicate-bills'
-            ? {
-                count: Number(mission.result?.result?.alertCount ?? 0),
-                attentionTitle: (count: number) =>
-                  `Mirror found ${count} duplicate ${count === 1 ? 'alert' : 'alerts'} to review`,
-                clearTitle: 'Mirror completed a duplicate-bill watch'
-              }
-            : mission.kind === 'shield.fraud-review'
-              ? {
-                  count: Number(mission.result?.result?.reviewCount ?? 0),
-                  attentionTitle: (count: number) =>
-                    `Shield briefed ${count} ${count === 1 ? 'bill' : 'bills'} for review`,
-                  clearTitle: 'Shield completed an accounts-payable risk review'
-                }
-              : undefined
-      if (
-        !notification ||
-        mission.status !== 'completed' ||
-        notifiedAutomationMissions.current.has(mission.id)
-      ) {
-        continue
-      }
-      notifiedAutomationMissions.current.add(mission.id)
-      const request = mission.payload?.request as Record<string, unknown> | undefined
-      if (request?.source !== 'schedule') continue
-      const quiet = request.notifyOnlyWhenAttention !== false
-      if (quiet && notification.count === 0) continue
-      void window.api?.notifications.showMission({
-        missionId: mission.id,
-        title:
-          notification.count > 0
-            ? notification.attentionTitle(notification.count)
-            : notification.clearTitle,
-        body: mission.summary
       })
     }
   }, [bootstrap?.missions])
@@ -263,7 +214,7 @@ function App(): React.JSX.Element {
             setMissionTab('automations')
             setView('missions')
           }}
-          roster={bootstrap?.roster ?? []}
+          sidekicks={bootstrap?.sidekicks ?? []}
         />
       )}
       {view === 'gadgets' && (

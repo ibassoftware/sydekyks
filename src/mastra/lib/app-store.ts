@@ -1,25 +1,41 @@
 import { createClient, type Client } from '@libsql/client'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import type {
   AiPublicStatus,
-  AutomationCreateInput,
-  AutomationRecord,
-  AutomationSchedule,
-  AutomationStatus,
-  AutomationUpdateInput,
+  AutomationSpecCreateInput,
+  AutomationSpecRecord,
+  AutomationSpecStatus,
+  AutomationSpecUpdateInput,
   ImapPublicStatus,
   InboundEmailRecord,
   InboundEmailStatus,
   MissionRecord,
   MissionStatus,
   OdooPublicStatus,
-  PermissionRecord
+  PermissionRecord,
+  SidekickCapability,
+  SidekickOperation,
+  SidekickRecord,
+  SidekickStatus
 } from '../domain/schemas'
 import { nextScheduleRun, scheduleLabel } from '../automations/schedule'
+import { presetSidekicks } from '../sidekicks/preset-skills.generated'
+import { sidekickScopeFingerprint } from '../sidekicks/fingerprint'
 import { appDatabaseUrl } from './paths'
 import { workerLogger } from './logger'
 
 const now = (): string => new Date().toISOString()
+
+const legacyAutomationPrompt = (owner: string, input: Record<string, unknown>): string => {
+  const days = Number(input.staleAfterDays ?? input.lookbackDays ?? 0)
+  if (owner === 'nudge') {
+    return `Review open opportunities and identify work needing attention${days > 0 ? ` after ${days} days without meaningful progress` : ''}.`
+  }
+  if (owner === 'mirror') {
+    return `Review vendor bills for possible duplicates${days > 0 ? ` within the last ${days} days` : ''}.`
+  }
+  return `Review accounts-payable records and prepare an evidence-led risk brief${days > 0 ? ` for the last ${days} days` : ''}.`
+}
 
 export class AppStore {
   private readonly client: Client
@@ -42,7 +58,7 @@ export class AppStore {
   private async initialize(): Promise<void> {
     const versionResult = await this.client.execute('PRAGMA user_version')
     const version = Number(versionResult.rows[0]?.user_version ?? 0)
-    if (version > 3) {
+    if (version > 4) {
       throw new Error(
         `This Sydekyks data was created by a newer app version (schema ${version}). Update Sydekyks before opening it.`
       )
@@ -102,15 +118,49 @@ export class AppStore {
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL
         )`,
-        `CREATE TABLE IF NOT EXISTS automations (
+        `CREATE TABLE IF NOT EXISTS sidekicks (
           id TEXT PRIMARY KEY,
           name TEXT NOT NULL,
-          owner_sydekyk_id TEXT NOT NULL,
-          workflow_id TEXT NOT NULL,
-          schedule_json TEXT NOT NULL,
-          input_json TEXT NOT NULL,
-          missed_run_policy TEXT NOT NULL,
+          description TEXT NOT NULL,
+          instructions TEXT NOT NULL,
+          source TEXT NOT NULL,
           status TEXT NOT NULL,
+          version INTEGER NOT NULL,
+          content_hash TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )`,
+        `CREATE TABLE IF NOT EXISTS sidekick_versions (
+          sidekick_id TEXT NOT NULL,
+          version INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          description TEXT NOT NULL,
+          instructions TEXT NOT NULL,
+          content_hash TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          PRIMARY KEY(sidekick_id, version)
+        )`,
+        `CREATE TABLE IF NOT EXISTS sidekick_capabilities (
+          id TEXT PRIMARY KEY,
+          sidekick_id TEXT NOT NULL,
+          model TEXT NOT NULL,
+          label TEXT NOT NULL,
+          operations_json TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          UNIQUE(sidekick_id, model)
+        )`,
+        `CREATE TABLE IF NOT EXISTS automation_specs (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          sidekick_id TEXT NOT NULL,
+          sidekick_version INTEGER NOT NULL,
+          prompt TEXT NOT NULL,
+          trigger_json TEXT NOT NULL,
+          approval_mode TEXT NOT NULL,
+          status TEXT NOT NULL,
+          missed_run_policy TEXT NOT NULL,
+          schema_fingerprint TEXT,
           next_run_at TEXT,
           last_run_at TEXT,
           last_mission_id TEXT,
@@ -123,8 +173,10 @@ export class AppStore {
         'CREATE UNIQUE INDEX IF NOT EXISTS inbound_email_message_idx ON inbound_emails(message_id) WHERE message_id IS NOT NULL',
         'CREATE INDEX IF NOT EXISTS inbound_email_updated_idx ON inbound_emails(updated_at DESC)',
         'CREATE INDEX IF NOT EXISTS inbound_email_ledger_idx ON inbound_emails(ledger_mission_id)',
-        'CREATE INDEX IF NOT EXISTS automations_due_idx ON automations(status, next_run_at)',
-        'CREATE INDEX IF NOT EXISTS automations_owner_idx ON automations(owner_sydekyk_id, updated_at DESC)'
+        'CREATE INDEX IF NOT EXISTS sidekicks_status_idx ON sidekicks(status, updated_at DESC)',
+        'CREATE INDEX IF NOT EXISTS sidekick_capabilities_owner_idx ON sidekick_capabilities(sidekick_id)',
+        'CREATE INDEX IF NOT EXISTS automation_specs_due_idx ON automation_specs(status, next_run_at)',
+        'CREATE INDEX IF NOT EXISTS automation_specs_sidekick_idx ON automation_specs(sidekick_id, updated_at DESC)'
       ],
       'write'
     )
@@ -149,7 +201,135 @@ export class AppStore {
     if (!missionColumns.rows.some((row) => String(row.name) === 'acknowledged_at')) {
       await this.client.execute('ALTER TABLE missions ADD COLUMN acknowledged_at TEXT')
     }
-    await this.client.execute('PRAGMA user_version = 3')
+    const timestamp = now()
+    for (const preset of presetSidekicks) {
+      const contentHash = createHash('sha256')
+        .update(`${preset.name}\n${preset.description}\n${preset.instructions}`)
+        .digest('hex')
+      const existing = await this.client.execute({
+        sql: 'SELECT source, version, content_hash FROM sidekicks WHERE id = ?',
+        args: [preset.id]
+      })
+      if (existing.rows.length === 0) {
+        await this.client.batch(
+          [
+            {
+              sql: `INSERT INTO sidekicks
+                (id, name, description, instructions, source, status, version, content_hash, created_at, updated_at)
+                VALUES (?, ?, ?, ?, 'preset', 'active', 1, ?, ?, ?)`,
+              args: [
+                preset.id,
+                preset.name,
+                preset.description,
+                preset.instructions,
+                contentHash,
+                timestamp,
+                timestamp
+              ]
+            },
+            {
+              sql: `INSERT INTO sidekick_versions
+                (sidekick_id, version, name, description, instructions, content_hash, created_at)
+                VALUES (?, 1, ?, ?, ?, ?, ?)`,
+              args: [
+                preset.id,
+                preset.name,
+                preset.description,
+                preset.instructions,
+                contentHash,
+                timestamp
+              ]
+            }
+          ],
+          'write'
+        )
+      } else if (
+        existing.rows[0].source === 'preset' &&
+        String(existing.rows[0].content_hash) !== contentHash
+      ) {
+        const version = Number(existing.rows[0].version) + 1
+        await this.client.batch(
+          [
+            {
+              sql: `UPDATE sidekicks SET name = ?, description = ?, instructions = ?,
+                    version = ?, content_hash = ?, updated_at = ? WHERE id = ?`,
+              args: [
+                preset.name,
+                preset.description,
+                preset.instructions,
+                version,
+                contentHash,
+                timestamp,
+                preset.id
+              ]
+            },
+            {
+              sql: `INSERT INTO sidekick_versions
+                (sidekick_id, version, name, description, instructions, content_hash, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)`,
+              args: [
+                preset.id,
+                version,
+                preset.name,
+                preset.description,
+                preset.instructions,
+                contentHash,
+                timestamp
+              ]
+            }
+          ],
+          'write'
+        )
+      }
+    }
+    const legacyTable = await this.client.execute(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'automations'"
+    )
+    if (legacyTable.rows.length > 0) {
+      const migrated = await this.client.execute({
+        sql: "SELECT value_json FROM app_settings WHERE key = 'migration.legacy-automations.v4'"
+      })
+      if (migrated.rows.length === 0) {
+        const legacyRows = await this.client.execute('SELECT * FROM automations')
+        for (const row of legacyRows.rows) {
+          const sidekickId = String(row.owner_sydekyk_id)
+          if (!presetSidekicks.some((preset) => preset.id === sidekickId)) continue
+          const schedule = JSON.parse(String(row.schedule_json))
+          const input = JSON.parse(String(row.input_json)) as Record<string, unknown>
+          const status = ['draft', 'active', 'paused'].includes(String(row.status))
+            ? String(row.status)
+            : 'paused'
+          await this.client.execute({
+            sql: `INSERT INTO automation_specs
+              (id, name, sidekick_id, sidekick_version, prompt, trigger_json, approval_mode, status,
+               missed_run_policy, next_run_at, last_run_at, last_mission_id, last_error,
+               created_at, updated_at)
+              VALUES (?, ?, ?, 1, ?, ?, 'read-only', ?, ?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT(id) DO NOTHING`,
+            args: [
+              String(row.id),
+              String(row.name),
+              sidekickId,
+              legacyAutomationPrompt(sidekickId, input),
+              JSON.stringify({ kind: 'schedule', schedule }),
+              status,
+              String(row.missed_run_policy),
+              row.next_run_at ? String(row.next_run_at) : null,
+              row.last_run_at ? String(row.last_run_at) : null,
+              row.last_mission_id ? String(row.last_mission_id) : null,
+              row.last_error ? String(row.last_error) : null,
+              String(row.created_at),
+              String(row.updated_at)
+            ]
+          })
+        }
+        await this.client.execute({
+          sql: `INSERT INTO app_settings (key, value_json, updated_at) VALUES (?, ?, ?)`,
+          args: ['migration.legacy-automations.v4', 'true', now()]
+        })
+      }
+    }
+    await this.client.execute('PRAGMA user_version = 4')
   }
 
   async setSetting(key: string, value: unknown): Promise<void> {
@@ -194,6 +374,321 @@ export class AppStore {
 
   async getImapStatus(): Promise<ImapPublicStatus | undefined> {
     return this.getSetting<ImapPublicStatus>('imap.status')
+  }
+
+  async createSidekick(input: {
+    id: string
+    name: string
+    description: string
+    instructions: string
+    source?: 'preset' | 'user'
+    status?: SidekickStatus
+  }): Promise<SidekickRecord> {
+    await this.ready
+    const timestamp = now()
+    const contentHash = this.sidekickContentHash(input)
+    await this.client.batch(
+      [
+        {
+          sql: `INSERT INTO sidekicks
+            (id, name, description, instructions, source, status, version, content_hash, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+          args: [
+            input.id,
+            input.name,
+            input.description,
+            input.instructions,
+            input.source ?? 'user',
+            input.status ?? 'active',
+            contentHash,
+            timestamp,
+            timestamp
+          ]
+        },
+        {
+          sql: `INSERT INTO sidekick_versions
+            (sidekick_id, version, name, description, instructions, content_hash, created_at)
+            VALUES (?, 1, ?, ?, ?, ?, ?)`,
+          args: [
+            input.id,
+            input.name,
+            input.description,
+            input.instructions,
+            contentHash,
+            timestamp
+          ]
+        }
+      ],
+      'write'
+    )
+    return (await this.getSidekick(input.id)) as SidekickRecord
+  }
+
+  async getSidekick(id: string): Promise<SidekickRecord | undefined> {
+    await this.ready
+    const result = await this.client.execute({
+      sql: 'SELECT * FROM sidekicks WHERE id = ?',
+      args: [id]
+    })
+    if (!result.rows[0]) return undefined
+    return this.rowToSidekick(result.rows[0], await this.listSidekickCapabilities(id))
+  }
+
+  async listSidekicks(options: { activeOnly?: boolean } = {}): Promise<SidekickRecord[]> {
+    await this.ready
+    const result = await this.client.execute(
+      options.activeOnly
+        ? "SELECT * FROM sidekicks WHERE status = 'active' ORDER BY name"
+        : 'SELECT * FROM sidekicks ORDER BY name'
+    )
+    return Promise.all(
+      result.rows.map(async (row) =>
+        this.rowToSidekick(row, await this.listSidekickCapabilities(String(row.id)))
+      )
+    )
+  }
+
+  async updateSidekick(
+    id: string,
+    update: Partial<Pick<SidekickRecord, 'name' | 'description' | 'instructions' | 'status'>>
+  ): Promise<SidekickRecord> {
+    await this.ready
+    const current = await this.getSidekick(id)
+    if (!current) throw new Error('The Sidekick was not found')
+    const next = { ...current, ...update }
+    const contentChanged =
+      next.name !== current.name ||
+      next.description !== current.description ||
+      next.instructions !== current.instructions
+    const version = contentChanged ? current.version + 1 : current.version
+    const contentHash = contentChanged ? this.sidekickContentHash(next) : current.contentHash
+    const timestamp = now()
+    const statements: Array<{ sql: string; args: Array<string | number> }> = [
+      {
+        sql: `UPDATE sidekicks SET name = ?, description = ?, instructions = ?, status = ?,
+              version = ?, content_hash = ?, updated_at = ? WHERE id = ?`,
+        args: [
+          next.name,
+          next.description,
+          next.instructions,
+          next.status,
+          version,
+          contentHash,
+          timestamp,
+          id
+        ]
+      }
+    ]
+    if (contentChanged) {
+      statements.push({
+        sql: `INSERT INTO sidekick_versions
+          (sidekick_id, version, name, description, instructions, content_hash, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        args: [id, version, next.name, next.description, next.instructions, contentHash, timestamp]
+      })
+    }
+    await this.client.batch(statements, 'write')
+    return (await this.getSidekick(id)) as SidekickRecord
+  }
+
+  async setSidekickCapability(
+    sidekickId: string,
+    capability: SidekickCapability
+  ): Promise<SidekickCapability> {
+    await this.ready
+    if (!(await this.getSidekick(sidekickId))) throw new Error('The Sidekick was not found')
+    const timestamp = now()
+    await this.client.execute({
+      sql: `INSERT INTO sidekick_capabilities
+            (id, sidekick_id, model, label, operations_json, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(sidekick_id, model) DO UPDATE SET label = excluded.label,
+              operations_json = excluded.operations_json, updated_at = excluded.updated_at`,
+      args: [
+        randomUUID(),
+        sidekickId,
+        capability.model,
+        capability.label,
+        JSON.stringify([...new Set(capability.operations)]),
+        timestamp,
+        timestamp
+      ]
+    })
+    return capability
+  }
+
+  async listSidekickCapabilities(sidekickId: string): Promise<SidekickCapability[]> {
+    await this.ready
+    const result = await this.client.execute({
+      sql: 'SELECT model, label, operations_json FROM sidekick_capabilities WHERE sidekick_id = ? ORDER BY label',
+      args: [sidekickId]
+    })
+    return result.rows.map((row) => ({
+      model: String(row.model),
+      label: String(row.label),
+      operations: JSON.parse(String(row.operations_json)) as SidekickOperation[]
+    }))
+  }
+
+  async hasSidekickCapability(
+    sidekickId: string,
+    model: string,
+    operation: SidekickOperation
+  ): Promise<boolean> {
+    const capabilities = await this.listSidekickCapabilities(sidekickId)
+    return capabilities.some(
+      (capability) =>
+        (capability.model === model || capability.model === '*') &&
+        capability.operations.includes(operation)
+    )
+  }
+
+  async createAutomationSpec(input: AutomationSpecCreateInput): Promise<AutomationSpecRecord> {
+    await this.ready
+    const sidekick = await this.getSidekick(input.sidekickId)
+    if (!sidekick) throw new Error('The Sidekick was not found')
+    const id = randomUUID()
+    const timestamp = now()
+    const schemaFingerprint = sidekickScopeFingerprint(sidekick.capabilities)
+    const nextRunAt =
+      input.status === 'active' && input.trigger.kind === 'schedule'
+        ? nextScheduleRun(input.trigger.schedule).toISOString()
+        : null
+    await this.client.execute({
+      sql: `INSERT INTO automation_specs
+        (id, name, sidekick_id, sidekick_version, prompt, trigger_json, approval_mode, status,
+         missed_run_policy, schema_fingerprint, next_run_at, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        id,
+        input.name,
+        input.sidekickId,
+        sidekick.version,
+        input.prompt,
+        JSON.stringify(input.trigger),
+        input.approvalMode,
+        input.status,
+        input.missedRunPolicy,
+        schemaFingerprint,
+        nextRunAt,
+        timestamp,
+        timestamp
+      ]
+    })
+    return (await this.getAutomationSpec(id)) as AutomationSpecRecord
+  }
+
+  async getAutomationSpec(id: string): Promise<AutomationSpecRecord | undefined> {
+    await this.ready
+    const result = await this.client.execute({
+      sql: `SELECT automation_specs.*, sidekicks.name AS sidekick_name
+            FROM automation_specs JOIN sidekicks ON sidekicks.id = automation_specs.sidekick_id
+            WHERE automation_specs.id = ?`,
+      args: [id]
+    })
+    return result.rows[0] ? this.rowToAutomationSpec(result.rows[0]) : undefined
+  }
+
+  async listAutomationSpecs(limit = 100): Promise<AutomationSpecRecord[]> {
+    await this.ready
+    const result = await this.client.execute({
+      sql: `SELECT automation_specs.*, sidekicks.name AS sidekick_name
+            FROM automation_specs JOIN sidekicks ON sidekicks.id = automation_specs.sidekick_id
+            ORDER BY automation_specs.updated_at DESC LIMIT ?`,
+      args: [limit]
+    })
+    return result.rows.map((row) => this.rowToAutomationSpec(row))
+  }
+
+  async updateAutomationSpec(
+    id: string,
+    update: AutomationSpecUpdateInput
+  ): Promise<AutomationSpecRecord> {
+    await this.ready
+    const current = await this.getAutomationSpec(id)
+    if (!current) throw new Error('The automation was not found')
+    const sidekick = update.repinSidekick ? await this.getSidekick(current.sidekickId) : undefined
+    if (update.repinSidekick && !sidekick) throw new Error('The Sidekick was not found')
+    const trigger = update.trigger ?? current.trigger
+    const currentSidekick = sidekick ?? (await this.getSidekick(current.sidekickId))
+    if (!currentSidekick) throw new Error('The Sidekick was not found')
+    const schemaFingerprint = sidekickScopeFingerprint(currentSidekick.capabilities)
+    const status = update.status ?? current.status
+    const nextRunAt =
+      status === 'active' && trigger.kind === 'schedule'
+        ? nextScheduleRun(trigger.schedule).toISOString()
+        : null
+    await this.client.execute({
+      sql: `UPDATE automation_specs SET name = ?, sidekick_version = ?, prompt = ?,
+            trigger_json = ?, approval_mode = ?, status = ?, missed_run_policy = ?,
+            schema_fingerprint = ?, next_run_at = ?, last_error = NULL, updated_at = ?
+            WHERE id = ?`,
+      args: [
+        update.name ?? current.name,
+        sidekick?.version ?? current.sidekickVersion,
+        update.prompt ?? current.prompt,
+        JSON.stringify(trigger),
+        update.approvalMode ?? current.approvalMode,
+        status,
+        update.missedRunPolicy ?? current.missedRunPolicy,
+        schemaFingerprint,
+        nextRunAt,
+        now(),
+        id
+      ]
+    })
+    return (await this.getAutomationSpec(id)) as AutomationSpecRecord
+  }
+
+  async deleteAutomationSpec(id: string): Promise<void> {
+    await this.ready
+    await this.client.execute({ sql: 'DELETE FROM automation_specs WHERE id = ?', args: [id] })
+  }
+
+  async listDueAutomationSpecs(at = new Date()): Promise<AutomationSpecRecord[]> {
+    await this.ready
+    const result = await this.client.execute({
+      sql: `SELECT automation_specs.*, sidekicks.name AS sidekick_name
+            FROM automation_specs JOIN sidekicks ON sidekicks.id = automation_specs.sidekick_id
+            WHERE automation_specs.status = 'active' AND automation_specs.next_run_at IS NOT NULL
+              AND automation_specs.next_run_at <= ?
+            ORDER BY automation_specs.next_run_at LIMIT 25`,
+      args: [at.toISOString()]
+    })
+    return result.rows.map((row) => this.rowToAutomationSpec(row))
+  }
+
+  async claimAutomationSpec(
+    id: string,
+    expectedRunAt: string,
+    nextRunAt: string
+  ): Promise<boolean> {
+    await this.ready
+    const result = await this.client.execute({
+      sql: `UPDATE automation_specs SET next_run_at = ?, updated_at = ?
+            WHERE id = ? AND status = 'active' AND next_run_at = ?`,
+      args: [nextRunAt, now(), id, expectedRunAt]
+    })
+    return result.rowsAffected === 1
+  }
+
+  async recordAutomationSpecRun(
+    id: string,
+    input: { missionId?: string; error?: string; failed?: boolean; ranAt?: string }
+  ): Promise<void> {
+    await this.ready
+    await this.client.execute({
+      sql: `UPDATE automation_specs SET last_run_at = ?, last_mission_id = ?, last_error = ?,
+            status = CASE WHEN ? THEN 'error' ELSE status END, updated_at = ? WHERE id = ?`,
+      args: [
+        input.ranAt ?? now(),
+        input.missionId ?? null,
+        input.error ?? null,
+        input.failed ? 1 : 0,
+        now(),
+        id
+      ]
+    })
   }
 
   async createMission(
@@ -306,149 +801,6 @@ export class AppStore {
       acknowledged
     })
     return acknowledged
-  }
-
-  async createAutomation(input: AutomationCreateInput): Promise<AutomationRecord> {
-    await this.ready
-    const timestamp = now()
-    const id = randomUUID()
-    const nextRunAt =
-      input.status === 'active' ? nextScheduleRun(input.schedule).toISOString() : null
-    await this.client.execute({
-      sql: `INSERT INTO automations
-        (id, name, owner_sydekyk_id, workflow_id, schedule_json, input_json, missed_run_policy,
-         status, next_run_at, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      args: [
-        id,
-        input.name,
-        input.ownerSydekykId,
-        input.workflowId,
-        JSON.stringify(input.schedule),
-        JSON.stringify(input.inputData),
-        input.missedRunPolicy,
-        input.status,
-        nextRunAt,
-        timestamp,
-        timestamp
-      ]
-    })
-    return (await this.getAutomation(id)) as AutomationRecord
-  }
-
-  async getAutomation(id: string): Promise<AutomationRecord | undefined> {
-    await this.ready
-    const result = await this.client.execute({
-      sql: 'SELECT * FROM automations WHERE id = ?',
-      args: [id]
-    })
-    return result.rows[0] ? this.rowToAutomation(result.rows[0]) : undefined
-  }
-
-  async listAutomations(limit = 100): Promise<AutomationRecord[]> {
-    await this.ready
-    const result = await this.client.execute({
-      sql: 'SELECT * FROM automations ORDER BY updated_at DESC LIMIT ?',
-      args: [limit]
-    })
-    return result.rows.map((row) => this.rowToAutomation(row))
-  }
-
-  async updateAutomation(id: string, update: AutomationUpdateInput): Promise<AutomationRecord> {
-    await this.ready
-    const current = await this.getAutomation(id)
-    if (!current) throw new Error(`Automation ${id} was not found`)
-    const schedule = update.schedule ?? current.schedule
-    const status = update.status ?? current.status
-    const nextRunAt =
-      status === 'active'
-        ? nextScheduleRun(schedule).toISOString()
-        : status === 'draft' || status === 'paused'
-          ? undefined
-          : current.nextRunAt
-    await this.client.execute({
-      sql: `UPDATE automations SET name = ?, schedule_json = ?, input_json = ?,
-            missed_run_policy = ?, status = ?, next_run_at = ?, last_error = NULL, updated_at = ?
-            WHERE id = ?`,
-      args: [
-        update.name ?? current.name,
-        JSON.stringify(schedule),
-        JSON.stringify(update.inputData ?? current.inputData),
-        update.missedRunPolicy ?? current.missedRunPolicy,
-        status,
-        nextRunAt ?? null,
-        now(),
-        id
-      ]
-    })
-    return (await this.getAutomation(id)) as AutomationRecord
-  }
-
-  async setAutomationStatus(id: string, status: AutomationStatus): Promise<AutomationRecord> {
-    await this.ready
-    const current = await this.getAutomation(id)
-    if (!current) throw new Error(`Automation ${id} was not found`)
-    const nextRunAt = status === 'active' ? nextScheduleRun(current.schedule).toISOString() : null
-    await this.client.execute({
-      sql: `UPDATE automations SET status = ?, next_run_at = ?, last_error = NULL, updated_at = ?
-            WHERE id = ?`,
-      args: [status, nextRunAt, now(), id]
-    })
-    return (await this.getAutomation(id)) as AutomationRecord
-  }
-
-  async deleteAutomation(id: string): Promise<void> {
-    await this.ready
-    await this.client.execute({ sql: 'DELETE FROM automations WHERE id = ?', args: [id] })
-  }
-
-  async deleteAutomations(ids: string[]): Promise<void> {
-    await this.ready
-    if (ids.length === 0) return
-    await this.client.batch(
-      ids.map((id) => ({ sql: 'DELETE FROM automations WHERE id = ?', args: [id] })),
-      'write'
-    )
-  }
-
-  async listDueAutomations(at = new Date()): Promise<AutomationRecord[]> {
-    await this.ready
-    const result = await this.client.execute({
-      sql: `SELECT * FROM automations
-            WHERE status = 'active' AND next_run_at IS NOT NULL AND next_run_at <= ?
-            ORDER BY next_run_at ASC LIMIT 25`,
-      args: [at.toISOString()]
-    })
-    return result.rows.map((row) => this.rowToAutomation(row))
-  }
-
-  async claimAutomation(id: string, expectedRunAt: string, nextRunAt: string): Promise<boolean> {
-    await this.ready
-    const result = await this.client.execute({
-      sql: `UPDATE automations SET next_run_at = ?, updated_at = ?
-            WHERE id = ? AND status = 'active' AND next_run_at = ?`,
-      args: [nextRunAt, now(), id, expectedRunAt]
-    })
-    return result.rowsAffected === 1
-  }
-
-  async recordAutomationRun(
-    id: string,
-    input: { missionId?: string; error?: string; failed?: boolean; ranAt?: string }
-  ): Promise<void> {
-    await this.ready
-    await this.client.execute({
-      sql: `UPDATE automations SET last_run_at = ?, last_mission_id = ?, last_error = ?,
-            status = CASE WHEN ? THEN 'error' ELSE status END, updated_at = ? WHERE id = ?`,
-      args: [
-        input.ranAt ?? now(),
-        input.missionId ?? null,
-        input.error ?? null,
-        input.failed ? 1 : 0,
-        now(),
-        id
-      ]
-    })
   }
 
   async findInboundEmail(
@@ -674,18 +1026,56 @@ export class AppStore {
     }
   }
 
-  private rowToAutomation(row: Record<string, unknown>): AutomationRecord {
-    const schedule = JSON.parse(String(row.schedule_json)) as AutomationSchedule
+  private sidekickContentHash(input: {
+    name: string
+    description: string
+    instructions: string
+  }): string {
+    return createHash('sha256')
+      .update(`${input.name}\n${input.description}\n${input.instructions}`)
+      .digest('hex')
+  }
+
+  private rowToSidekick(
+    row: Record<string, unknown>,
+    capabilities: SidekickCapability[]
+  ): SidekickRecord {
     return {
       id: String(row.id),
       name: String(row.name),
-      ownerSydekykId: String(row.owner_sydekyk_id) as AutomationRecord['ownerSydekykId'],
-      workflowId: String(row.workflow_id) as AutomationRecord['workflowId'],
-      schedule,
-      inputData: JSON.parse(String(row.input_json)),
-      missedRunPolicy: String(row.missed_run_policy) as AutomationRecord['missedRunPolicy'],
-      status: String(row.status) as AutomationStatus,
-      scheduleLabel: scheduleLabel(schedule),
+      description: String(row.description),
+      instructions: String(row.instructions),
+      source: row.source === 'preset' ? 'preset' : 'user',
+      status: String(row.status) as SidekickStatus,
+      version: Number(row.version),
+      contentHash: String(row.content_hash),
+      capabilities,
+      createdAt: String(row.created_at),
+      updatedAt: String(row.updated_at)
+    }
+  }
+
+  private rowToAutomationSpec(row: Record<string, unknown>): AutomationSpecRecord {
+    const trigger = JSON.parse(String(row.trigger_json)) as AutomationSpecRecord['trigger']
+    const triggerLabel =
+      trigger.kind === 'schedule'
+        ? scheduleLabel(trigger.schedule)
+        : trigger.kind === 'email'
+          ? `Email · ${trigger.mailbox}`
+          : 'Manual'
+    return {
+      id: String(row.id),
+      name: String(row.name),
+      sidekickId: String(row.sidekick_id),
+      sidekickName: String(row.sidekick_name),
+      sidekickVersion: Number(row.sidekick_version),
+      prompt: String(row.prompt),
+      trigger,
+      approvalMode: String(row.approval_mode) as AutomationSpecRecord['approvalMode'],
+      status: String(row.status) as AutomationSpecStatus,
+      missedRunPolicy: String(row.missed_run_policy) as AutomationSpecRecord['missedRunPolicy'],
+      triggerLabel,
+      schemaFingerprint: row.schema_fingerprint ? String(row.schema_fingerprint) : undefined,
       nextRunAt: row.next_run_at ? String(row.next_run_at) : undefined,
       lastRunAt: row.last_run_at ? String(row.last_run_at) : undefined,
       lastMissionId: row.last_mission_id ? String(row.last_mission_id) : undefined,

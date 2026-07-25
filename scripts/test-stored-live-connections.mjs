@@ -63,21 +63,29 @@ try {
   expect(odoo.connected && odoo.mode === 'live', 'The stored live Odoo test server did not connect')
   expect(!odoo.liveWrites, 'The live Odoo test unexpectedly enabled writes')
 
-  console.log('Running Nudge against the live CRM records…')
-  const nudge = await worker.json('/sydekyks/workflows/nudge/stale-opportunities', {
+  console.log('Running the Nudge skill against the live CRM records…')
+  const automation = await worker.json('/sydekyks/automations', {
     method: 'POST',
-    body: { staleAfterDays: 2, limit: 20, notifyOnlyWhenAttention: true },
+    body: {
+      name: 'Stored-connection CRM review',
+      sidekickId: 'nudge',
+      prompt: 'Review up to 20 open opportunities and summarize which need attention.',
+      trigger: { kind: 'manual' },
+      approvalMode: 'read-only',
+      missedRunPolicy: 'run-on-start',
+      status: 'active'
+    }
+  })
+  const nudge = await worker.json(`/sydekyks/automations/${automation.id}/run`, {
+    method: 'POST',
     timeoutMs: 180_000
   })
-  expect(nudge.status === 'completed', `Live Odoo Nudge ended as ${nudge.status}: ${nudge.summary}`)
-  if (nudge.result?.result?.outcome !== 'no-opportunities') {
-    expect(
-      nudge.result?.result?.assessment?.source === 'llm',
-      'Live Odoo Nudge did not return its LLM assessment'
-    )
-  }
+  expect(
+    nudge.status === 'completed',
+    `Live Odoo Sidekick ended as ${nudge.status}: ${nudge.summary}`
+  )
   console.log(
-    'Stored live connection pass completed: encrypted credentials unlocked locally, Odoo stayed read-only, and Nudge completed against the test server.'
+    'Stored live connection pass completed: encrypted credentials unlocked locally, Odoo stayed read-only, and the Nudge skill completed against the test server.'
   )
 } catch (error) {
   failure = error

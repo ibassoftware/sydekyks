@@ -100,10 +100,10 @@ try {
   const unauthorized = await fetch(`${worker.baseUrl}/sydekyks/bootstrap`)
   expect(unauthorized.status === 401, 'The worker accepted an unauthenticated request')
 
-  console.log('1/11 Connecting live AI and disposable demo Odoo…')
+  console.log('1/8 Connecting live AI and disposable demo Odoo…')
   await connectCoreGadgets(worker)
 
-  console.log('2/11 Exercising Syd chat streaming…')
+  console.log('2/8 Exercising Syd chat streaming…')
   const chat = await worker.request('/chat/syd', {
     method: 'POST',
     body: {
@@ -123,7 +123,7 @@ try {
   const chatBody = await chat.text()
   expect(chat.ok && chatBody.length > 20, `Syd chat did not stream a response (${chat.status})`)
 
-  console.log('3/11 Uploading PDF and image documents, including duplicate detection…')
+  console.log('3/8 Uploading PDF and image documents, including duplicate detection…')
   const pdfBytes = pdf([
     'Vendor: Acme Supplies',
     'Invoice Number: PDF-E2E-20260720',
@@ -184,14 +184,14 @@ try {
     'Image intake did not return a controlled classification state'
   )
 
-  console.log('4/11 Creating and analyzing the built-in inbound email sample…')
+  console.log('4/8 Creating and analyzing the built-in inbound email sample…')
   const sample = await worker.json('/sydekyks/inbound-email/sample', {
     method: 'POST',
     timeoutMs: 180_000
   })
   expect(sample.email?.sourceType === 'email' && !sample.duplicate, 'Sample email intake failed')
 
-  console.log('5/11 Running Ledger dry-run and duplicate guards…')
+  console.log('5/8 Running Ledger dry-run and duplicate guards…')
   const dryRun = await worker.json('/sydekyks/workflows/ledger/vendor-bill', {
     method: 'POST',
     body: bill(),
@@ -212,7 +212,7 @@ try {
     'Odoo duplicate guard did not stop the bill'
   )
 
-  console.log('6/11 Exercising sequential partner/tax approvals with a worker restart…')
+  console.log('6/8 Exercising sequential partner/tax approvals with a worker restart…')
   const approvalMission = await worker.json('/sydekyks/workflows/ledger/vendor-bill', {
     method: 'POST',
     body: bill({
@@ -245,121 +245,53 @@ try {
   expect(afterRestart.status === 'completed', `Restarted approval ended as ${afterRestart.status}`)
   expect(afterRestart.result?.result?.outcome === 'created', 'Approved demo bill was not created')
 
-  console.log('7/11 Running Nudge with its structured CRM contract…')
-  const nudge = await worker.json('/sydekyks/workflows/nudge/stale-opportunities', {
-    method: 'POST',
-    body: { staleAfterDays: 2, limit: 20, notifyOnlyWhenAttention: true },
-    timeoutMs: 180_000
-  })
-  expect(nudge.status === 'completed', `Nudge ended as ${nudge.status}: ${nudge.summary}`)
-  expect(nudge.result?.result?.assessment?.source === 'llm', 'Nudge returned no LLM assessment')
-
-  console.log('8/11 Running Mirror candidate screening and line-item confirmation…')
-  const mirror = await worker.json('/sydekyks/workflows/mirror/duplicate-bills', {
-    method: 'POST',
-    body: { lookbackDays: 365, limit: 20, notifyOnlyWhenAttention: true },
-    timeoutMs: 240_000
-  })
-  expect(mirror.status === 'completed', `Mirror ended as ${mirror.status}: ${mirror.summary}`)
-  expect(mirror.result?.result?.assessment?.source === 'llm', 'Mirror returned no LLM assessment')
+  console.log('7/8 Verifying dynamic Sidekick bootstrap and generic automation CRUD…')
+  const bootstrap = await worker.json('/sydekyks/bootstrap')
   expect(
-    mirror.result.result.assessment.pairs.some(
-      (pair) => pair.billIds.includes(1) && pair.billIds.includes(2)
+    ['nudge', 'mirror', 'shield'].every((id) =>
+      bootstrap.sidekicks.some((sidekick) => sidekick.id === id && sidekick.status === 'active')
     ),
-    'Mirror did not complete the seeded split-vendor comparison'
+    'Preset Markdown Sidekicks were not seeded'
   )
-
-  console.log('9/11 Running Shield through Watch, Assess, Rank, and Brief…')
-  const shield = await worker.json('/sydekyks/workflows/shield/fraud-review', {
-    method: 'POST',
-    body: { lookbackDays: 365, limit: 20, notifyOnlyWhenAttention: true },
-    timeoutMs: 240_000
-  })
-  expect(shield.status === 'completed', `Shield ended as ${shield.status}: ${shield.summary}`)
-  expect(shield.result?.result?.assessment?.source === 'llm', 'Shield returned no LLM assessment')
-  expect(shield.result?.result?.brief?.source === 'llm', 'Shield returned no LLM auditor brief')
-  expect(
-    shield.result.result.phases.map((phase) => phase.id).join(',') === 'watch,assess,rank,brief',
-    'Shield did not expose its four required phases in order'
-  )
-
-  console.log('10/11 Exercising multi-Sydekyk automation create, run, pause, and delete…')
   const automation = await worker.json('/sydekyks/automations', {
     method: 'POST',
     body: {
-      name: 'Release stale-opportunity check',
-      ownerSydekykId: 'nudge',
-      workflowId: 'nudge-stale-opportunities',
-      schedule: {
-        kind: 'interval',
-        every: 3,
-        unit: 'days',
-        time: '09:00',
-        timezone: 'UTC',
-        anchorAt: new Date().toISOString()
-      },
-      inputData: { staleAfterDays: 2, limit: 20, notifyOnlyWhenAttention: true },
+      name: 'Release custom-contract review',
+      sidekickId: 'nudge',
+      prompt:
+        'Discover the Rental Contract business entity and summarize contracts due for renewal.',
+      trigger: { kind: 'manual' },
+      approvalMode: 'read-only',
       missedRunPolicy: 'run-on-start',
       status: 'draft'
     }
   })
+  expect(
+    automation.sidekickId === 'nudge' && automation.sidekickVersion === 1,
+    'Automation did not pin the Sidekick version'
+  )
   const edited = await worker.json(`/sydekyks/automations/${automation.id}`, {
     method: 'PATCH',
-    body: { name: 'Release check every three days', inputData: { staleAfterDays: 3 } }
+    body: { name: 'Release rental-contract review' }
   })
-  expect(edited.inputData.staleAfterDays === 3, 'Automation edit was not persisted')
+  expect(edited.name === 'Release rental-contract review', 'Automation edit was not persisted')
   const activated = await worker.json(`/sydekyks/automations/${automation.id}/status`, {
     method: 'POST',
     body: { status: 'active' }
   })
-  expect(activated.status === 'active' && activated.nextRunAt, 'Automation did not activate')
+  expect(activated.status === 'active', 'Manual automation did not activate')
   const automationRun = await worker.json(`/sydekyks/automations/${automation.id}/run`, {
     method: 'POST',
     timeoutMs: 180_000
   })
-  expect(automationRun.status === 'completed', 'Automation run-now did not complete')
-  const paused = await worker.json(`/sydekyks/automations/${automation.id}/status`, {
-    method: 'POST',
-    body: { status: 'paused' }
-  })
-  expect(paused.status === 'paused', 'Automation did not pause')
+  expect(automationRun.status === 'completed', 'Generic Sidekick automation did not complete')
   const deleted = await worker.json(`/sydekyks/automations/${automation.id}`, {
     method: 'DELETE'
   })
   expect(deleted.deleted, 'Automation deletion was not acknowledged')
 
-  for (const owner of ['mirror', 'shield']) {
-    const workflowId = owner === 'mirror' ? 'mirror-duplicate-bills' : 'shield-fraud-review'
-    const watchAutomation = await worker.json('/sydekyks/automations', {
-      method: 'POST',
-      body: {
-        name: `Release ${owner} watch`,
-        ownerSydekykId: owner,
-        workflowId,
-        schedule: {
-          kind: 'calendar',
-          daysOfWeek: [1, 2, 3, 4, 5],
-          time: '09:00',
-          timezone: 'UTC'
-        },
-        inputData: { lookbackDays: 365, limit: 20, notifyOnlyWhenAttention: true },
-        missedRunPolicy: 'run-on-start',
-        status: 'active'
-      }
-    })
-    const watchRun = await worker.json(`/sydekyks/automations/${watchAutomation.id}/run`, {
-      method: 'POST',
-      timeoutMs: 240_000
-    })
-    expect(watchRun.status === 'completed', `${owner} automation did not complete`)
-    const watchDeleted = await worker.json(`/sydekyks/automations/${watchAutomation.id}`, {
-      method: 'DELETE'
-    })
-    expect(watchDeleted.deleted, `${owner} automation was not deleted`)
-  }
-
   if (includeGreenMail) {
-    console.log('11/11 Syncing the five-message GreenMail mailbox…')
+    console.log('11/8 Syncing the five-message GreenMail mailbox…')
     const imap = await worker.json('/sydekyks/gadgets/imap/connect', {
       method: 'POST',
       body: {
@@ -387,7 +319,7 @@ try {
       'GreenMail non-bill fixture was not classified as a non-bill'
     )
   } else {
-    console.log('11/11 GreenMail skipped (use --greenmail for the Docker-backed mailbox pass).')
+    console.log('11/8 GreenMail skipped (use --greenmail for the Docker-backed mailbox pass).')
   }
 
   if (includeLiveOdoo) {
@@ -420,7 +352,7 @@ try {
   )
 
   console.log(
-    `Functional matrix passed: live AI, chat, PDF/image, sample email, Ledger, restart recovery, Nudge, Mirror, Shield, multi-Sydekyk automations${includeGreenMail ? ', and GreenMail IMAP' : ''}.`
+    `Functional matrix passed: live AI, chat, PDF/image, sample email, Ledger, restart recovery, dynamic Sidekicks, and generic automations${includeGreenMail ? ', and GreenMail IMAP' : ''}.`
   )
 } finally {
   await worker?.stop().catch(() => undefined)

@@ -118,12 +118,7 @@ export const friendlyErrorMessage = (
 ): string => {
   const message = extractMessage(error) ?? fallback
   const lower = message.toLocaleLowerCase()
-  if (
-    lower.includes('structured') ||
-    lower.includes('could not produce nudge’s required assessment format') ||
-    lower.includes('no crm assessment') ||
-    lower.includes('did not assess every supplied opportunity')
-  ) {
+  if (lower.includes('structured')) {
     return 'The AI model returned an incomplete assessment. No result was saved; retry or choose a model with reliable structured output in Gadgets.'
   }
   if (lower.includes('ai setup required')) {

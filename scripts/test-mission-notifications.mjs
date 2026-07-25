@@ -29,15 +29,15 @@ try {
     status: 'waiting_approval'
   })
   const needsAttention = await appStore.createMission({
-    kind: 'mirror.duplicate-bills',
-    sydekyk: 'Mirror',
+    kind: 'automation.schema-drift',
+    sydekyk: 'Renewals',
     title: 'Review required',
     summary: 'Needs attention.',
     status: 'needs_attention'
   })
   const completed = await appStore.createMission({
-    kind: 'shield.fraud-review',
-    sydekyk: 'Shield',
+    kind: 'automation.agent',
+    sydekyk: 'Nudge',
     title: 'Complete',
     summary: 'No action required.',
     status: 'completed'

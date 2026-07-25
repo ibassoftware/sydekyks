@@ -5,9 +5,6 @@ import { appStore } from '../lib/app-store'
 type OdooRecord = Record<string, unknown> & { id: number }
 type Domain = NonNullable<GenericOdooRequest['domain']>
 
-const writableModels = new Set(['res.partner', 'account.tax', 'account.move'])
-const genericWritableModels = new Set(['res.partner', 'account.move'])
-
 export interface ConnectionTest {
   userId: number
   serverVersion?: string
@@ -30,12 +27,9 @@ export interface OdooGateway {
   test(): Promise<ConnectionTest>
 }
 
-const ensureModelAllowed = (model: string, write = false): void => {
+const ensureModelAllowed = (model: string): void => {
   if (!isValidOdooModelName(model)) {
     throw new Error(`Model ${model} is not a valid Odoo model name`)
-  }
-  if (write && !writableModels.has(model)) {
-    throw new Error(`Writes to ${model} are not allowed by this Gadget`)
   }
 }
 
@@ -49,7 +43,8 @@ class DemoOdooGateway implements OdooGateway {
       { id: 3, name: 'Vendor Bill Line', model: 'account.move.line', transient: false },
       { id: 4, name: 'CRM Lead', model: 'crm.lead', transient: false },
       { id: 5, name: 'Activity', model: 'mail.activity', transient: false },
-      { id: 6, name: 'Message', model: 'mail.message', transient: false }
+      { id: 6, name: 'Message', model: 'mail.message', transient: false },
+      { id: 7, name: 'Rental Contract', model: 'x_rental.contract', transient: false }
     ],
     'res.partner': [
       {
@@ -313,6 +308,16 @@ class DemoOdooGateway implements OdooGateway {
         old_value_char: 'Previous bank account',
         new_value_char: 'Updated bank account'
       }
+    ],
+    'x_rental.contract': [
+      {
+        id: 701,
+        name: 'North warehouse lease',
+        partner_id: [1, 'Acme Supplies'],
+        state: 'active',
+        renewal_date: '2026-10-01',
+        active: true
+      }
     ]
   }
 
@@ -365,7 +370,7 @@ class DemoOdooGateway implements OdooGateway {
 
   async create(model: string, values: Record<string, unknown>): Promise<number> {
     await this.ensureLoaded()
-    ensureModelAllowed(model, true)
+    ensureModelAllowed(model)
     const collection = (this.records[model] ??= [])
     const id = Math.max(0, ...collection.map((record) => record.id)) + 1
     collection.push({ id, ...structuredClone(values) })
@@ -375,7 +380,7 @@ class DemoOdooGateway implements OdooGateway {
 
   async write(model: string, ids: number[], values: Record<string, unknown>): Promise<boolean> {
     await this.ensureLoaded()
-    ensureModelAllowed(model, true)
+    ensureModelAllowed(model)
     let changed = false
     this.records[model] = (this.records[model] ?? []).map((record) => {
       if (!ids.includes(record.id)) return record
@@ -475,7 +480,7 @@ class LiveOdooGateway implements OdooGateway {
     ensureModelAllowed(model)
     return this.execute(model, 'fields_get', [
       fields ?? [],
-      ['string', 'type', 'required', 'readonly']
+      ['string', 'type', 'required', 'readonly', 'relation', 'selection', 'help', 'store']
     ])
   }
 
@@ -505,12 +510,12 @@ class LiveOdooGateway implements OdooGateway {
   }
 
   async create(model: string, values: Record<string, unknown>): Promise<number> {
-    ensureModelAllowed(model, true)
+    ensureModelAllowed(model)
     return this.execute(model, 'create', [values])
   }
 
   async write(model: string, ids: number[], values: Record<string, unknown>): Promise<boolean> {
-    ensureModelAllowed(model, true)
+    ensureModelAllowed(model)
     return this.execute(model, 'write', [ids, values])
   }
 
@@ -725,11 +730,6 @@ export const runGenericOdooOperation = async (
   const gateway = odooGadget.getGateway()
   const status = odooGadget.getStatus()
   const write = request.operation === 'create' || request.operation === 'write'
-  if (write && !genericWritableModels.has(request.model)) {
-    throw new Error(
-      `Generic writes to ${request.model} are not allowed; use a specialized workflow`
-    )
-  }
   const canWrite = request.confirmWrite && (gateway.mode === 'demo' || status.liveWrites)
 
   if (write && !canWrite) {

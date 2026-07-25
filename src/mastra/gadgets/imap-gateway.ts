@@ -7,6 +7,7 @@ import type {
   MissionRecord
 } from '../domain/schemas'
 import { appStore } from '../lib/app-store'
+import { dispatchEmailAutomationSpecs } from '../automations/spec-service'
 import {
   ingestInboundEmail,
   recordInboundEmailFailure,
@@ -199,6 +200,7 @@ class ImapGadget {
               })
               if (ingested.duplicate) result.duplicates += 1
               else result.processed += 1
+              if (!ingested.duplicate) await dispatchEmailAutomationSpecs(ingested.email)
               if (!ingested.duplicate && ingested.email.status === 'completed') {
                 completedEmails.push(ingested.email)
               }

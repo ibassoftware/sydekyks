@@ -33,6 +33,10 @@ const toolSource = await readFile(
   join(import.meta.dirname, '../src/mastra/tools/odoo-business-read.ts'),
   'utf8'
 )
+const writeToolSource = await readFile(
+  join(import.meta.dirname, '../src/mastra/tools/odoo-business-write.ts'),
+  'utf8'
+)
 const sydSource = await readFile(
   join(import.meta.dirname, '../src/mastra/agents/syd-agent.ts'),
   'utf8'
@@ -52,8 +56,12 @@ assert.doesNotMatch(toolSource, /hr\.applicant/)
 assert.doesNotMatch(toolSource, /z\.literal\('(create|write)'\)/)
 assert.doesNotMatch(toolSource, /strict:\s*true/)
 assert.match(sydSource, /readOdooBusinessData:\s*readOdooBusinessDataTool/)
-assert.match(sydSource, /discoverModels/)
-assert.match(sydSource, /discoverFields/)
+assert.match(sydSource, /Discover the business entity/)
+assert.match(sydSource, /Inspect its live fields/)
+assert.match(sydSource, /writeOdooBusinessData:\s*writeOdooBusinessDataTool/)
+assert.match(writeToolSource, /requireApproval:\s*true/)
+assert.match(writeToolSource, /hasSidekickCapability/)
+assert.doesNotMatch(writeToolSource, /z\.literal\('delete'\)/)
 assert.doesNotMatch(sydSource, /hr\.applicant/)
 
 const directory = await mkdtemp(join(tmpdir(), 'sydekyks-odoo-read-links-'))
@@ -146,7 +154,7 @@ try {
   )
 
   console.log(
-    'Syd Odoo-read contract passed: valid Odoo models and fields are dynamically discoverable, bounded, and linkable while writes remain unavailable.'
+    'Syd Odoo contract passed: models and fields are dynamically discoverable and writes require exact capabilities plus approval.'
   )
 } finally {
   await rm(directory, { recursive: true, force: true })

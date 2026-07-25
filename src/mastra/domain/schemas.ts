@@ -353,405 +353,98 @@ export const automationScheduleSchema = z.discriminatedUnion('kind', [
 
 export type AutomationSchedule = z.infer<typeof automationScheduleSchema>
 
-export const nudgeCheckInputSchema = z.object({
-  source: z.enum(['chat', 'schedule', 'mission-control']).default('mission-control'),
-  staleAfterDays: z.number().int().min(1).max(365).default(2),
-  limit: z.number().int().min(1).max(100).default(50),
-  notifyOnlyWhenAttention: z.boolean().default(true),
-  automationId: z.string().uuid().optional(),
-  scheduledFor: z.string().datetime({ offset: true }).optional()
+export const sidekickOperationSchema = z.enum(['read', 'create', 'update', 'archive'])
+export type SidekickOperation = z.infer<typeof sidekickOperationSchema>
+
+export const sidekickStatusSchema = z.enum(['active', 'paused'])
+export type SidekickStatus = z.infer<typeof sidekickStatusSchema>
+
+export const sidekickCreateSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  description: z.string().trim().min(8).max(500),
+  instructions: z.string().trim().min(40).max(30_000),
+  status: sidekickStatusSchema.default('active')
 })
 
-export type NudgeCheckInput = z.infer<typeof nudgeCheckInputSchema>
+export const sidekickUpdateSchema = sidekickCreateSchema
+  .partial()
+  .refine((input) => Object.keys(input).length > 0, 'Provide at least one change')
 
-export const nudgeActivityFactSchema = z.object({
-  id: z.number().int().positive(),
-  deadline: z.string().optional(),
-  state: z.string().optional(),
-  type: z.string().optional(),
-  summary: z.string().optional(),
-  owner: z.string().optional()
+export const sidekickCapabilitySchema = z.object({
+  model: z.string().trim().min(2).max(120),
+  label: z.string().trim().min(2).max(120),
+  operations: z.array(sidekickOperationSchema).min(1).max(4)
 })
 
-export const nudgeMessageFactSchema = z.object({
-  id: z.number().int().positive(),
-  date: z.string().optional(),
-  subject: z.string().optional(),
-  author: z.string().optional(),
-  emailFrom: z.string().optional(),
-  bodyPreview: z.string().optional()
-})
-
-export const nudgeOpportunityFactSchema = z.object({
-  id: z.number().int().positive(),
-  name: z.string(),
-  stage: z.string(),
-  owner: z.string().optional(),
-  expectedRevenue: z.number().optional(),
-  probability: z.number().min(0).max(100).optional(),
-  lastUpdatedAt: z.string().optional(),
-  stageChangedAt: z.string().optional(),
-  daysSinceUpdate: z.number().nonnegative().optional(),
-  lastMeaningfulMessageAt: z.string().optional(),
-  daysSinceLastMessage: z.number().nonnegative().optional(),
-  nextActivityAt: z.string().optional(),
-  hasOpenActivity: z.boolean(),
-  overdueActivityCount: z.number().int().nonnegative(),
-  activities: z.array(nudgeActivityFactSchema),
-  messages: z.array(nudgeMessageFactSchema)
-})
-
-export type NudgeOpportunityFact = z.infer<typeof nudgeOpportunityFactSchema>
-
-export const nudgeAssessmentModelOutputSchema = z.object({
-  summary: z.string(),
-  opportunities: z
-    .array(
-      z.object({
-        opportunityId: z.number().int().positive(),
-        opportunityName: z.string(),
-        stale: z.boolean(),
-        priority: z.enum(['high', 'medium', 'low', 'healthy']),
-        confidence: z.number().min(0).max(1),
-        staleSince: z.string().nullable(),
-        reasons: z.array(z.string()).min(1).max(8),
-        recommendedAction: z.string()
-      })
-    )
-    .max(100)
-})
-
-export const nudgeAssessmentSchema = nudgeAssessmentModelOutputSchema.extend({
-  source: z.literal('llm'),
-  model: z.string().optional(),
-  checkedAt: z.string().datetime({ offset: true })
-})
-
-export type NudgeAssessment = z.infer<typeof nudgeAssessmentSchema>
-
-export const nudgeResultSchema = z.object({
-  outcome: z.enum(['completed', 'no-opportunities']),
-  message: z.string(),
-  totalChecked: z.number().int().nonnegative(),
-  attentionCount: z.number().int().nonnegative(),
-  assessment: nudgeAssessmentSchema.optional()
-})
-
-export type NudgeResult = z.infer<typeof nudgeResultSchema>
-
-const sydekykRunSourceSchema = z
-  .enum(['chat', 'schedule', 'mission-control'])
-  .default('mission-control')
-
-export const accountsPayableLineFactSchema = z.object({
-  id: z.number().int().positive(),
-  description: z.string().optional(),
-  quantity: z.number().optional(),
-  unitPrice: z.number().optional(),
-  subtotal: z.number().optional(),
-  account: z.string().optional()
-})
-
-export const accountsPayableBillFactSchema = z.object({
-  id: z.number().int().positive(),
-  number: z.string(),
-  reference: z.string().optional(),
-  moveType: z.enum(['in_invoice', 'in_refund']),
-  partnerId: z.number().int().positive(),
-  partnerName: z.string(),
-  taxIdFingerprint: z.string().optional(),
-  bankFingerprints: z.array(z.string()).max(20),
-  invoiceDate: z.string().optional(),
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
-  state: z.string(),
-  paymentState: z.string().optional(),
-  currency: z.string().optional(),
-  amountUntaxed: z.number().optional(),
-  amountTotal: z.number(),
-  lines: z.array(accountsPayableLineFactSchema).max(50)
-})
-
-export type AccountsPayableBillFact = z.infer<typeof accountsPayableBillFactSchema>
-
-export const mirrorScanInputSchema = z.object({
-  source: sydekykRunSourceSchema,
-  lookbackDays: z.number().int().min(1).max(1_825).default(365),
-  limit: z.number().int().min(2).max(100).default(50),
-  notifyOnlyWhenAttention: z.boolean().default(true),
-  automationId: z.string().uuid().optional(),
-  scheduledFor: z.string().datetime({ offset: true }).optional()
-})
-
-export type MirrorScanInput = z.infer<typeof mirrorScanInputSchema>
-
-export const mirrorScreeningModelOutputSchema = z.object({
-  summary: z.string(),
-  candidates: z
-    .array(
-      z.object({
-        billIds: z.tuple([z.number().int().positive(), z.number().int().positive()]),
-        signals: z
-          .array(
-            z.enum([
-              'reference_collision',
-              'same_vendor_amount_date',
-              'shared_tax_id',
-              'shared_bank_account',
-              'resubmission_pattern',
-              'other'
-            ])
-          )
-          .min(1)
-          .max(6),
-        confidence: z.number().min(0).max(1),
-        rationale: z.string()
-      })
-    )
-    .max(60),
-  warnings: z.array(z.string()).max(16)
-})
-
-export const mirrorConfirmationModelOutputSchema = z.object({
-  summary: z.string(),
-  pairs: z
-    .array(
-      z.object({
-        billIds: z.tuple([z.number().int().positive(), z.number().int().positive()]),
-        verdict: z.enum(['likely_duplicate', 'possible_duplicate', 'not_duplicate']),
-        priority: z.enum(['high', 'medium', 'low', 'clear']),
-        confidence: z.number().min(0).max(1),
-        rationale: z.string(),
-        evidence: z.array(z.string()).min(1).max(10),
-        recommendedAction: z.string(),
-        warnings: z.array(z.string()).max(10)
-      })
-    )
-    .max(60)
-})
-
-export const mirrorAssessmentSchema = mirrorConfirmationModelOutputSchema.extend({
-  source: z.literal('llm'),
-  model: z.string().optional(),
-  promptVersion: z.literal('mirror-confirm-v1'),
-  checkedAt: z.string().datetime({ offset: true }),
-  screening: z.object({
-    promptVersion: z.literal('mirror-screen-v1'),
-    summary: z.string(),
-    candidateCount: z.number().int().nonnegative(),
-    warnings: z.array(z.string()).max(16)
-  })
-})
-
-export type MirrorAssessment = z.infer<typeof mirrorAssessmentSchema>
-
-export const mirrorResultSchema = z.object({
-  outcome: z.enum(['completed', 'not-enough-bills', 'no-candidates']),
-  message: z.string(),
-  totalBills: z.number().int().nonnegative(),
-  candidateCount: z.number().int().nonnegative(),
-  alertCount: z.number().int().nonnegative(),
-  assessment: mirrorAssessmentSchema.optional()
-})
-
-export type MirrorResult = z.infer<typeof mirrorResultSchema>
-
-export const shieldVendorChangeFactSchema = z.object({
-  id: z.string(),
-  partnerId: z.number().int().positive(),
-  partnerName: z.string(),
-  changedAt: z.string().optional(),
-  field: z.string(),
-  previousValue: z.string().optional(),
-  currentValue: z.string().optional(),
-  author: z.string().optional(),
-  source: z.enum(['tracking', 'record-metadata'])
-})
-
-export type ShieldVendorChangeFact = z.infer<typeof shieldVendorChangeFactSchema>
-
-export const shieldScanInputSchema = z.object({
-  source: sydekykRunSourceSchema,
-  lookbackDays: z.number().int().min(1).max(1_825).default(90),
-  limit: z.number().int().min(1).max(100).default(50),
-  notifyOnlyWhenAttention: z.boolean().default(true),
-  automationId: z.string().uuid().optional(),
-  scheduledFor: z.string().datetime({ offset: true }).optional()
-})
-
-export type ShieldScanInput = z.infer<typeof shieldScanInputSchema>
-
-export const shieldAssessmentModelOutputSchema = z.object({
-  summary: z.string(),
-  bills: z
-    .array(
-      z.object({
-        billId: z.number().int().positive(),
-        riskScore: z.number().int().min(0).max(100),
-        riskLevel: z.enum(['critical', 'high', 'medium', 'low']),
-        confidence: z.number().min(0).max(1),
-        reviewRecommended: z.boolean(),
-        rationale: z.string(),
-        indicators: z
-          .array(
-            z.object({
-              signal: z.string(),
-              explanation: z.string(),
-              evidenceRecordIds: z.array(z.string()).max(12)
-            })
-          )
-          .max(12),
-        mitigatingFactors: z.array(z.string()).max(10),
-        warnings: z.array(z.string()).max(10)
-      })
-    )
-    .max(100)
-})
-
-const shieldBriefFields = {
-  headline: z.string(),
-  overview: z.string(),
-  alerts: z.array(
-    z.object({
-      billId: z.number().int().positive(),
-      title: z.string(),
-      brief: z.string(),
-      supportingEvidence: z.array(z.string()).min(1),
-      auditorQuestions: z.array(z.string())
-    })
-  )
+export interface SidekickCapability {
+  model: string
+  label: string
+  operations: SidekickOperation[]
 }
 
-export const shieldBriefGenerationModelOutputSchema = z.object({
-  ...shieldBriefFields,
-  alerts: shieldBriefFields.alerts.max(100)
-})
+export interface SidekickRecord {
+  id: string
+  name: string
+  description: string
+  instructions: string
+  source: 'preset' | 'user'
+  status: SidekickStatus
+  version: number
+  contentHash: string
+  capabilities: SidekickCapability[]
+  createdAt: string
+  updatedAt: string
+}
 
-export type ShieldBriefGenerationModelOutput = z.infer<
-  typeof shieldBriefGenerationModelOutputSchema
->
-
-export const shieldBriefModelOutputSchema = z.object({
-  ...shieldBriefFields,
-  alerts: z
-    .array(
-      z.object({
-        billId: z.number().int().positive(),
-        title: z.string(),
-        brief: z.string(),
-        supportingEvidence: z.array(z.string()).min(1).max(10),
-        auditorQuestions: z.array(z.string()).max(8)
-      })
-    )
-    .max(100)
-})
-
-export const shieldPhaseSchema = z.object({
-  id: z.enum(['watch', 'assess', 'rank', 'brief']),
-  label: z.enum(['Watch', 'Assess', 'Rank', 'Brief']),
-  status: z.literal('completed'),
-  summary: z.string()
-})
-
-export const shieldResultSchema = z.object({
-  outcome: z.enum(['completed', 'no-bills']),
-  message: z.string(),
-  totalBills: z.number().int().nonnegative(),
-  reviewCount: z.number().int().nonnegative(),
-  phases: z.array(shieldPhaseSchema).length(4),
-  assessment: shieldAssessmentModelOutputSchema
-    .extend({
-      source: z.literal('llm'),
-      model: z.string().optional(),
-      promptVersion: z.literal('shield-assess-v1'),
-      checkedAt: z.string().datetime({ offset: true })
-    })
-    .optional(),
-  brief: shieldBriefModelOutputSchema
-    .extend({
-      source: z.literal('llm'),
-      model: z.string().optional(),
-      promptVersion: z.literal('shield-brief-v1')
-    })
-    .optional()
-})
-
-export type ShieldResult = z.infer<typeof shieldResultSchema>
-
-export const nudgeAutomationInputDataSchema = z.object({
-  staleAfterDays: z.number().int().min(1).max(365).default(2),
-  limit: z.number().int().min(1).max(100).default(50),
-  notifyOnlyWhenAttention: z.boolean().default(true)
-})
-
-export const automationInputDataSchema = nudgeAutomationInputDataSchema
-
-export const mirrorAutomationInputDataSchema = mirrorScanInputSchema.pick({
-  lookbackDays: true,
-  limit: true,
-  notifyOnlyWhenAttention: true
-})
-
-export const shieldAutomationInputDataSchema = shieldScanInputSchema.pick({
-  lookbackDays: true,
-  limit: true,
-  notifyOnlyWhenAttention: true
-})
-
-const automationBaseSchema = z.object({
-  name: z.string().trim().min(2).max(120),
-  schedule: automationScheduleSchema,
-  missedRunPolicy: z.enum(['skip', 'run-on-start']).default('run-on-start'),
-  status: z.enum(['draft', 'active']).default('active')
-})
-
-export const automationCreateSchema = z.discriminatedUnion('ownerSydekykId', [
-  automationBaseSchema.extend({
-    ownerSydekykId: z.literal('nudge'),
-    workflowId: z.literal('nudge-stale-opportunities'),
-    inputData: nudgeAutomationInputDataSchema
-  }),
-  automationBaseSchema.extend({
-    ownerSydekykId: z.literal('mirror'),
-    workflowId: z.literal('mirror-duplicate-bills'),
-    inputData: mirrorAutomationInputDataSchema
-  }),
-  automationBaseSchema.extend({
-    ownerSydekykId: z.literal('shield'),
-    workflowId: z.literal('shield-fraud-review'),
-    inputData: shieldAutomationInputDataSchema
+export const automationTriggerSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('manual') }),
+  z.object({ kind: z.literal('schedule'), schedule: automationScheduleSchema }),
+  z.object({
+    kind: z.literal('email'),
+    mailbox: z.string().trim().min(1).max(200).default('INBOX'),
+    fromContains: z.string().trim().min(1).max(200).optional(),
+    subjectContains: z.string().trim().min(1).max(200).optional()
   })
 ])
 
-export const automationUpdateSchema = z.object({
-  name: automationBaseSchema.shape.name.optional(),
-  schedule: automationScheduleSchema.optional(),
-  // Preserve the submitted patch until the service can validate it against
-  // the existing automation owner. A union would apply another Sydekyk's
-  // defaults before owner-specific validation.
-  inputData: z.record(z.string(), z.unknown()).optional(),
-  missedRunPolicy: automationBaseSchema.shape.missedRunPolicy.optional(),
-  status: automationBaseSchema.shape.status.optional()
+export type AutomationTrigger = z.infer<typeof automationTriggerSchema>
+
+export const automationSpecCreateSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  sidekickId: z.string().trim().min(2).max(80),
+  prompt: z.string().trim().min(10).max(10_000),
+  trigger: automationTriggerSchema,
+  approvalMode: z.enum(['read-only', 'approval-required']).default('read-only'),
+  status: z.enum(['draft', 'active']).default('draft'),
+  missedRunPolicy: z.enum(['skip', 'run-on-start']).default('run-on-start')
 })
 
-export type AutomationCreateInput = z.infer<typeof automationCreateSchema>
-export type AutomationUpdateInput = z.infer<typeof automationUpdateSchema>
+export const automationSpecUpdateSchema = automationSpecCreateSchema
+  .omit({ sidekickId: true })
+  .partial()
+  .extend({
+    status: z.enum(['draft', 'active', 'paused']).optional(),
+    repinSidekick: z.boolean().optional()
+  })
+  .refine((input) => Object.keys(input).length > 0, 'Provide at least one change')
 
-export type AutomationStatus = 'draft' | 'active' | 'paused' | 'error'
+export type AutomationSpecCreateInput = z.infer<typeof automationSpecCreateSchema>
+export type AutomationSpecUpdateInput = z.infer<typeof automationSpecUpdateSchema>
+export type AutomationSpecStatus = 'draft' | 'active' | 'paused' | 'error'
 
-export interface AutomationRecord {
+export interface AutomationSpecRecord {
   id: string
   name: string
-  ownerSydekykId: 'nudge' | 'mirror' | 'shield'
-  workflowId: 'nudge-stale-opportunities' | 'mirror-duplicate-bills' | 'shield-fraud-review'
-  schedule: AutomationSchedule
-  inputData:
-    | z.infer<typeof nudgeAutomationInputDataSchema>
-    | z.infer<typeof mirrorAutomationInputDataSchema>
-    | z.infer<typeof shieldAutomationInputDataSchema>
+  sidekickId: string
+  sidekickName: string
+  sidekickVersion: number
+  prompt: string
+  trigger: AutomationTrigger
+  approvalMode: 'read-only' | 'approval-required'
+  status: AutomationSpecStatus
   missedRunPolicy: 'skip' | 'run-on-start'
-  status: AutomationStatus
-  scheduleLabel: string
+  triggerLabel: string
+  schemaFingerprint?: string
   nextRunAt?: string
   lastRunAt?: string
   lastMissionId?: string
@@ -765,17 +458,8 @@ export type MissionStatus =
 
 export interface MissionRecord {
   id: string
-  kind:
-    | 'ledger.vendor-bill'
-    | 'nudge.stale-opportunities'
-    | 'mirror.duplicate-bills'
-    | 'shield.fraud-review'
-    | 'automation.proposal'
-    | 'email.inbound'
-    | 'document.inbound'
-    | 'odoo.generic'
-    | 'gadget.connection'
-  sydekyk: 'Ledger' | 'Nudge' | 'Mirror' | 'Shield' | 'Syd'
+  kind: string
+  sydekyk: string
   title: string
   summary: string
   status: MissionStatus

@@ -3,23 +3,20 @@ import { toAISdkMessages } from '@mastra/ai-sdk/ui'
 import { z } from 'zod'
 import { sydAgent } from '../agents/syd-agent'
 import {
-  createAutomation,
-  deleteAutomation,
-  runAutomationNow,
-  setAutomationStatus,
-  updateAutomation
-} from '../automations/service'
+  createAutomationSpec,
+  deleteAutomationSpec,
+  runAutomationSpecNow,
+  setAutomationSpecStatus,
+  updateAutomationSpec
+} from '../automations/spec-service'
 import {
   aiCredentialSchema,
   approvalDecisionSchema,
-  automationCreateSchema,
-  automationUpdateSchema,
+  automationSpecCreateSchema,
+  automationSpecUpdateSchema,
   imapCredentialSchema,
   ledgerBillInputSchema,
-  nudgeCheckInputSchema,
-  mirrorScanInputSchema,
-  odooCredentialSchema,
-  shieldScanInputSchema
+  odooCredentialSchema
 } from '../domain/schemas'
 import { imapGadget, imapGadgetReady } from '../gadgets/imap-gateway'
 import { odooGadget, odooGadgetReady } from '../gadgets/odoo-gateway'
@@ -35,13 +32,7 @@ import {
 import { ingestChatDocument } from '../sydekyks/ledger/chat-document'
 import { testBillIntelligenceConnection } from '../sydekyks/ledger/intelligence-service'
 import { resumeLedgerMission, startLedgerMission } from '../sydekyks/ledger/service'
-import { startNudgeMission } from '../sydekyks/nudge/service'
-import { testNudgeIntelligenceConnection } from '../sydekyks/nudge/intelligence-service'
-import { startMirrorMission } from '../sydekyks/mirror/service'
-import { testMirrorIntelligenceConnection } from '../sydekyks/mirror/intelligence-service'
-import { startShieldMission } from '../sydekyks/shield/service'
-import { testShieldIntelligenceConnection } from '../sydekyks/shield/intelligence-service'
-import { getSydekykManifest, listSydekyks, setInboundReviewPolicy } from '../sydekyks/registry'
+import { getSydekykManifest, setInboundReviewPolicy } from '../sydekyks/registry'
 
 const errorResponse = (error: unknown): { error: string; details?: unknown } => {
   if (error instanceof z.ZodError) {
@@ -92,12 +83,12 @@ export const appRoutes = [
     method: 'GET',
     handler: async (c) => {
       await Promise.all([aiRuntimeReady, odooGadgetReady, imapGadgetReady])
-      const [missions, permissions, emails, roster, automations] = await Promise.all([
+      const [missions, permissions, emails, sidekicks, automations] = await Promise.all([
         appStore.listMissions(),
         appStore.listPermissions(),
         appStore.listInboundEmails(),
-        listSydekyks(),
-        appStore.listAutomations()
+        appStore.listSidekicks(),
+        appStore.listAutomationSpecs()
       ])
       return c.json({
         app: { name: 'Sydekyks', steward: 'Syd', localUser: true },
@@ -105,7 +96,7 @@ export const appRoutes = [
         gadget: odooGadget.getStatus(),
         imap: imapGadget.getStatus(),
         emails,
-        roster,
+        sidekicks,
         automations,
         missions,
         permissions
@@ -179,53 +170,13 @@ export const appRoutes = [
       }
     }
   }),
-  registerApiRoute('/sydekyks/workflows/nudge/stale-opportunities', {
-    method: 'POST',
-    handler: async (c) => {
-      try {
-        const input = nudgeCheckInputSchema.parse({
-          ...(await c.req.json()),
-          source: 'mission-control'
-        })
-        return c.json(await startNudgeMission(input))
-      } catch (error) {
-        return c.json(errorResponse(error), 400)
-      }
-    }
-  }),
-  registerApiRoute('/sydekyks/workflows/mirror/duplicate-bills', {
-    method: 'POST',
-    handler: async (c) => {
-      try {
-        const input = mirrorScanInputSchema.parse({
-          ...(await c.req.json()),
-          source: 'mission-control'
-        })
-        return c.json(await startMirrorMission(input))
-      } catch (error) {
-        return c.json(errorResponse(error), 400)
-      }
-    }
-  }),
-  registerApiRoute('/sydekyks/workflows/shield/fraud-review', {
-    method: 'POST',
-    handler: async (c) => {
-      try {
-        const input = shieldScanInputSchema.parse({
-          ...(await c.req.json()),
-          source: 'mission-control'
-        })
-        return c.json(await startShieldMission(input))
-      } catch (error) {
-        return c.json(errorResponse(error), 400)
-      }
-    }
-  }),
   registerApiRoute('/sydekyks/automations', {
     method: 'POST',
     handler: async (c) => {
       try {
-        return c.json(await createAutomation(automationCreateSchema.parse(await c.req.json())))
+        return c.json(
+          await createAutomationSpec(automationSpecCreateSchema.parse(await c.req.json()))
+        )
       } catch (error) {
         return c.json(errorResponse(error), 400)
       }
@@ -237,7 +188,10 @@ export const appRoutes = [
       try {
         const { automationId } = automationIdSchema.parse(c.req.param())
         return c.json(
-          await updateAutomation(automationId, automationUpdateSchema.parse(await c.req.json()))
+          await updateAutomationSpec(
+            automationId,
+            automationSpecUpdateSchema.parse(await c.req.json())
+          )
         )
       } catch (error) {
         return c.json(errorResponse(error), 400)
@@ -252,7 +206,7 @@ export const appRoutes = [
         const { status } = z
           .object({ status: z.enum(['active', 'paused']) })
           .parse(await c.req.json())
-        return c.json(await setAutomationStatus(automationId, status))
+        return c.json(await setAutomationSpecStatus(automationId, status))
       } catch (error) {
         return c.json(errorResponse(error), 400)
       }
@@ -263,7 +217,7 @@ export const appRoutes = [
     handler: async (c) => {
       try {
         const { automationId } = automationIdSchema.parse(c.req.param())
-        return c.json(await runAutomationNow(automationId))
+        return c.json(await runAutomationSpecNow(automationId))
       } catch (error) {
         return c.json(errorResponse(error), 400)
       }
@@ -274,7 +228,7 @@ export const appRoutes = [
     handler: async (c) => {
       try {
         const { automationId } = automationIdSchema.parse(c.req.param())
-        await deleteAutomation(automationId)
+        await deleteAutomationSpec(automationId)
         return c.json({ deleted: true })
       } catch (error) {
         return c.json(errorResponse(error), 400)
@@ -318,12 +272,7 @@ export const appRoutes = [
         missionId = mission.id
         aiRuntime.stage(input)
         staged = true
-        await Promise.all([
-          testBillIntelligenceConnection(),
-          testNudgeIntelligenceConnection(),
-          testMirrorIntelligenceConnection(),
-          testShieldIntelligenceConnection()
-        ])
+        await testBillIntelligenceConnection()
         const status = await aiRuntime.confirm()
         await appStore.updateMission(mission.id, {
           status: 'completed',

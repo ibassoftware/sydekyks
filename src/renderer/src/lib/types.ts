@@ -16,35 +16,22 @@ export interface ChatSessionDetail {
   messages: UIMessage[]
 }
 
-export interface RosterMember {
+export interface Sidekick {
   id: string
   name: string
-  role: string
-  mode: 'companion-operator' | 'companion-only' | 'automation-only'
-  kind: 'agent' | 'workflow' | 'hybrid'
-  status: string
   description: string
-  capabilities: string[]
-  gadgets: string[]
-  requiredGadgets: string[]
-  capabilityGrants: Array<{
-    gadget: string
-    operations: Array<'read' | 'search' | 'create' | 'write'>
-    models?: string[]
+  instructions: string
+  source: 'preset' | 'user'
+  status: 'active' | 'paused'
+  version: number
+  contentHash: string
+  capabilities: Array<{
+    model: string
+    label: string
+    operations: Array<'read' | 'create' | 'update' | 'archive'>
   }>
-  intelligence: Array<{
-    id: string
-    purpose: 'classify' | 'extract' | 'recommend' | 'diagnose' | 'synthesize'
-    outputSchema: string
-    promptVersion: string
-    required: true
-    reviewBelowConfidence?: number
-    allowedCandidateKinds?: string[]
-  }>
-  triggers: Array<'chat' | 'email' | 'schedule'>
-  workflowIds: string[]
-  automationCount: number
-  inboundPolicy?: InboundReviewPolicy
+  createdAt: string
+  updatedAt: string
 }
 
 export interface InboundReviewPolicy {
@@ -71,18 +58,24 @@ export type AutomationSchedule =
 export interface Automation {
   id: string
   name: string
-  ownerSydekykId: 'nudge' | 'mirror' | 'shield'
-  workflowId: 'nudge-stale-opportunities' | 'mirror-duplicate-bills' | 'shield-fraud-review'
-  schedule: AutomationSchedule
-  inputData: {
-    staleAfterDays?: number
-    lookbackDays?: number
-    limit: number
-    notifyOnlyWhenAttention: boolean
-  }
+  sidekickId: string
+  sidekickName: string
+  sidekickVersion: number
+  prompt: string
+  trigger:
+    | { kind: 'manual' }
+    | { kind: 'schedule'; schedule: AutomationSchedule }
+    | {
+        kind: 'email'
+        mailbox: string
+        fromContains?: string
+        subjectContains?: string
+      }
+  approvalMode: 'read-only' | 'approval-required'
   missedRunPolicy: 'skip' | 'run-on-start'
   status: 'draft' | 'active' | 'paused' | 'error'
-  scheduleLabel: string
+  triggerLabel: string
+  schemaFingerprint?: string
   nextRunAt?: string
   lastRunAt?: string
   lastMissionId?: string
@@ -207,7 +200,7 @@ export interface BootstrapData {
   gadget: OdooPublicStatus
   imap: ImapPublicStatus
   emails: InboundEmail[]
-  roster: RosterMember[]
+  sidekicks: Sidekick[]
   automations: Automation[]
   missions: Mission[]
   permissions: Permission[]
