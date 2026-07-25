@@ -7,7 +7,7 @@
 | Product                         | Sydekyks Desktop 1.0.0                                         |
 | Report date                     | 2026-07-25 (Europe/Paris)                                      |
 | Audit branch                    | `feat/dynamic-sidekicks`                                       |
-| Tested implementation           | `aca503202ca26a54ea14cc77dca459cc7935f2d4`                     |
+| Tested implementation           | `26e51e78a2ff3c6fec13c7d6d0bd42944fd314c0`                     |
 | Pre-refactor snapshot           | `976bbcbb03a5ccdbfa622e2287f82023a71d5bd9`                     |
 | Repository                      | `https://github.com/ibassoftware/sydekyks.git`                 |
 | Internal acceptance             | **PASS**                                                       |
@@ -23,7 +23,9 @@ Odoo access is now metadata-driven. Syd discovers models and fields from the con
 
 Automations are declarative specifications with manual, schedule, or inbound-email triggers. They pin a Sidekick version and capability fingerprint and stop for review if either drifts. The user describes the desired process; the application stores a constrained specification rather than generating arbitrary executable code.
 
-Ledger remains a sealed specialist workflow because its accounts-payable ingestion and review path has stricter deterministic controls.
+Ledger remains a sealed specialist workflow because its accounts-payable ingestion and review path
+has stricter deterministic controls. It is now visible in the Sidekicks roster as a built-in sealed
+specialist, without presenting its fixed control path as an editable Markdown skill.
 
 Provider-facing tool definitions now use a JSON Schema object at the root. The test suite converts
 every tool registered on Syd through Mastra's provider-schema compatibility layer and rejects any
@@ -35,7 +37,9 @@ irreversible scope, the server deletes every Mastra thread owned by Syd's local 
 the same response creates one empty replacement session. Sidekicks, automations, missions,
 documents, and connections are outside the deletion scope.
 
-The refactor changed 90 files, added 3,900 lines, and removed 8,885 lines. Obsolete specialist agents, services, tools, workflows, tests, UI branches, and styling were deleted rather than retained as dead compatibility paths.
+The refactor changed 90 files, added 4,023 lines, and removed 8,888 lines. Obsolete specialist
+agents, services, tools, workflows, tests, UI branches, and styling were deleted rather than
+retained as dead compatibility paths.
 
 ## Architecture delivered
 
@@ -74,6 +78,9 @@ A Markdown skill can explain how to perform a task, but cannot grant itself acce
   source, version/source identity, keyboard-safe tabs, and copy-to-clipboard.
 - Built-in Sidekicks show their repository source path; chat-created skills are explicitly labeled
   as local database records rather than physical source files.
+- Added Ledger to the same roster as a clearly differentiated built-in sealed specialist. Its card
+  exposes its draft-only safeguards and Email inbox connection state without offering an editable
+  `SKILL.md`.
 - Eliminated the deterministic interpretation of initials such as “MW”; Syd must resolve people from live Odoo data and must not guess an identity or record ID.
 
 ### Generic Odoo access
@@ -104,6 +111,9 @@ A Markdown skill can explain how to perform a task, but cannot grant itself acce
 - Automatic handling still creates draft vendor bills only and retains duplicate, completeness, Odoo, and workflow controls.
 - Polling changes are retained in Gadget state and reconciled with the encrypted IMAP configuration on restart.
 - The chat, Automations, and Email Gadget UI now provide an example prompt for this path.
+- The Ledger roster card routes directly to Gadgets for Email inbox connection or management.
+- Syd now describes a disconnected inbox as an Email Gadget issue rather than saying Ledger itself
+  is unavailable.
 
 ### Provider tool-schema compatibility
 
@@ -147,7 +157,7 @@ A Markdown skill can explain how to perform a task, but cannot grant itself acce
 ## Verification evidence
 
 The automated commands and isolated UI methods below passed against implementation commit
-`aca503202ca26a54ea14cc77dca459cc7935f2d4`.
+`26e51e78a2ff3c6fec13c7d6d0bd42944fd314c0`.
 
 | Area                                                             | Command / method                     | Result                                                      |
 | ---------------------------------------------------------------- | ------------------------------------ | ----------------------------------------------------------- |
@@ -165,8 +175,9 @@ The automated commands and isolated UI methods below passed against implementati
 | Logging controls                                                 | `npm run test:logging`               | PASS                                                        |
 | UI typography and contrast                                       | `npm run test:ui-contrast`           | PASS; rem scale; lowest text 6.80:1, UI 3.50:1              |
 | Production compilation                                           | `npm run build`                      | PASS                                                        |
-| Worker auth, health, session clear, data isolation, and shutdown | `npm run test:smoke:worker`          | PASS on disposable loopback port 58969                      |
+| Worker auth, health, session clear, data isolation, and shutdown | `npm run test:smoke:worker`          | PASS on disposable loopback port 60074                      |
 | Responsive visual QA                                             | isolated local renderer + worker     | PASS at 1440×900, 768×900, and 390×844; no horizontal bleed |
+| Ledger roster and Email Gadget route                             | isolated local renderer + worker     | PASS at 1280×720 and 390×844; CTA opened Gadgets            |
 | Clear/cancel and dialog-lifecycle interaction                    | isolated local renderer + worker     | PASS; replacement session and restored focus confirmed      |
 | Sidekick Markdown dialog after Strict Mode lifecycle correction  | isolated local renderer + worker     | PASS; viewer opened and closed cleanly                      |
 | Patch hygiene                                                    | `git diff --check`                   | PASS                                                        |
@@ -184,13 +195,13 @@ Mastra and Electron Vite production builds completed successfully on 2026-07-25.
 | Artifact                    |        Size | SHA-256                                                            |
 | --------------------------- | ----------: | ------------------------------------------------------------------ |
 | `.mastra/output/index.mjs`  | 1,876.35 kB | `3bd2e46afb9c9e21171cd426ce4cf2ab132c4b38e8b72c71a14fda9740875007` |
-| `.mastra/output/mastra.mjs` |   245.18 kB | `2a22b797ae1f28bf8381cf9f57661c7c55f130772ae59f26c8101a338a409db1` |
+| `.mastra/output/mastra.mjs` |   245.43 kB | `86dc6666c19826ba39df32176ef9dadb547b130d557166c0ab756d74b32010c2` |
 | `out/main/index.js`         |   596.28 kB | `e4f95dc7c7d65a6ab47c63e94c2575c3c68c3c67262445ec323635912d0072fa` |
 | `out/preload/index.js`      |     4.38 kB | `732143a95ca186af8b05b07e897e147095bf7665e2e2ada29ae6188b726d1e90` |
-| `out/renderer/index.html`   |     0.60 kB | `36029c38d9407e605c362cdca19237c36c8bc1468f14f2baa436dd7f633360b4` |
+| `out/renderer/index.html`   |     0.60 kB | `3b545ed4cba144adf2240ba6a8f2abd45fb29e51a85c18f73c41c19cf37443c5` |
 
-The renderer JavaScript bundle is 1,420.09 kB (`3dfa4acf77f41d941e8536aa1fe41f4ae00b18c7f33fb40b4e49a8f2abf1c5da`)
-and its CSS bundle is 97.76 kB (`294db5adcae0bd822d6c9f046153c212472e4de23546a212be0bb3f3a40bd9c8`).
+The renderer JavaScript bundle is 1,423.43 kB (`a709f026f13f701ad48a224c5a5c54a82a85e5b2cef52ec17468b8f5cac6976e`)
+and its CSS bundle is 98.65 kB (`a92ce70d5de02d415ab7eeb32ec88186644a2bce1ed0f2ab206c6ef40d2b96d8`).
 
 ## Security and control assessment
 
@@ -212,7 +223,8 @@ and its CSS bundle is 97.76 kB (`294db5adcae0bd822d6c9f046153c212472e4de23546a21
 
 - A background automation cannot silently perform an approval-required write. It must surface the proposed write for an interactive approval.
 - Metadata-driven discovery depends on the connected Odoo user having permission to read the relevant model and field metadata.
-- Ledger is intentionally still a fixed, sealed workflow and is not represented as a general user-created Sidekick.
+- Ledger is intentionally a fixed, sealed workflow. It is visible in the roster, but it cannot be
+  edited as a Markdown skill or replaced with a general user-created Sidekick.
 - The old automation table remains in upgraded databases for rollback; active code does not read it.
 - Clear all chat sessions is intentionally irreversible after confirmation; it immediately creates
   one new empty session but does not restore deleted message history.
