@@ -7,7 +7,7 @@
 | Product                         | Sydekyks Desktop 1.0.0                                         |
 | Report date                     | 2026-07-25 (Europe/Paris)                                      |
 | Audit branch                    | `feat/dynamic-sidekicks`                                       |
-| Tested implementation           | `12e6b3c75c5214b6d6ad858db6f4d20a61f3224f`                     |
+| Tested implementation           | `5209f5e68eb8b9a93db7197f8e178b469bf254b8`                     |
 | Pre-refactor snapshot           | `976bbcbb03a5ccdbfa622e2287f82023a71d5bd9`                     |
 | Repository                      | `https://github.com/ibassoftware/sydekyks.git`                 |
 | Internal acceptance             | **PASS**                                                       |
@@ -30,7 +30,12 @@ every tool registered on Syd through Mastra's provider-schema compatibility laye
 non-object root. This corrects the OpenAI registration failure previously reported for
 `writeOdooBusinessData`.
 
-The refactor changed 84 files, added 2,450 lines, and removed 8,516 lines. Obsolete specialist agents, services, tools, workflows, tests, UI branches, and styling were deleted rather than retained as dead compatibility paths.
+Chat sessions now have an explicit Clear all control. A native confirmation identifies the
+irreversible scope, the server deletes every Mastra thread owned by Syd's local chat resource, and
+the same response creates one empty replacement session. Sidekicks, automations, missions,
+documents, and connections are outside the deletion scope.
+
+The refactor changed 89 files, added 3,636 lines, and removed 8,685 lines. Obsolete specialist agents, services, tools, workflows, tests, UI branches, and styling were deleted rather than retained as dead compatibility paths.
 
 ## Architecture delivered
 
@@ -106,6 +111,20 @@ A Markdown skill can explain how to perform a task, but cannot grant itself acce
 - Preserved operation-specific create/update/archive validation inside the tool.
 - Added a regression check over every tool registered on Syd.
 
+### Session lifecycle and dialog reliability
+
+- Added a visible Clear all action beside the session heading.
+- Added a native modal confirmation with a safe default action, explicit retained-data scope,
+  keyboard cancellation, focus restoration, a progress state, and bounded failure feedback.
+- Added a resource-scoped `DELETE /sydekyks/chat/sessions` endpoint that exhaustively lists Syd's
+  chat threads with `perPage: false`; no broad database or filesystem deletion is used.
+- Creates and selects one empty replacement session after a successful clear so the chat surface
+  never lands in an unusable empty state.
+- Extended the disposable worker smoke test to prove all test sessions are removed, the replacement
+  has no messages, and an uploaded document survives.
+- Removed an unnecessary native-dialog cleanup that caused Strict Mode to close newly opened
+  dialogs; visual testing confirmed both Clear all and the Sidekick Markdown viewer now remain open.
+
 ### Data migration and rollback posture
 
 - The application database schema is upgraded to version 4.
@@ -115,25 +134,28 @@ A Markdown skill can explain how to perform a task, but cannot grant itself acce
 
 ## Verification evidence
 
-All commands below passed against implementation commit `12e6b3c75c5214b6d6ad858db6f4d20a61f3224f`.
+All commands below passed against implementation commit `5209f5e68eb8b9a93db7197f8e178b469bf254b8`.
 
-| Area                                                     | Command                              | Result                              |
-| -------------------------------------------------------- | ------------------------------------ | ----------------------------------- |
-| Type safety                                              | `npm run typecheck`                  | PASS                                |
-| Lint                                                     | `npm run lint`                       | PASS                                |
-| Dynamic Sidekicks, provider schemas, and Odoo mutation   | `npm run test:sidekicks`             | PASS                                |
-| Syd Odoo metadata discovery and write gating             | `npm run test:syd-odoo-read`         | PASS                                |
-| Mission failure detail                                   | `npm run test:mission-errors`        | PASS                                |
-| Mission notifications                                    | `npm run test:mission-notifications` | PASS                                |
-| Database recovery and migration                          | `npm run test:recovery`              | PASS                                |
-| Provider policy                                          | `npm run test:ai-provider-policy`    | PASS                                |
-| Provider restoration                                     | `npm run test:ai-restore`            | PASS                                |
-| OpenAI model handling                                    | `npm run test:openai-models`         | PASS                                |
-| Logging controls                                         | `npm run test:logging`               | PASS                                |
-| UI contrast                                              | `npm run test:ui-contrast`           | PASS; lowest text 6.80:1, UI 3.50:1 |
-| Production compilation                                   | `npm run build`                      | PASS                                |
-| Built worker authentication, health, first run, shutdown | `npm run test:smoke:worker`          | PASS on loopback port 57546         |
-| Patch hygiene                                            | `git diff --check`                   | PASS                                |
+| Area                                                             | Command / method                     | Result                                                 |
+| ---------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------ |
+| Type safety                                                      | `npm run typecheck`                  | PASS                                                   |
+| Lint                                                             | `npm run lint`                       | PASS                                                   |
+| Formatting                                                       | `npx prettier --check …`             | PASS                                                   |
+| Dynamic Sidekicks, provider schemas, and Odoo mutation           | `npm run test:sidekicks`             | PASS                                                   |
+| Syd Odoo metadata discovery and write gating                     | `npm run test:syd-odoo-read`         | PASS                                                   |
+| Mission failure detail                                           | `npm run test:mission-errors`        | PASS                                                   |
+| Mission notifications                                            | `npm run test:mission-notifications` | PASS                                                   |
+| Database recovery and migration                                  | `npm run test:recovery`              | PASS                                                   |
+| Provider policy                                                  | `npm run test:ai-provider-policy`    | PASS                                                   |
+| Provider restoration                                             | `npm run test:ai-restore`            | PASS                                                   |
+| OpenAI model handling                                            | `npm run test:openai-models`         | PASS                                                   |
+| Logging controls                                                 | `npm run test:logging`               | PASS                                                   |
+| UI contrast                                                      | `npm run test:ui-contrast`           | PASS; lowest text 6.80:1, UI 3.50:1                    |
+| Production compilation                                           | `npm run build`                      | PASS                                                   |
+| Worker auth, health, session clear, data isolation, and shutdown | `npm run test:smoke:worker`          | PASS on disposable loopback port 58097                 |
+| Clear/cancel and dialog-lifecycle interaction                    | isolated local renderer + worker     | PASS; replacement session and restored focus confirmed |
+| Sidekick Markdown dialog after Strict Mode lifecycle correction  | isolated local renderer + worker     | PASS; viewer opened and closed cleanly                 |
+| Patch hygiene                                                    | `git diff --check`                   | PASS                                                   |
 
 The Sidekick integration test converts every tool registered on Syd through Mastra's provider-schema
 adapter and confirms that each function has an object root. It also creates a user-defined `Renewals`
@@ -145,14 +167,16 @@ without the capability is rejected.
 
 Mastra and Electron Vite production builds completed successfully on 2026-07-25.
 
-| Artifact                   |        Size | SHA-256                                                            |
-| -------------------------- | ----------: | ------------------------------------------------------------------ |
-| `.mastra/output/index.mjs` | 1,876.35 kB | `3bd2e46afb9c9e21171cd426ce4cf2ab132c4b38e8b72c71a14fda9740875007` |
-| `out/main/index.js`        |   596.28 kB | `e4f95dc7c7d65a6ab47c63e94c2575c3c68c3c67262445ec323635912d0072fa` |
-| `out/preload/index.js`     |     4.38 kB | `732143a95ca186af8b05b07e897e147095bf7665e2e2ada29ae6188b726d1e90` |
-| `out/renderer/index.html`  |     0.60 kB | `2102c4f8d6a76b6c8a81b22a5ea970499dc4a597d45f82098d8bd6d98c74e37a` |
+| Artifact                    |        Size | SHA-256                                                            |
+| --------------------------- | ----------: | ------------------------------------------------------------------ |
+| `.mastra/output/index.mjs`  | 1,876.35 kB | `3bd2e46afb9c9e21171cd426ce4cf2ab132c4b38e8b72c71a14fda9740875007` |
+| `.mastra/output/mastra.mjs` |   245.18 kB | `2a22b797ae1f28bf8381cf9f57661c7c55f130772ae59f26c8101a338a409db1` |
+| `out/main/index.js`         |   596.28 kB | `e4f95dc7c7d65a6ab47c63e94c2575c3c68c3c67262445ec323635912d0072fa` |
+| `out/preload/index.js`      |     4.38 kB | `732143a95ca186af8b05b07e897e147095bf7665e2e2ada29ae6188b726d1e90` |
+| `out/renderer/index.html`   |     0.60 kB | `4566aec62758006e93a12c326d85f7db665879d262c812e307b887e28c253716` |
 
-The renderer JavaScript bundle is 1,414.60 kB and its CSS bundle is 92.09 kB.
+The renderer JavaScript bundle is 1,420.09 kB (`3dfa4acf77f41d941e8536aa1fe41f4ae00b18c7f33fb40b4e49a8f2abf1c5da`)
+and its CSS bundle is 94.74 kB (`0e3f0be6ade1a545ae9603f6f96b13d8fa1ccdc13d3f3c8a1db9e45795b5adb4`).
 
 ## Security and control assessment
 
@@ -165,6 +189,8 @@ The renderer JavaScript bundle is 1,414.60 kB and its CSS bundle is 92.09 kB.
 - Changing recurring Ledger inbox handling requires native approval and creates an audit mission.
 - Automation version or capability drift fails closed.
 - Odoo mutations create Mission Control audit records with the acting Sidekick and affected record references.
+- Bulk chat deletion is token-authenticated, limited to Mastra threads whose resource ID is
+  `local-user-syd`, and does not issue broad storage or filesystem deletion.
 - Stored connection secrets use the existing operating-system `safeStorage` path.
 - Provider selection remains centralized and was covered by the provider-policy tests.
 
@@ -174,6 +200,8 @@ The renderer JavaScript bundle is 1,414.60 kB and its CSS bundle is 92.09 kB.
 - Metadata-driven discovery depends on the connected Odoo user having permission to read the relevant model and field metadata.
 - Ledger is intentionally still a fixed, sealed workflow and is not represented as a general user-created Sidekick.
 - The old automation table remains in upgraded databases for rollback; active code does not read it.
+- Clear all chat sessions is intentionally irreversible after confirmation; it immediately creates
+  one new empty session but does not restore deleted message history.
 - The renderer bundle is functional but large and should be split or budgeted before scale-sensitive distribution.
 
 ## External release gates not completed
@@ -196,4 +224,4 @@ These items require release infrastructure, external services, credentials, or a
 
 **Ready for auditor handoff and controlled local/UAT testing.**
 
-**Not yet approved for unrestricted production go-live.** Production release should remain blocked until the external gates above are evidenced and signed off. No known internal compile, lint, Sidekick authorization, generic Odoo mutation, recovery, or worker-smoke failure remains in the tested revision.
+**Not yet approved for unrestricted production go-live.** Production release should remain blocked until the external gates above are evidenced and signed off. No known internal compile, lint, Sidekick authorization, generic Odoo mutation, session-lifecycle, recovery, or worker-smoke failure remains in the tested revision.
