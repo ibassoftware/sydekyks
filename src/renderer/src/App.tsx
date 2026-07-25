@@ -237,10 +237,12 @@ function App(): React.JSX.Element {
       {view === 'roster' && (
         <RosterView
           gadget={gadget}
+          imap={imap}
           onOpenAutomations={() => {
             setMissionTab('automations')
             setView('missions')
           }}
+          onOpenGadgets={() => setView('gadgets')}
           sidekicks={bootstrap?.sidekicks ?? []}
         />
       )}

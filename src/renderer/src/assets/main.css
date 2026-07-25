@@ -3107,6 +3107,12 @@ textarea::placeholder {
   border-radius: var(--radius-lg);
   background: rgba(16, 16, 16, 0.9);
 }
+.roster-card.sealed {
+  border-color: rgba(249, 164, 116, 0.28);
+  background:
+    radial-gradient(circle at 100% 0, rgba(249, 164, 116, 0.08), transparent 38%),
+    rgba(16, 16, 16, 0.9);
+}
 .roster-card-top {
   display: flex;
   align-items: center;
@@ -3125,6 +3131,12 @@ textarea::placeholder {
   height: 7px;
   border-radius: 50%;
   background: var(--success);
+}
+.availability.sealed {
+  color: var(--warning);
+}
+.availability.sealed > span {
+  background: var(--warning);
 }
 .roster-card h2 {
   margin: 0 0 8px;
@@ -3146,6 +3158,24 @@ textarea::placeholder {
   color: var(--secondary);
   font-size: var(--font-support);
   font-weight: 700;
+}
+.roster-kind.sealed {
+  color: var(--primary);
+}
+.roster-sealed-note {
+  display: flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 8px;
+  min-height: 38px;
+  margin-bottom: 12px;
+  padding: 7px 11px;
+  border: 1px solid rgba(249, 164, 116, 0.24);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  background: rgba(249, 164, 116, 0.04);
+  font-size: var(--font-support);
+  font-weight: 650;
 }
 .roster-skill-file-button {
   align-self: flex-start;
@@ -3252,6 +3282,13 @@ textarea::placeholder {
   justify-self: start;
   min-height: 36px;
   padding: 0 8px;
+}
+.ledger-inbox-callout {
+  border-color: rgba(249, 164, 116, 0.22);
+  background: rgba(249, 164, 116, 0.04);
+}
+.ledger-inbox-callout > div {
+  color: var(--primary);
 }
 .roster-footer {
   margin-top: auto;

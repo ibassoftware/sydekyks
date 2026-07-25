@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import type { OdooPublicStatus } from '../../../shared/ipc'
+import type { ImapPublicStatus, OdooPublicStatus } from '../../../shared/ipc'
 import { Icon } from '../components/Icon'
 import type { Sidekick } from '../lib/types'
 import { portraitFor } from '../lib/sydekyk-portraits'
@@ -164,11 +164,15 @@ function SkillFileDialog({
 
 export function RosterView({
   gadget,
+  imap,
   onOpenAutomations,
+  onOpenGadgets,
   sidekicks
 }: {
   gadget: OdooPublicStatus
+  imap: ImapPublicStatus
   onOpenAutomations: () => void
+  onOpenGadgets: () => void
   sidekicks: Sidekick[]
 }): React.JSX.Element {
   const [selectedSidekick, setSelectedSidekick] = useState<Sidekick>()
@@ -179,74 +183,129 @@ export function RosterView({
         <p className="eyebrow">Versioned business skills</p>
         <h1 id="roster-title">Sidekicks</h1>
         <p>
-          Sidekicks are Markdown skills Syd activates when they fit the work. Create or refine one
-          through chat—no new agent code or fixed Odoo module mapping required.
+          Sidekicks include versioned Markdown skills and sealed specialists for work that needs
+          fixed controls. Create or refine Markdown skills through chat.
         </p>
       </header>
       <div className="roster-grid">
-        {sidekicks.map((sidekick) => (
-          <article className={`roster-card ${sidekick.id}`} key={sidekick.id}>
-            <div className="roster-card-top">
-              <div className={`sydekyk-avatar ${sidekick.id}-avatar`}>
-                {portraitFor(sidekick.id) ? (
-                  <img alt={`${sidekick.name} portrait`} src={portraitFor(sidekick.id)} />
-                ) : (
-                  sidekick.name[0]
-                )}
-              </div>
-              <span className="availability">
-                <span />
-                {sidekick.status === 'active' ? 'Active' : 'Paused'}
+        <article className="roster-card ledger sealed">
+          <div className="roster-card-top">
+            <div className="sydekyk-avatar ledger-avatar">
+              <img alt="Ledger portrait" src={portraitFor('ledger')} />
+            </div>
+            <span className="availability sealed">
+              <span />
+              Ready
+            </span>
+          </div>
+          <p className="eyebrow">Built-in specialist</p>
+          <h2>Ledger</h2>
+          <p>
+            Reviews vendor bills, checks accounting context and duplicates, and prepares Odoo drafts
+            through an approval-aware control path.
+          </p>
+          <div className="roster-kind sealed">
+            <Icon name="shield" size={17} />
+            <span>Sealed workflow · draft bills only</span>
+          </div>
+          <div className="roster-sealed-note">
+            <Icon name="shield" size={16} />
+            <span>Fixed safeguards · no editable SKILL.md</span>
+          </div>
+          <div className="capability-list">
+            <span>Never posts or pays</span>
+            <span>Explicit approvals</span>
+          </div>
+          <div className="roster-automation-callout ledger-inbox-callout">
+            <div>
+              <Icon name="mail" size={17} />
+              <span>
+                <strong>Email-to-bill intake</strong>
+                <small>
+                  {imap.connected
+                    ? `Watching ${imap.mailbox ?? 'the connected inbox'} with Ledger’s review policy.`
+                    : 'Connect the Email inbox Gadget before Ledger can check mail.'}
+                </small>
               </span>
             </div>
-            <p className="eyebrow">
-              {sidekick.source === 'preset' ? 'Built-in skill' : 'Created in chat'}
-            </p>
-            <h2>{sidekick.name}</h2>
-            <p>{sidekick.description}</p>
-            <div className="roster-kind">
-              <Icon name="sparkles" size={17} />
-              <span>Markdown skill · version {sidekick.version}</span>
-            </div>
-            <button
-              className="secondary-button roster-skill-file-button"
-              onClick={() => setSelectedSidekick(sidekick)}
-              type="button"
-            >
-              <Icon name="document" size={16} />
-              View SKILL.md
+            <button className="ghost-button" onClick={onOpenGadgets} type="button">
+              {imap.connected ? 'Manage' : 'Connect'}
             </button>
-            <div className="capability-list">
-              {sidekick.capabilities.length === 0 ? (
-                <span>Read-only until access is approved</span>
-              ) : (
-                sidekick.capabilities.map((capability) => (
-                  <span key={capability.model}>
-                    {capability.label} · {capability.operations.join(', ')}
-                  </span>
-                ))
-              )}
-            </div>
-            <div className="roster-automation-callout">
-              <div>
-                <Icon name="clock" size={17} />
-                <span>
-                  <strong>Optional automations</strong>
-                  <small>Manual, schedule, or email triggers use this pinned skill version.</small>
+          </div>
+          <div className="roster-footer">
+            <span>
+              <Icon name="plug" size={16} />
+              Odoo · {gadget.connected ? 'connected' : 'locked'}
+            </span>
+          </div>
+        </article>
+        {sidekicks
+          .filter((sidekick) => sidekick.id !== 'ledger')
+          .map((sidekick) => (
+            <article className={`roster-card ${sidekick.id}`} key={sidekick.id}>
+              <div className="roster-card-top">
+                <div className={`sydekyk-avatar ${sidekick.id}-avatar`}>
+                  {portraitFor(sidekick.id) ? (
+                    <img alt={`${sidekick.name} portrait`} src={portraitFor(sidekick.id)} />
+                  ) : (
+                    sidekick.name[0]
+                  )}
+                </div>
+                <span className="availability">
+                  <span />
+                  {sidekick.status === 'active' ? 'Active' : 'Paused'}
                 </span>
               </div>
-              <button className="ghost-button" onClick={onOpenAutomations} type="button">
-                View
+              <p className="eyebrow">
+                {sidekick.source === 'preset' ? 'Built-in skill' : 'Created in chat'}
+              </p>
+              <h2>{sidekick.name}</h2>
+              <p>{sidekick.description}</p>
+              <div className="roster-kind">
+                <Icon name="sparkles" size={17} />
+                <span>Markdown skill · version {sidekick.version}</span>
+              </div>
+              <button
+                className="secondary-button roster-skill-file-button"
+                onClick={() => setSelectedSidekick(sidekick)}
+                type="button"
+              >
+                <Icon name="document" size={16} />
+                View SKILL.md
               </button>
-            </div>
-            <div className="roster-footer">
-              <span>
-                <Icon name="plug" size={16} />
-                Odoo · {gadget.connected ? 'connected' : 'locked'}
-              </span>
-            </div>
-          </article>
-        ))}
+              <div className="capability-list">
+                {sidekick.capabilities.length === 0 ? (
+                  <span>Read-only until access is approved</span>
+                ) : (
+                  sidekick.capabilities.map((capability) => (
+                    <span key={capability.model}>
+                      {capability.label} · {capability.operations.join(', ')}
+                    </span>
+                  ))
+                )}
+              </div>
+              <div className="roster-automation-callout">
+                <div>
+                  <Icon name="clock" size={17} />
+                  <span>
+                    <strong>Optional automations</strong>
+                    <small>
+                      Manual, schedule, or email triggers use this pinned skill version.
+                    </small>
+                  </span>
+                </div>
+                <button className="ghost-button" onClick={onOpenAutomations} type="button">
+                  View
+                </button>
+              </div>
+              <div className="roster-footer">
+                <span>
+                  <Icon name="plug" size={16} />
+                  Odoo · {gadget.connected ? 'connected' : 'locked'}
+                </span>
+              </div>
+            </article>
+          ))}
         <article className="roster-card roster-placeholder">
           <div className="placeholder-mark">
             <Icon name="plus" size={24} />

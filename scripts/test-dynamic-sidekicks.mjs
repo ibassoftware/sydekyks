@@ -28,6 +28,7 @@ assert.match(syd, /createSkill\(/)
 assert.match(syd, /writeOdooBusinessData:\s*writeOdooBusinessDataTool/)
 assert.match(syd, /grantSidekickCapability/)
 assert.match(syd, /Email-to-bill processing is a Ledger inbox configuration/)
+assert.match(syd, /Email inbox Gadget is not connected—not that Ledger is unavailable/)
 assert.match(syd, /inspectLedgerInbox:\s*inspectLedgerInboxTool/)
 assert.match(syd, /configureLedgerInbox:\s*configureLedgerInboxTool/)
 assert.doesNotMatch(syd, /delegateNudge|delegateMirror|delegateShield/)
@@ -47,6 +48,10 @@ assert.match(roster, /View SKILL\.md/)
 assert.match(roster, /sidekick\.instructions/)
 assert.match(roster, /ReactMarkdown/)
 assert.match(roster, /Markdown source/)
+assert.match(roster, /Built-in specialist/)
+assert.match(roster, /Sealed workflow · draft bills only/)
+assert.match(roster, /no editable SKILL\.md/)
+assert.match(roster, /Connect the Email inbox Gadget before Ledger can check mail/)
 
 for (const removed of [
   'src/mastra/sydekyks/nudge/agent.ts',

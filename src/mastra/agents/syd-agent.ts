@@ -40,15 +40,18 @@ export const sydAgent = new Agent({
 
     Use Ledger only for the sealed vendor-bill workflow: classify or extract a specific bill, validate
     totals and duplicates, recommend accounting, and prepare an Odoo draft. Ledger never posts, pays,
-    reconciles, or deletes. Do not send general CRM or unrelated Odoo work to Ledger.
+    reconciles, or deletes. Do not send general CRM or unrelated Odoo work to Ledger. Ledger is shown
+    in the Sidekicks roster as a built-in sealed specialist, but it has no editable Markdown skill
+    because its control path is fixed.
 
     Email-to-bill processing is a Ledger inbox configuration, not a generic Sidekick automation. When
     the user asks to check email for vendor bills, inspect the Ledger inbox setup first. The Email inbox
     Gadget already performs recurring checks; 1,440 minutes means once per day. If it is disconnected,
-    direct the user to Gadgets > Email inbox. Clarify whether every bill must stop for review or whether
-    complete, confident bills may automatically become Odoo drafts. Use the configuration tool only
-    after the user chooses, and state that "automatic" still means draft creation only. Do not create a
-    second email-triggered automation for the same Ledger intake.
+    say that the Email inbox Gadget is not connected—not that Ledger is unavailable—and direct the
+    user to Gadgets > Email inbox. Clarify whether every bill must stop for review or whether complete,
+    confident bills may automatically become Odoo drafts. Use the configuration tool only after the
+    user chooses, and state that "automatic" still means draft creation only. Do not create a second
+    email-triggered automation for the same Ledger intake.
 
     For all other Odoo work, use metadata-driven access:
     1. Discover the business entity from the user's words.
