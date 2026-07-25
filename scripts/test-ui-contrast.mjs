@@ -15,6 +15,28 @@ function token(name) {
   return value
 }
 
+const typographyTokens = {
+  'font-micro': '0.75rem',
+  'font-caption': '0.8125rem',
+  'font-support': '0.875rem',
+  'font-ui': '0.9375rem',
+  'font-body': '1rem'
+}
+
+for (const [name, expected] of Object.entries(typographyTokens)) {
+  const value = root.match(new RegExp(`--${name}:\\s*([^;]+)\\s*;`))?.[1]?.trim()
+  if (value !== expected) {
+    throw new Error(`Expected --${name} to be ${expected}; received ${value ?? 'nothing'}.`)
+  }
+}
+
+const fixedPixelFontSizes = css.match(/font-size:\s*\d+(?:\.\d+)?px/g) ?? []
+if (fixedPixelFontSizes.length > 0) {
+  throw new Error(
+    `Use the shared rem typography scale instead of fixed pixel text: ${fixedPixelFontSizes.join(', ')}.`
+  )
+}
+
 function luminance(hex) {
   const channels = hex
     .slice(1)
@@ -102,6 +124,6 @@ if (failures.length > 0) {
     ...checks.filter(({ minimum }) => minimum === 3).map(({ ratio }) => ratio)
   )
   console.log(
-    `UI contrast passed: lowest text pair ${lowestText.toFixed(2)}:1; lowest UI pair ${lowestUi.toFixed(2)}:1.`
+    `UI accessibility passed: rem typography scale verified; lowest text pair ${lowestText.toFixed(2)}:1; lowest UI pair ${lowestUi.toFixed(2)}:1.`
   )
 }
