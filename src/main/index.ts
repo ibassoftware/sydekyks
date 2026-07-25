@@ -212,11 +212,18 @@ const syncStoredOdooCredentials = async (): Promise<void> => {
 }
 
 const syncStoredImapCredentials = async (): Promise<void> => {
-  const credentials = await readImapCredentials()
-  if (!credentials) return
+  const storedCredentials = await readImapCredentials()
+  if (!storedCredentials) return
   for (let attempt = 0; attempt < 20; attempt += 1) {
     try {
+      const status = await getMastra<ImapPublicStatus>('/sydekyks/gadgets/imap/status')
+      const credentials =
+        status.pollIntervalMinutes &&
+        status.pollIntervalMinutes !== storedCredentials.pollIntervalMinutes
+          ? { ...storedCredentials, pollIntervalMinutes: status.pollIntervalMinutes }
+          : storedCredentials
       await postMastra<ImapPublicStatus>('/sydekyks/gadgets/imap/connect', credentials)
+      if (credentials !== storedCredentials) await storeImapCredentials(credentials)
       return
     } catch {
       await new Promise((resolve) => setTimeout(resolve, 750))

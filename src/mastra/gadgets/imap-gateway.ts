@@ -73,6 +73,17 @@ class ImapGadget {
     return { ...this.status }
   }
 
+  async setPollInterval(pollIntervalMinutes: number): Promise<ImapPublicStatus> {
+    if (!this.credentials || !this.status.configured) {
+      throw new Error('Connect the Email inbox Gadget before changing how often it checks for mail')
+    }
+    this.credentials = { ...this.credentials, pollIntervalMinutes }
+    this.status = { ...this.status, pollIntervalMinutes }
+    await appStore.saveImapStatus(this.status)
+    this.schedule()
+    return this.getStatus()
+  }
+
   private client(credentials = this.credentials): ImapFlow {
     if (!credentials) throw new Error('Connect the IMAP Gadget before syncing email')
     return new ImapFlow({

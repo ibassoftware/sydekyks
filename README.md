@@ -93,6 +93,7 @@ Examples:
 - “Create a Sidekick called Renewals that reviews contracts approaching renewal.”
 - “Grant Renewals permission to update Rental Contracts.”
 - “Every weekday at 9, use Renewals to summarize contracts due within 60 days.”
+- “Check my inbox once a day and have Ledger prepare confident vendor bills as Odoo drafts.”
 - “Create follow-up activities for these opportunities and assign them to MW tomorrow.”
 
 For the last example, Syd must discover what “MW” resolves to in the connected Odoo, inspect the
@@ -105,6 +106,12 @@ PDF and image bills can be attached in chat. IMAP can also ingest messages while
 Ledger classifies and extracts the document, checks duplicates and accounting context, then prepares
 a draft. Missing partner and purchase-tax configuration retain durable sequential approvals. Ledger
 never posts, pays, reconciles, or deletes.
+
+Email-to-bill intake is configured separately from generic Sidekick automations. Ask Syd to inspect
+the Ledger inbox, choose the check interval (`1440` minutes means once per day), and select one of
+three review policies: review every bill, automatically prepare only complete/confident drafts, or
+automatically prepare every complete item classified as a vendor bill. Changing this policy requires
+native chat approval and creates a Mission Control receipt.
 
 ## Local data and credentials
 

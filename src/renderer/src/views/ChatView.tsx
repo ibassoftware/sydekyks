@@ -61,6 +61,7 @@ const chatTransport = new DefaultChatTransport({
 
 const prompts = [
   'Help me process a vendor bill with Ledger.',
+  'Set up Ledger to check my inbox daily and prepare draft vendor bills.',
   'Use Nudge to find opportunities that need attention.',
   'Use Mirror to review Odoo for possible duplicate vendor bills.',
   'Use Shield to prepare an AP risk brief.',
@@ -669,6 +670,7 @@ export function ChatView({
                       const approvalId = requested ? toolPart.approval?.id : undefined
                       const isSidekickManagement = toolType.includes('sidekick')
                       const isAutomationManagement = toolType.includes('automation')
+                      const isLedgerInboxManagement = toolType.includes('ledgerinbox')
                       const isOdooBusinessWrite =
                         toolType.includes('writeodoobusinessdata') ||
                         toolType.includes('writeodoobusiness')
@@ -676,6 +678,7 @@ export function ChatView({
                         (requested ||
                           isSidekickManagement ||
                           isAutomationManagement ||
+                          isLedgerInboxManagement ||
                           isOdooBusinessWrite) &&
                         !isAutomationList
                       ) {
@@ -686,15 +689,19 @@ export function ChatView({
                         const records = completed ? odooRecordRefsFromOutput(toolPart.output) : []
                         const title = isOdooBusinessWrite
                           ? `Approve Odoo ${String(input?.operation ?? 'change')}`
-                          : toolType.includes('grant')
-                            ? 'Approve capability'
-                            : toolType.includes('createsidekick')
-                              ? 'Approve new Sidekick'
-                              : toolType.includes('updatesidekick')
-                                ? 'Approve Sidekick change'
-                                : toolType.includes('createautomation')
-                                  ? 'Approve automation'
-                                  : 'Approve requested change'
+                          : isLedgerInboxManagement
+                            ? requested
+                              ? 'Approve email-to-bill setup'
+                              : 'Email-to-bill setup'
+                            : toolType.includes('grant')
+                              ? 'Approve capability'
+                              : toolType.includes('createsidekick')
+                                ? 'Approve new Sidekick'
+                                : toolType.includes('updatesidekick')
+                                  ? 'Approve Sidekick change'
+                                  : toolType.includes('createautomation')
+                                    ? 'Approve automation'
+                                    : 'Approve requested change'
                         return (
                           <div
                             className={`automation-tool-card${requested ? ' approval-needed' : ''}${failed ? ' failed' : ''}`}
@@ -715,7 +722,9 @@ export function ChatView({
                                     : denied
                                       ? 'No change was made'
                                       : completed
-                                        ? 'Approved change completed'
+                                        ? isLedgerInboxManagement
+                                          ? 'Current inbox settings checked'
+                                          : 'Approved change completed'
                                         : requested
                                           ? 'Paused until you decide'
                                           : 'Preparing the change'}

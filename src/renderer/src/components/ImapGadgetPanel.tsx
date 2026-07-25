@@ -327,7 +327,9 @@ export function ImapGadgetPanel({
         <p className="security-caption">
           <Icon name="shield" size={15} />
           Password encrypted by the operating system. Original attachments stay local; bounded
-          extracted text is sent only to your configured AI model for bill analysis.
+          extracted text is sent only to your configured AI model for bill analysis. You can ask
+          Syd: “Check this inbox daily and have Ledger prepare confident vendor bills as Odoo
+          drafts.”
         </p>
       </form>
     </section>

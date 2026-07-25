@@ -44,7 +44,10 @@ export function AutomationsPanel({
         </div>
         <div className="automation-chat-hint">
           <Icon name="chat" size={18} />
-          <span>Ask Syd to create, change, or delete an automation.</span>
+          <span>
+            Ask Syd to create, change, or delete an automation. For vendor bills from email, ask Syd
+            to configure Ledger’s inbox instead.
+          </span>
         </div>
       </section>
 

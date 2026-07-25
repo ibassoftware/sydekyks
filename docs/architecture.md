@@ -22,8 +22,11 @@ flowchart LR
   Syd --> Grant["Capability grant · approval"]
   Grant --> Write["Odoo create/update/archive · approval"]
   Syd --> Ledger["Ledger durable workflow"]
+  Syd --> InboxConfig["Ledger inbox policy · approval"]
   Specs["Automation specs"] --> Dispatcher["Mastra dispatcher workflow"]
   IMAP["Deduplicated IMAP event"] --> Specs
+  IMAP --> Ledger
+  InboxConfig --> IMAP
   Dispatcher --> Syd
   Read --> Odoo["Connected Odoo"]
   Write --> Odoo
@@ -81,6 +84,11 @@ Capability grants have the form:
 The model handle is internal. The user approves a friendly label plus operations. Capability grants
 and writes are separate approvals. Deletes are not available through the generic tool.
 
+Provider-facing tool schemas always have a JSON Schema object at their root. Operation-specific
+variants are represented as fields on that object and validated again inside the tool. This keeps
+create/update/archive rules strict while remaining compatible with function-calling providers that
+reject a union at the schema root.
+
 ## Approval boundary
 
 Skills provide reasoning instructions. They cannot:
@@ -114,6 +122,25 @@ or evaluate model-produced source code. IMAP triggers pass normalized metadata a
 Before every run, the interpreter compares the pinned Sidekick version and capability fingerprint.
 Drift creates a needs-attention mission and stops the run. A reviewed automation can be explicitly
 re-pinned.
+
+## Ledger inbox model
+
+Ledger's email-to-bill intake is a sealed integration boundary, not a generic Sidekick automation.
+The IMAP Gadget polls at its approved interval, deduplicates and stores new messages, and hands likely
+vendor bills to Ledger's document analysis and durable draft workflow.
+
+Syd exposes separate read-only inspection and approval-gated configuration tools for this path. The
+configuration records:
+
+- the inbox polling interval (`1440` minutes for once daily);
+- review every detected bill;
+- automatically prepare only complete, high-confidence, warning-free drafts; or
+- automatically prepare every complete item classified as a vendor bill.
+
+Automatic handling still creates Odoo drafts only. Missing required fields stop for review, workflow
+configuration approvals remain in force, duplicate checks still run, and the Odoo Gadget's live-write
+setting remains authoritative. The non-secret polling preference is kept with Gadget state and is
+reconciled into the encrypted IMAP configuration on restart.
 
 ## Storage
 

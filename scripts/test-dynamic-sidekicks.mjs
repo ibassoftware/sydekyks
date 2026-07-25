@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { build } from 'esbuild'
+import { convertZodSchemaToAISDKSchema } from '@mastra/schema-compat'
 
 const root = join(import.meta.dirname, '..')
 const read = (path) => readFile(join(root, path), 'utf8')
@@ -25,11 +26,15 @@ assert.match(syd, /skills:\s*async/)
 assert.match(syd, /createSkill\(/)
 assert.match(syd, /writeOdooBusinessData:\s*writeOdooBusinessDataTool/)
 assert.match(syd, /grantSidekickCapability/)
+assert.match(syd, /Email-to-bill processing is a Ledger inbox configuration/)
+assert.match(syd, /inspectLedgerInbox:\s*inspectLedgerInboxTool/)
+assert.match(syd, /configureLedgerInbox:\s*configureLedgerInboxTool/)
 assert.doesNotMatch(syd, /delegateNudge|delegateMirror|delegateShield/)
 assert.match(gateway, /x_rental\.contract/)
 assert.doesNotMatch(gateway, /genericWritableModels|writableModels/)
 assert.match(writer, /requireApproval:\s*true/)
 assert.match(writer, /hasSidekickCapability/)
+assert.match(writer, /odooBusinessWriteInputSchema\s*=\s*z[\s\S]*?\.object\(/)
 assert.doesNotMatch(writer, /operation:\s*z\.literal\('delete'\)/)
 assert.match(schemas, /kind:\s*z\.literal\('manual'\)/)
 assert.match(schemas, /kind:\s*z\.literal\('schedule'\)/)
@@ -62,6 +67,7 @@ try {
         export { appStore } from ${JSON.stringify(join(root, 'src/mastra/lib/app-store.ts'))}
         export { createSidekick, setSidekickCapability } from ${JSON.stringify(join(root, 'src/mastra/sidekicks/service.ts'))}
         export { writeOdooBusinessDataTool } from ${JSON.stringify(join(root, 'src/mastra/tools/odoo-business-write.ts'))}
+        export { sydAgent } from ${JSON.stringify(join(root, 'src/mastra/agents/syd-agent.ts'))}
       `,
       loader: 'ts',
       resolveDir: root,
@@ -70,6 +76,17 @@ try {
   })
   const module = await import(pathToFileURL(bundle).href)
   appStore = module.appStore
+  const configuredTools = module.sydAgent.__getOverridableFields().tools
+  assert.equal(typeof configuredTools, 'object', 'Syd should use a static tool dictionary')
+  for (const [name, tool] of Object.entries(configuredTools)) {
+    const providerSchema = convertZodSchemaToAISDKSchema(tool.inputSchema).jsonSchema
+    assert.equal(providerSchema.type, 'object', `${name} function schema must have an object root`)
+  }
+  assert.equal(
+    configuredTools.configureLedgerInbox.requireApproval,
+    true,
+    'Changing recurring email-to-bill behavior must require approval'
+  )
   const sidekick = await module.createSidekick({
     name: 'Renewals',
     description: 'Reviews custom rental contracts approaching renewal.',
@@ -82,6 +99,17 @@ try {
     operations: ['create', 'update', 'archive']
   })
   assert.equal(module.writeOdooBusinessDataTool.requireApproval, true)
+  assert.equal(
+    module.writeOdooBusinessDataTool.inputSchema.safeParse({
+      operation: 'update',
+      sidekickId: sidekick.id,
+      model: 'x_rental.contract',
+      entityLabel: 'Rental Contract',
+      values: { state: 'active' }
+    }).success,
+    false,
+    'Update writes must include record IDs'
+  )
   const created = await module.writeOdooBusinessDataTool.execute({
     operation: 'create',
     sidekickId: sidekick.id,
