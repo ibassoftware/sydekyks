@@ -1,179 +1,169 @@
-# Sydekyks build and go-live readiness report
+# Sydekyks Desktop — Dynamic Sidekicks Build Report
 
-**Report date:** 2026-07-25  
-**Timezone:** Europe/Paris  
-**Product version:** 1.0.0  
-**Bundle identifier:** `com.sydekyks.desktop`  
-**Assessment scope:** AI provider-policy unification and exact resulting macOS ARM64 audit build  
-**Audience:** Engineering, release management, security, and independent auditor
+## Document control
 
-## Executive decision
+| Field                           | Value                                                          |
+| ------------------------------- | -------------------------------------------------------------- |
+| Product                         | Sydekyks Desktop 1.0.0                                         |
+| Report date                     | 2026-07-25 (Europe/Paris)                                      |
+| Audit branch                    | `feat/dynamic-sidekicks`                                       |
+| Tested implementation           | `7c65e2f4a525f525e28da706e453092f39af7e81`                     |
+| Pre-refactor snapshot           | `976bbcbb03a5ccdbfa622e2287f82023a71d5bd9`                     |
+| Repository                      | `https://github.com/ibassoftware/sydekyks.git`                 |
+| Internal acceptance             | **PASS**                                                       |
+| Unrestricted production release | **CONDITIONAL NO-GO** pending the external release gates below |
 
-**Engineering disposition: PASS for auditor handoff and internal acceptance.**
+This report describes the implementation commit above. The report itself is committed separately so the reviewed source revision remains immutable.
 
-**External production disposition: NO-GO until the release gates in this report are closed.**
+## Executive result
 
-The final source state passes lint, all TypeScript projects, the production build, the live Ollama Cloud functional matrix, worker and database recovery checks, package-content inspection, and packaged application smoke tests. The generated unpacked macOS application is an audit artifact only: it is unsigned and unnotarized, has no approved HTTPS update feed, and has not completed clean-machine or cross-provider release acceptance.
+The fixed Nudge, Mirror, and Shield specialist implementations have been replaced by a single Syd runtime with dynamically managed Sidekicks. A Sidekick is a versioned Markdown skill plus an explicit capability set; it is not a separate hard-coded agent or workflow. Users can create and revise Sidekicks through chat.
 
-## Build identification
+Odoo access is now metadata-driven. Syd discovers models and fields from the connected Odoo instance, including custom models, and can use generic read/create/update/archive operations. Product prompts and UI can use friendly business language without treating names such as `crm.lead` as a fixed product boundary. Record deletion is intentionally unsupported.
 
-| Field | Value |
-| --- | --- |
-| Workspace | `/Users/reinduque/Documents/ibas/sydekyksdesk` |
-| Audit application | `dist/mac-arm64/Sydekyks.app` |
-| Application size | 439 MB |
-| `app.asar` size | 119,239,995 bytes |
-| `app.asar` SHA-256 | `8381345b16dcf370dc5a91802c663cbe4851a26c6923e4efca291f7dfe53a4d2` |
-| Mastra worker SHA-256 | `69cd4f73f207bb681a03a2d7d227d8df58fa71499747897196b5dba72df54d16` |
-| Electron main SHA-256 | `a7b82d87e3eb7f66858426a325a3a031b327746c16ce25fddf5a4e2e5faff6a1` |
-| Electron preload SHA-256 | `732143a95ca186af8b05b07e897e147095bf7665e2e2ada29ae6188b726d1e90` |
-| Renderer entry SHA-256 | `ce5bea303b00316cfe2621d85214511b514819b5bafc76fdc96fc8a34462988b` |
-| Build timestamp | 2026-07-25 16:58 CEST |
+Automations are declarative specifications with manual, schedule, or inbound-email triggers. They pin a Sidekick version and capability fingerprint and stop for review if either drifts. The user describes the desired process; the application stores a constrained specification rather than generating arbitrary executable code.
 
-### Provenance limitation
+Ledger remains a sealed specialist workflow because its accounts-payable ingestion and review path has stricter deterministic controls.
 
-The supplied workspace is not a Git repository, so a source commit, clean-tree assertion, signed tag, and reproducible source revision could not be recorded. This is an external-release blocker. Release management must place the accepted source in controlled version management and bind the final signed artifacts to an immutable revision.
+The refactor changed 84 files, added 2,450 lines, and removed 8,516 lines. Obsolete specialist agents, services, tools, workflows, tests, UI branches, and styling were deleted rather than retained as dead compatibility paths.
 
-## Change objective
+## Architecture delivered
 
-The refactor removes provider and model behavior from individual Sydekyk call sites and establishes one application-owned policy over Mastra’s unified model router.
+```mermaid
+flowchart LR
+  User["User or trigger"] --> Syd["Syd"]
+  Syd --> Skill["Versioned Markdown Sidekick"]
+  Skill --> Guard["Capability + live metadata + Odoo ACL + approval"]
+  Guard --> Odoo["Odoo standard or custom model"]
+  Auto["Declarative automation"] --> Version["Pinned skill version and capability fingerprint"]
+  Version --> Syd
+  Email["Untrusted inbound email"] --> Auto
+  Ledger["Ledger sealed workflow"] --> Odoo
+```
 
-Mastra remains the provider-neutral transport and authentication layer. The application continues to use canonical `provider/model` identifiers and the same `Agent.generate()` API for OpenAI, Anthropic, Google, and Ollama Cloud. No LiteLLM proxy or additional credential boundary was introduced.
+The effective authorization for an Odoo mutation is the intersection of:
 
-## Implemented controls
+1. the connected Odoo user's source-system ACLs;
+2. live model and field metadata;
+3. the Sidekick's explicit model/operation capability;
+4. Gadget connection policy; and
+5. a native interactive approval for a write.
 
-### Central model capability policy
+A Markdown skill can explain how to perform a task, but cannot grant itself access or bypass these controls.
 
-`src/mastra/lib/model-policy.ts` now owns:
+## Material changes
 
-- structured-output mode;
-- attachment capability resolution;
-- temperature capability resolution;
-- exact model-level overrides backed by live verification;
-- deterministic generation-setting construction.
+### Dynamic Sidekicks
 
-Every installed structured-intelligence path uses the same conservative prompt-injected output policy. Ledger, Nudge, Mirror, and Shield no longer set `jsonPromptInjection` independently.
+- Added persisted Sidekick profiles, immutable Markdown skill versions, and model/operation capabilities.
+- Added chat tools to list, create, update, pause, and grant capabilities to Sidekicks.
+- Added source-controlled Nudge, Mirror, and Shield starter skills under `skills/`, compiled into the packaged worker during the build.
+- Removed the runtime Nudge, Mirror, and Shield agents, delegation tools, intelligence services, manifests, specialist tools, and specialist workflows.
+- Replaced the fixed roster UI with a dynamic Sidekicks view.
+- Eliminated the deterministic interpretation of initials such as “MW”; Syd must resolve people from live Odoo data and must not guess an identity or record ID.
 
-Every explicit model setting now passes through the same capability-aware builder. A model that is known not to support temperature does not receive the parameter. The live-tested `ollama-cloud/minimax-m2.7` behavior is an explicit model override because the provider accepted deterministic temperature even though the general registry did not advertise it.
+### Generic Odoo access
 
-Attachment support uses affirmative Mastra registry data plus explicit verified negative overrides. An absent catalog entry is treated as unknown instead of falsely rejecting a newly released model.
+- Removed hard-coded writable-model allowlists.
+- Added live model and field discovery for standard and custom Odoo modules.
+- Added generic create, update, and archive operations with capability checks and native approval.
+- Rejected writes to fields reported as read-only by Odoo.
+- Preserved Odoo as the authoritative source for access control.
+- Added auditable Mission Control records for generic mutations.
+- Deliberately excluded hard deletion.
 
-### Central model catalog
+### Declarative automations
 
-`src/main/ai-model-catalog.ts` now provides a single adapter interface for model listing:
+- Replaced specialist automation proposal and execution services with generic automation specifications.
+- Added manual, schedule, and inbound-email trigger types.
+- Added pinned Sidekick versions and capability fingerprints.
+- Added drift detection that stops execution and marks the automation as needing attention.
+- Treats inbound email content and metadata as untrusted input.
+- Does not silently approve background writes: approval-required actions still require an interactive approval.
 
-- OpenAI can use account-specific live discovery through `/v1/models`;
-- Anthropic, Google, and Ollama Cloud use reviewed Sydekyks catalogs;
-- OpenAI falls back to its reviewed catalog when no key is available;
-- provider failures are normalized and logged without exposing credentials.
+### Data migration and rollback posture
 
-Catalog identity is not treated as proof of structured-output, tool, or attachment capability. The four functional connection contracts remain authoritative before credentials are saved.
-
-### Migrated consumers
-
-The centralized policy is used by:
-
-- Ledger connection, document, accounting, write-recovery, and delegation calls;
-- Nudge assessment and delegation calls;
-- Mirror screening, confirmation, and delegation calls;
-- Shield assessment, auditor-brief, and delegation calls.
-
-The regression test scans Mastra source files and fails if a consumer reintroduces a direct `jsonPromptInjection` setting or raw deterministic temperature configuration.
-
-## Files added
-
-- `src/mastra/lib/model-policy.ts`
-- `src/main/ai-model-catalog.ts`
-- `scripts/test-ai-provider-policy.mjs`
-- `BUILD_REPORT.md`
-
-## Files materially changed
-
-- `src/mastra/lib/ai-runtime.ts`
-- `src/main/index.ts`
-- `src/mastra/sydekyks/ledger/intelligence-service.ts`
-- `src/mastra/sydekyks/ledger/delegation-tool.ts`
-- `src/mastra/sydekyks/nudge/intelligence-service.ts`
-- `src/mastra/sydekyks/nudge/delegation-tool.ts`
-- `src/mastra/sydekyks/mirror/intelligence-service.ts`
-- `src/mastra/sydekyks/mirror/delegation-tool.ts`
-- `src/mastra/sydekyks/shield/intelligence-service.ts`
-- `src/mastra/sydekyks/shield/delegation-tool.ts`
-- `package.json`
+- The application database schema is upgraded to version 4.
+- Existing Nudge, Mirror, and Shield automation rows are imported once as generic, read-only automation specifications when the legacy table exists.
+- The legacy automation table is retained for rollback compatibility but is no longer read by the active runtime.
+- New user Sidekick versions are append-only; updates do not rewrite prior skill text.
 
 ## Verification evidence
 
-| Gate | Result | Evidence |
-| --- | --- | --- |
-| Provider registry validation | PASS | All configured OpenAI, Anthropic, Google, and Ollama Cloud model IDs were present in the installed Mastra registry. |
-| `npm run lint` | PASS | No ESLint or formatting findings. |
-| `npm run typecheck` | PASS | Node, renderer, and Mastra TypeScript projects passed. |
-| `npm run test:ai-provider-policy` | PASS | Unified structured output, capability-aware settings, catalog adapters, live override, and source bypass checks passed. |
-| `npm run test:ai-restore` | PASS | Credential restore completed in 1 ms without a provider request and restored the prior environment on disconnect. |
-| `npm run test:openai-models` | PASS | Non-LLM OpenAI families were filtered; preferred and snapshot IDs were ordered and deduplicated. |
-| Existing local regression suite | PASS | Logging, Mirror document types, mission notifications, mission error details, Shield brief bounds, Odoo read schema, UI contrast, and automation deduplication passed. |
-| `npm run test:smoke:worker` | PASS | Loopback auth, health, clean first run, session isolation, and clean shutdown passed. |
-| `npm run test:recovery` | PASS | Both SQLite databases were backed up and restored as one consistent set. |
-| `npm run test:functional` | PASS | Live Ollama Cloud AI, chat, PDF/image intake, sample email, Ledger, restart-safe approvals, Nudge, Mirror, Shield, and automation lifecycle passed. |
-| `npm run build` | PASS | Type checks, Mastra bundle and generated dependencies, Electron main/preload, and renderer production builds passed. |
-| `npx electron-builder --dir` | PASS WITH RELEASE BLOCKER | macOS ARM64 application produced; builder reported no valid Developer ID identity and skipped signing. |
-| `npm run test:package` | PASS | 13,673 packaged files, 113.7 MB `app.asar`, no source, test fixtures, local data, environment file, or Mastra Studio. |
-| `npm run test:smoke:packaged-worker` | PASS | Packaged auth, health, clean first run, session isolation, and shutdown passed. |
-| `npm run test:smoke:packaged-app` | PASS | Renderer, sandboxed preload, CSP, private service, structured logs, and restart backups passed. |
-| `npm run release:check:mac` | EXPECTED FAIL / BLOCKED | `SYDEKYKS_UPDATE_URL` is absent; signing and notarization credentials are also unavailable. |
-| Production dependency advisory query | NOT RUN | `npm audit` required disclosing dependency metadata to npm’s external advisory service; that permission was not granted. |
+All commands below passed against implementation commit `7c65e2f4a525f525e28da706e453092f39af7e81`.
 
-## Live functional finding and correction
+| Area                                                     | Command                              | Result                              |
+| -------------------------------------------------------- | ------------------------------------ | ----------------------------------- |
+| Type safety                                              | `npm run typecheck`                  | PASS                                |
+| Lint                                                     | `npm run lint`                       | PASS                                |
+| Dynamic Sidekicks and generic Odoo mutation              | `npm run test:sidekicks`             | PASS                                |
+| Syd Odoo metadata discovery and write gating             | `npm run test:syd-odoo-read`         | PASS                                |
+| Mission failure detail                                   | `npm run test:mission-errors`        | PASS                                |
+| Mission notifications                                    | `npm run test:mission-notifications` | PASS                                |
+| Database recovery and migration                          | `npm run test:recovery`              | PASS                                |
+| Provider policy                                          | `npm run test:ai-provider-policy`    | PASS                                |
+| Provider restoration                                     | `npm run test:ai-restore`            | PASS                                |
+| OpenAI model handling                                    | `npm run test:openai-models`         | PASS                                |
+| Logging controls                                         | `npm run test:logging`               | PASS                                |
+| UI contrast                                              | `npm run test:ui-contrast`           | PASS; lowest text 6.80:1, UI 3.50:1 |
+| Production compilation                                   | `npm run build`                      | PASS                                |
+| Built worker authentication, health, first run, shutdown | `npm run test:smoke:worker`          | PASS on loopback port 55693         |
+| Patch hygiene                                            | `git diff --check`                   | PASS                                |
 
-The first post-refactor live connection attempt failed safely during the four-contract AI validation with an incomplete structured assessment. No credentials or results were saved.
+The Sidekick integration test creates a user-defined `Renewals` Sidekick, grants access to the custom demo model `x_rental.contract`, exercises create/update/archive operations, verifies mutation audit records, and confirms that a Sidekick without the capability is rejected.
 
-Investigation found that the generic Mastra registry did not advertise temperature support for `ollama-cloud/minimax-m2.7`, causing the new policy to omit the previously used deterministic setting. The policy was corrected with an exact, documented, live-tested model override. The focused policy test, full type/lint gates, Mastra build, and entire live functional matrix then passed.
+### Build output
 
-This demonstrates the intended control behavior:
+Mastra and Electron Vite production builds completed successfully on 2026-07-25.
 
-1. capability uncertainty fails before configuration is committed;
-2. model-specific evidence is recorded centrally instead of scattered through workflows;
-3. a regression test protects the override and prevents policy bypass;
-4. the complete live matrix is rerun after correction.
+| Artifact                   |      Size | SHA-256                                                            |
+| -------------------------- | --------: | ------------------------------------------------------------------ |
+| `.mastra/output/index.mjs` |         — | `cd1cbfe3dafe25f192d8228029401a0f0a2f5b5e398ef011760be28871572446` |
+| `out/main/index.js`        | 595.88 kB | `a7b82d87e3eb7f66858426a325a3a031b327746c16ce25fddf5a4e2e5faff6a1` |
+| `out/preload/index.js`     |   4.38 kB | `732143a95ca186af8b05b07e897e147095bf7665e2e2ada29ae6188b726d1e90` |
+| `out/renderer/index.html`  |         — | `5078708c699a0a9e67fa0fa51070b6fcff899b4debf0b2deb2e7ebac549e2625` |
 
-## Security and privacy assessment
+The renderer JavaScript bundle is 1,408.00 kB and its CSS bundle is 86.72 kB.
 
-- Provider API keys remain encrypted through Electron `safeStorage`.
-- Decrypted keys remain in the trusted desktop/worker processes and are not returned to the renderer.
-- No external LLM proxy, gateway account, or additional secret store was introduced.
-- Provider selection continues to route directly through Mastra where supported.
-- Model-list logging records only the provider event and sanitized failure, not the key or response body.
-- Structured work reports continue to exclude prompts, provider reasoning, credentials, and raw provider payloads.
-- The live matrix verifies that the configured AI key does not appear in structured logs.
+## Security and control assessment
 
-## Tests not completed on this exact audit build
+- Sidekick creation stores constrained Markdown and configuration; it does not generate or execute arbitrary JavaScript.
+- Sidekicks cannot self-grant capabilities.
+- Every generic Odoo write requires an exact Sidekick model/operation capability and a native tool approval.
+- Live Odoo metadata is checked before mutation, and source-system ACLs remain authoritative.
+- Hard record deletion is not exposed.
+- Inbound email does not receive authority merely by describing an action.
+- Automation version or capability drift fails closed.
+- Odoo mutations create Mission Control audit records with the acting Sidekick and affected record references.
+- Stored connection secrets use the existing operating-system `safeStorage` path.
+- Provider selection remains centralized and was covered by the provider-policy tests.
 
-- Docker-backed GreenMail IMAP matrix.
-- Live read-only Odoo server matrix; this run used disposable demo Odoo.
-- Representative live functional matrices for OpenAI, Anthropic, and Google.
-- Signed/notarized installer creation.
-- Upgrade from a previous signed version through the production HTTPS update feed.
-- Clean-machine macOS and Windows acceptance.
-- Gatekeeper and SmartScreen acceptance.
-- Production dependency vulnerability query and SBOM/license review.
+## Known limitations
 
-## External go-live gates
+- A background automation cannot silently perform an approval-required write. It must surface the proposed write for an interactive approval.
+- Metadata-driven discovery depends on the connected Odoo user having permission to read the relevant model and field metadata.
+- Ledger is intentionally still a fixed, sealed workflow and is not represented as a general user-created Sidekick.
+- The old automation table remains in upgraded databases for rollback; active code does not read it.
+- The renderer bundle is functional but large and should be split or budgeted before scale-sensitive distribution.
 
-The release owner must close all of the following before changing the production disposition to GO:
+## External release gates not completed
 
-1. Put the accepted source under version control, record an immutable commit and signed release tag, and rebuild from a clean checkout.
-2. Supply the production HTTPS update URL and verify that it contains no embedded credentials.
-3. Supply the Apple Developer ID Application identity and notarization credentials.
-4. Produce the release with `npm run release:mac`; do not distribute the unsigned `--dir` audit artifact.
-5. Verify signature, hardened runtime, notarization ticket, Gatekeeper launch, and update installation on clean Intel and Apple Silicon Macs.
-6. Produce and verify the Windows signed installer and SmartScreen behavior before Windows release.
-7. Rerun the functional matrix against the exact signed candidate, including GreenMail and the approved live read-only Odoo environment.
-8. Run representative contract matrices for every provider advertised as launch-tested: OpenAI, Anthropic, Google, and Ollama Cloud.
-9. Perform an authorized production dependency advisory scan and generate an SBOM/license inventory.
-10. Archive this report, command outputs, signed artifact hashes, notarization result, update metadata, and clean-machine acceptance evidence together.
+These items require release infrastructure, external services, credentials, or authorization that were not available in this build session:
 
-## Auditor conclusion
+- signed and notarized macOS package;
+- production update feed and rollback exercise;
+- clean-machine installation and upgrade from the currently distributed version;
+- packaged-application smoke and package-content audit;
+- full live AI-provider functional matrix;
+- live Odoo validation against representative standard and custom modules, including ACL-denied cases;
+- GreenMail or equivalent end-to-end inbound-email trigger test;
+- dependency vulnerability audit, SBOM, and license review;
+- production telemetry, support, backup, and incident-response sign-off.
 
-The provider refactor is implemented, centralized, regression-protected, and verified through the exact final production build and live Ollama Cloud functional matrix. The application is ready for independent engineering and security audit.
+`npm audit --omit=dev --audit-level=high` was not run. The requested execution was denied because it would disclose the dependency manifest to npm's external advisory service without explicit authorization. The release owner or auditor should authorize and run this gate in the approved supply-chain environment.
 
-It is not ready for external distribution because artifact provenance, signing/notarization, update-feed configuration, clean-machine acceptance, provider coverage, GreenMail/live-Odoo reruns, and supply-chain review remain open.
+## Go-live assessment
+
+**Ready for auditor handoff and controlled local/UAT testing.**
+
+**Not yet approved for unrestricted production go-live.** Production release should remain blocked until the external gates above are evidenced and signed off. No known internal compile, lint, Sidekick authorization, generic Odoo mutation, recovery, or worker-smoke failure remains in the tested revision.
