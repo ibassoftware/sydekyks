@@ -1,7 +1,0 @@
-# Never apply line-ending conversion to binary assets (would corrupt them).
-*.pdf binary
-*.png binary
-*.jpg binary
-*.jpeg binary
-*.webp binary
-*.ico binary

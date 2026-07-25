@@ -1,54 +1,15 @@
-# Radios, Checkboxes & Toggles
+# Radios, Checkboxes, Toggle
 
-> Dependencies: `colors.md`, `radius.md`
+## Intent
+Selection controls should be clear at a glance and easy to operate on touch and keyboard.
 
-## Checkbox
-
-- Size: 16x16px
-- Radius: 0px
-- Border: 2px, border-default-medium
-- Background: neutral-secondary-medium
-- Focus ring: 3px, brand-soft
-
-### Disabled
-- Border: border-light
-- Text: fg-disabled
-
-## Radio
-
-- Size: 16x16px
-- Radius: fully rounded
-- Border: 2px, border-default-medium
-- Background: neutral-secondary-medium
-- Focus ring: 3px, brand-soft
-- Checked: border-brand, indicator: neutral-primary color
-
-### Disabled
-- Border: border-light-medium
-- Text: fg-disabled
-
-Group all radio items under the same `name` attribute.
-
-## Toggle
-
-### Track
-- Fully rounded
-- Background: neutral-quaternary
-- Focus-within ring: 3px, brand-soft
-- Checked track: brand background
-- Disabled track: neutral-tertiary background
-
-### Thumb
-- Fully rounded
-- Background: white
-- Border: border-buffer
-
-### Disabled
-- Track: neutral-tertiary background
-- Label: fg-disabled text
+## Specs
+- Minimum target: 20px control, 40px hit area.
+- Border: 1px `border.default`
+- Checked state uses accent fill + high-contrast indicator.
 
 ## Rules
+- Pair each control with explicit label text.
+- Focus-visible must be obvious on dark backgrounds.
+- Use toggles only for immediate binary settings, not form submission choices.
 
-- All selection inputs must have `id` matching label `htmlFor`
-- Focus states use the appropriate brand token for each control type
-- Disabled states: no hover/focus interaction

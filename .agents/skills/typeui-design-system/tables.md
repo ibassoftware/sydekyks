@@ -1,39 +1,19 @@
 # Tables
 
-> Dependencies: `colors.md`, `radius.md`, `shadows.md`
+## Intent
+Tables should remain readable inside dark, premium dashboards and data cards.
 
-## Wrapper
+## Specs
+- Header background: slightly elevated from rows.
+- Row height: 44px minimum.
+- Cell padding: 14px horizontal, 10px vertical.
+- Borders: hairline separators.
 
-- Horizontal scroll overflow
-- Background: neutral-primary-soft
-- Radius: 4px (base)
-- Border: 2px, border-default
-- Shadow: shadow-xs
-
-## Table Element
-
-- Full width, left-aligned text (right-aligned for RTL)
-- Font: 14px, body color
-
-## Table Head
-
-- Font: 14px, body color, medium weight
-- Background: neutral-secondary-soft
-- Bottom border: border-default
-- Cell padding: 24px horizontal, 12px vertical
-
-## Table Body
-
-- Row background: neutral-primary
-- Row bottom border: border-default (omit on last row to avoid doubling with wrapper border)
-- Row hover: neutral-secondary-soft background (optional)
-- Row header: medium weight, heading color, no-wrap
-- Cell padding: 24px horizontal, 16px vertical
+## States
+- Hover row tint for scan tracking.
+- Selected row with subtle accent rail.
 
 ## Rules
+- Right-align numeric values; keep units consistent.
+- Avoid stuffing dense tables into narrow cards on mobile; use stacked layout.
 
-- Wrapper must have horizontal scroll overflow for responsive scrolling
-- Last row: omit bottom border to avoid doubling with wrapper border
-- Row headers: always `scope="row"` for semantic structure
-- Hover on rows is optional
-- No arbitrary hex codes — use token colors only

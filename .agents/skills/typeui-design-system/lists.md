@@ -1,24 +1,18 @@
 # Lists
 
-> Dependencies: `colors.md`
+## Intent
+Lists should improve scan speed in feature-heavy sections.
 
-## Core Specs
+## Patterns
+- Feature list: icon + one-line claim
+- Metadata list: label/value pairs with muted labels
+- Step list: numbered progression with clear state markers
 
-- Item spacing: 16px vertical gap between list items
-- Text: body color
+## Spacing
+- Item gap: 10px to 14px
+- Section gap above list: at least 16px
 
-## List Icons
+## Rules
+- Keep feature bullet text short and benefit-driven.
+- Align icon baselines for tidy vertical rhythm.
 
-- Size: 20x20px
-- Prevent squishing: no shrink
-- Spacing: 6px right margin between icon and text
-- Active/featured icon: fg-brand color
-- Neutral icon: body color
-
-## Inactive / Disabled Items
-
-Strikethrough text with body color decoration on the list item.
-
-## Pattern
-
-Vertical flex list with 16px gap. Each item is a flex row with centered alignment — icon (20x20, no-shrink, 6px right margin) followed by a span of body-colored text.

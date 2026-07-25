@@ -1,33 +1,21 @@
 # Alerts
 
-> Dependencies: `colors.md`, `radius.md`
+## Intent
+Status messaging should be clear, concise, and visually integrated with bento surfaces.
 
-## Core Specs
-
-- **Padding:** 16px
-- **Radius:** 4px (base)
-- **Border:** 2px
-- **Heading:** 16px, medium weight
-- **Body:** 14px, normal weight, 1.6 line-height
+## Anatomy
+- Icon + title + message + optional action
+- Padding: 16px to 20px
+- Radius: `radius-lg`
+- Border: 1px tinted by status
 
 ## Variants
+- Info: cool blue tint
+- Success: green tint
+- Warning: amber tint
+- Danger: red tint
 
-### Brand
-- **Background:** brand-softer
-- **Border:** border-brand-subtle
-- **Text:** fg-brand-strong
+## Rules
+- Never rely on color alone; include icon and label.
+- Keep critical alerts above dense content clusters.
 
-### Success
-- **Background:** success-soft
-- **Border:** border-success-subtle
-- **Text:** fg-success-strong
-
-### Danger
-- **Background:** danger-soft
-- **Border:** border-danger-subtle
-- **Text:** fg-danger-strong
-
-### Warning
-- **Background:** warning-soft
-- **Border:** border-warning-subtle
-- **Text:** fg-warning

@@ -2,8 +2,8 @@
 
 ## Identity
 
-- **Design system name:** Sydekyks
-- **Project name:** Dithered
+- **Design system name:** Sydekyks-Bento
+- **Project name:** Bento
 - **Project logo:** No logo set. Use the TypeUI dashboard to add one.
 
 ## Logo Usage

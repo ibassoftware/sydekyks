@@ -1,6 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /hq/
-Disallow: /admin/
-
-Sitemap: https://sydekyks.com/sitemap.xml

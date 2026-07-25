@@ -1,44 +1,18 @@
 # Avatars
 
-> Dependencies: `colors.md`, `radius.md`
+## Intent
+Avatars add human proof and team identity without visual clutter.
 
-## Core Specs
+## Specs
+- Sizes: 24, 32, 40, 56, 72
+- Shape: circle by default, rounded-square only for brand marks
+- Border: 1px `border.default`
 
-- **Circular shape:** fully rounded (9999px)
-- **Rounded square shape:** 4px radius
-- **Default size:** 40x40px
-- **Image fit:** cover
+## Stacks
+- Overlap: 20-28%
+- Keep stack count visible; use `+N` overflow chip when needed.
 
-## Sizes
+## Rules
+- Always provide accessible name via alt text or aria-label.
+- Avoid decorative avatar shadows stronger than `shadow-xs`.
 
-| Size | Dimensions | Radius |
-|---|---|---|
-| Extra Small | 18x18px | 0px |
-| Small | 24x24px | 0px |
-| Base | 32x32px | 4px |
-| Large | 44x44px | 4px |
-| XL | 56x56px | 4px |
-| 2XL | 64x64px | 4px |
-
-## Bordered Avatar
-
-- 4px padding, fully rounded, 3px outline in border-default color
-- Alternative: 3px box-shadow ring in border-default color
-
-## Stacked Avatars
-
-- Displayed in a row (flex)
-- Each avatar: 40x40px, fully rounded, 3px border in border-buffer color
-- Overlap: -16px negative margin on all except first
-
-### Stacked Counter
-- Same size as avatars (40x40px), fully rounded
-- Background: dark-strong, text: white, 12px font, medium weight
-- Same overlap margin as other avatars
-
-## Avatar with Text
-
-- Flex row, 10px gap between avatar and text
-- Avatar: 40x40px, fully rounded, cover fit
-- Name: heading color, medium weight
-- Subtitle: 14px, body color

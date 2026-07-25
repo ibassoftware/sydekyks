@@ -1,0 +1,6 @@
+.agents/
+.mastra/
+data/
+dist/
+node_modules/
+out/

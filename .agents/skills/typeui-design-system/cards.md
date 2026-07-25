@@ -3,38 +3,23 @@
 > Dependencies: `colors.md`, `radius.md`, `shadows.md`, `typography.md`
 
 ## Core Specs
+- Background: exact same shade as the base canvas (`bg.panel` which is `#0a0a0a`)
+- Border: 1px `border.default` (crisp, subtle line)
+- Radius: 32px desktop, 20px mobile
+- Shadow: none by default, rely on borders for a flat, premium look
+- Padding: 28px desktop, 22px tablet, 18px mobile
 
-- **Background:** neutral-primary-soft
-- **Border:** 2px, border-default color
-- **Radius:** 4px (base)
-- **Shadow:** shadow-xs
+## Bento Tiers
+- Primary card: large headline, supporting proof, optional media.
+- Secondary card: concise claim + icon/metric.
+- Utility card: metadata, tags, mini CTA.
 
-## Card Heading
-
-- Desktop: 20px, medium weight, heading color
-- Mobile: 16px, medium weight, heading color
-- Never skip heading levels — the page hierarchy must logically arrive at the card heading level.
-
-## States
-
-### Static Card (no interactivity)
-- Background: neutral-primary-soft
-- Border: 2px, border-default
-- Radius: 4px
-- Shadow: shadow-xs
-- No hover styles. Non-interactive cards must NOT have hover background changes.
-
-### Interactive Card (clickable)
-- Same base styles as static card
-- Hover: neutral-secondary-medium background
-- Transition: colors
-- Cursor: pointer
+## Interactive State
+- Hover: lift 4px, border to `border.strong`, glow increases slightly.
+- Focus-visible: 2px accent outline with 3px offset.
+- Disabled: no lift, reduced contrast, muted text.
 
 ## Rules
+- Do not flatten all cards to identical visual weight.
+- Keep card content vertically balanced with clear top and bottom anchors.
 
-- Background: neutral-primary-soft
-- Border: 2px, border-default
-- Radius: 4px
-- Shadow: shadow-xs
-- Interactive hover: neutral-secondary-medium background
-- Non-interactive: no hover styles

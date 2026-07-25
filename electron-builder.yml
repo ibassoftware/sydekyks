@@ -1,0 +1,48 @@
+appId: com.sydekyks.desktop
+productName: Sydekyks
+directories:
+  buildResources: build
+files:
+  - out/**
+  - .mastra/output/**
+  - node_modules/@electron-toolkit/preload/**
+  - node_modules/@electron-toolkit/utils/**
+  - package.json
+  - '!.mastra/output/studio/**'
+  - '!.mastra/output/preflight-local-paths.json'
+  - '!.mastra/output/node_modules/**/*.map'
+  - '!.mastra/output/node_modules/**/*.d.ts'
+  - '!.mastra/output/node_modules/**/{test,tests,__tests__,docs,examples}/**'
+  - '!data/**'
+  - '!tests/**'
+  - '!**/*.map'
+  - '!**/{test,tests,__tests__,docs,examples}/**'
+  - '!**/.vscode/**'
+  - '!**/.agents/**'
+win:
+  executableName: sydekyks
+  icon: build/icon.ico
+nsis:
+  artifactName: ${productName}-${version}-${arch}-setup.${ext}
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  createDesktopShortcut: always
+mac:
+  category: public.app-category.business
+  icon: build/icon.png
+  entitlementsInherit: build/entitlements.mac.plist
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  notarize: false
+dmg:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+linux:
+  target:
+    - AppImage
+    - snap
+    - deb
+  maintainer: Sydekyks
+  category: Office
+appImage:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+npmRebuild: false

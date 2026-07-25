@@ -1,38 +1,15 @@
 # Pagination
 
-> Dependencies: `colors.md`, `radius.md`
+## Intent
+Pagination should feel minimal, predictable, and keyboard-friendly.
 
-## Container
-
-Font: 14px. Items displayed as flex with -1px overlap for seamless borders.
-
-## Pagination Item
-
-- Layout: flex, centered both axes
-- Size: 36x36px (or 40x40px)
-- Text: body color, medium weight
-- Background: neutral-secondary-medium
-- Border: 2px, border-default-medium
-- Hover: neutral-tertiary-medium background, heading text
-- Focus: no outline
-- Overlap: -1px left margin
-
-## Previous / Next Buttons
-
-- Horizontal padding: 12px, height: 36px
-- First item: 4px radius on inline-start side
-- Last item: 4px radius on inline-end side
-
-## Active Page Item
-
-- Text: fg-brand color
-- Background: neutral-tertiary-medium
-- Hover text: fg-brand (stays same)
+## Specs
+- Item size: 36px square minimum hit area.
+- Radius: `radius-md`
+- Active item: accent tint with stronger border.
+- Disabled controls: muted and non-interactive.
 
 ## Rules
+- Always expose previous and next controls.
+- Keep page jumps concise with ellipsis for large ranges.
 
-- Display as flex with -1px child overlap for seamless borders
-- Items: neutral-secondary-medium background, border-default-medium border, body text
-- Active: fg-brand text, neutral-tertiary-medium background
-- First item: rounded start, Last item: rounded end
-- All items need hover and focus states

@@ -1,14 +1,15 @@
-# Border Radius
+# Radius
 
-| Token | Value | Default usage |
-|---|---|---|
-| base | 4px | Buttons, cards, inputs, modals, sections |
-| default | 2px | Badges, tooltips, dropdown items, small controls |
-| sm | 0px | Checkboxes, tiny elements |
-| full | 9999px | Pills, avatars, toggles, dot indicators |
+## Tokens
+- `radius-xs`: 10px
+- `radius-sm`: 14px
+- `radius-md`: 18px
+- `radius-lg`: 24px
+- `radius-xl`: 32px
+- `radius-pill`: 9999px
 
 ## Rules
+- Bento cards default to `radius-xl` desktop and `radius-lg` mobile.
+- Inputs and small controls should use `radius-md` and never drop below `radius-sm`.
+- Keep adjacent grouped elements within one radius step difference.
 
-- 4px is the default radius across the product
-- Never use arbitrary radius values outside this scale
-- Radius must be consistent within each component family

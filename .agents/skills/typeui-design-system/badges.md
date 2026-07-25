@@ -1,87 +1,18 @@
 # Badges
 
-> Dependencies: `colors.md`, `radius.md`
+## Intent
+Badges communicate status, category, or trust signals in compact form.
 
-## Core Specs
-
-- **Border:** 2px
-- **Default radius:** 2px
-- **Pill radius:** 9999px
-
-## Sizes
-
-| Size | Font size | Horizontal padding | Vertical padding |
-|---|---|---|---|
-| Default (small) | 12px | 6px | 2px |
-| Large | 14px | 8px | 4px |
+## Specs
+- Height: 24px default, 20px small
+- Padding: 10px horizontal
+- Radius: `radius-pill`
+- Typography: label style, medium weight
 
 ## Variants
+- Neutral, Accent, Success, Warning, Danger
 
-### Brand
-- **Background:** brand-softer
-- **Border:** border-brand-subtle
-- **Text:** fg-brand-strong
+## Rules
+- Avoid badge overuse; max 2 badges per compact card header.
+- Badges must remain readable on textured or gradient panels.
 
-### Alternative (Neutral Soft)
-- **Background:** neutral-primary-soft
-- **Border:** border-default
-- **Text:** heading
-
-### Gray (Neutral Medium)
-- **Background:** neutral-secondary-medium
-- **Border:** border-default
-- **Text:** heading
-
-### Danger
-- **Background:** danger-soft
-- **Border:** border-danger-subtle
-- **Text:** fg-danger-strong
-
-### Success
-- **Background:** success-soft
-- **Border:** border-success-subtle
-- **Text:** fg-success-strong
-
-### Warning
-- **Background:** warning-soft
-- **Border:** border-warning-subtle
-- **Text:** fg-warning
-
-### Dark
-- **Background:** dark
-- **Border:** transparent
-- **Text:** white
-
-## Pill Badges
-
-Use 9999px radius instead of 2px on any variant.
-
-## Badges with Icons
-
-- Icon size (default): 12x12px
-- Icon size (large): 14x14px
-- Icon spacing: 4px margin next to label
-
-## Icon-only Badge
-
-Square shape — equalize dimensions to 24x24px, no horizontal text padding.
-
-## Dismissible Badges
-
-Badge content + a close button. Close button hover backgrounds per variant:
-
-| Variant | Close button hover background |
-|---|---|
-| Brand | brand-soft |
-| Alternative | neutral-tertiary |
-| Gray | neutral-quaternary |
-| Danger | danger-medium |
-| Success | success-medium |
-| Warning | warning-medium |
-
-## Dot / Notification Badge
-
-- Positioned absolutely: -4px top, -4px right
-- Size: 12x12px, fully rounded
-- 3px border in border-buffer color
-- Background: danger

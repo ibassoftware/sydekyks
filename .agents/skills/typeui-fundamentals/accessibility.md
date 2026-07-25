@@ -463,3 +463,4 @@ When accessibility rules conflict with other principles:
 5. **Never introduce foreign colors.** This file is agnostic to any specific design system. Agents must read the design system's color definitions first, then apply accessibility rules as constraints *on top of* that palette — never bypassing it. Every contrast fix must produce a color that belongs to the same family as the original token.
 
 ---
+

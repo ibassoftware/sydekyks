@@ -1,21 +1,22 @@
 {
   "schemaVersion": 1,
   "source": "workspace-visual-schema",
-  "name": "Sydekyks",
-  "slug": "dithered",
+  "name": "Sydekyks-Bento",
+  "slug": "bento",
   "project": {
-    "name": "Dithered",
+    "name": "Bento",
     "logoUrl": null
   },
   "importSource": {
     "type": "manual",
-    "importedAt": "2026-07-17T19:37:42.585Z",
-    "sourceName": "TypeUI design skill: Dithered"
+    "importedAt": "2026-07-19T20:48:06.747Z",
+    "sourceName": "TypeUI design skill: Bento"
   },
   "components": [
     "color",
     "typography",
     "layout",
+    "content",
     "radius",
     "shadow",
     "borders",
@@ -39,7 +40,6 @@
     "checkbox",
     "toggle",
     "tooltip",
-    "popovers",
-    "content"
+    "popovers"
   ]
 }

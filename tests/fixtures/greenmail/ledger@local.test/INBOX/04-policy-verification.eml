@@ -1,0 +1,17 @@
+Message-ID: <greenmail-policy-04@sydekyks.local>
+From: Ready Mat Billing <billing@readymat.example>
+To: ledger@local.test
+Date: Mon, 20 Jul 2026 09:03:00 +0200
+Subject: Vendor bill GREENMAIL-POLICY-20260720-02
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Vendor: Ready Mat
+Invoice Number: GREENMAIL-POLICY-20260720-02
+Invoice Date: 2026-07-20
+Currency: USD
+Description: Warehouse maintenance and repairs
+Account: Expenses
+Untaxed Amount: 200.00
+Tax Amount: 30.00
+Total Amount: 230.00

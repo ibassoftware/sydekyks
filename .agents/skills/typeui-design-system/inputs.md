@@ -1,65 +1,23 @@
 # Inputs
 
-> Dependencies: `colors.md`, `radius.md`
+## Intent
+Inputs should inherit the same premium card language while remaining highly legible.
 
-## Core Specs
-
-- **Display:** block, full width
-- **Radius:** 4px (base)
-- **Border:** 2px, border-default-medium
-- **Background:** neutral-secondary-medium
-- **Shadow:** shadow-xs
-- **Font:** 14px, heading color
-- **Padding:** 12px horizontal, 10px vertical
-- **Placeholder:** body color
-- **Transition:** all properties, 200ms
-
-## Label
-
-- Display: block
-- Font: 14px, medium weight, heading color
-- Margin bottom: 8px
-- Label `htmlFor` must match the input `id`
+## Base Field
+- Height: 48px default, 56px large.
+- Background: `bg.elevated`
+- Border: 1px `border.default`
+- Radius: `radius-md`
+- Text: `text.primary`
+- Placeholder: `text.muted`
 
 ## States
-
-### Default
-- Border: border-default-medium
-- Background: neutral-secondary-medium
-
-### Hover
-- Border: border-default-strong
-
-### Focus
-- No outline
-- Border: border-brand
-- Ring: 2px, brand color
-
-### Success
-- Border: border-success
-- Focus ring: 2px, success color
-
-### Error / Danger
-- Border: border-danger
-- Focus ring: 2px, danger color
-
-### Disabled
-- Background: disabled
-- Text: fg-disabled
-- Cursor: not-allowed
-
-## Input with Icons
-
-- Icon size: 16x16px
-- Icon color: body
-- Container: relative positioned wrapper
-- Start icon: absolutely positioned left, 12px left padding — input gets 36px left padding
-- End icon: absolutely positioned right, 12px right padding — input gets 36px right padding
-- Icons vertically centered within the wrapper
+- Hover: border toward `border.strong`
+- Focus-visible: accent ring + border emphasis
+- Error: `accent.danger` border and helper text
+- Disabled: lower contrast, no glow
 
 ## Rules
+- Labels must remain visible; placeholders are not labels.
+- Keep helper text concise and directly actionable.
 
-- Every input must have a unique `id`
-- Every label must have a matching `htmlFor`
-- Padding: 12px horizontal, 10px vertical unless overridden for icon variants
-- No arbitrary hex or hardcoded colors

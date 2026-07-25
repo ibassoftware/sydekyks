@@ -1,0 +1,18 @@
+Message-ID: <greenmail-threshold-05@sydekyks.local>
+From: Ready Mat Billing <billing@readymat.example>
+To: ledger@local.test
+Date: Mon, 20 Jul 2026 09:04:00 +0200
+Subject: Vendor bill GREENMAIL-THRESHOLD-20260720-03
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Vendor: Ready Mat
+Invoice Number: GREENMAIL-THRESHOLD-20260720-03
+Invoice Date: 2026-07-20
+Currency: USD
+Description: Warehouse equipment rental
+Account: Rent
+Tax: 15% purchase tax
+Untaxed Amount: 150.00
+Tax Amount: 22.50
+Total Amount: 172.50

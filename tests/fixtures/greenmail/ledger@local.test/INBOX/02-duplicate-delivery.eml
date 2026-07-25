@@ -1,0 +1,19 @@
+Message-ID: <greenmail-bill-redelivery-02@sydekyks.local>
+From: Ready Mat Billing <billing@readymat.example>
+To: ledger@local.test
+Date: Mon, 20 Jul 2026 09:01:00 +0200
+Subject: Re-sent vendor bill GREENMAIL-E2E-20260720-01
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="sydekyks-greenmail-duplicate"
+
+--sydekyks-greenmail-duplicate
+Content-Type: text/plain; charset=utf-8
+
+Re-sending the same attachment.
+--sydekyks-greenmail-duplicate
+Content-Type: text/plain; name="GREENMAIL-E2E-20260720-01.txt"
+Content-Disposition: attachment; filename="GREENMAIL-E2E-20260720-01.txt"
+Content-Transfer-Encoding: base64
+
+VmVuZG9yOiBSZWFkeSBNYXQKSW52b2ljZSBOdW1iZXI6IEdSRUVOTUFJTC1FMkUtMjAyNjA3MjAtMDEKSW52b2ljZSBEYXRlOiAyMDI2LTA3LTIwCkN1cnJlbmN5OiBVU0QKRGVzY3JpcHRpb246IE1vbnRobHkgd2FyZWhvdXNlIHJlbnQKQWNjb3VudDogUmVudApVbnRheGVkIEFtb3VudDogMTAwLjAwClRheCBBbW91bnQ6IDE1LjAwClRvdGFsIEFtb3VudDogMTE1LjAwCg==
+--sydekyks-greenmail-duplicate--

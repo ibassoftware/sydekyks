@@ -2,15 +2,20 @@
 
 > Dependencies: `colors.md`, `radius.md`, `shadows.md`
 
+## Primary Brand Color
+
+- **Button primary color:** `#F9A474` (defined in `colors.md` as the primary token).
+- **Brand buttons must use the primary token from `colors.md`** as the source of truth (do not hardcode a different base color).
+
 ## Core Specs (every button except ghost and disabled)
 
-- **Radius:** 4px (base) or 9999px for pills
-- **Border:** 2px solid
+- **Radius:** 32px (base) or 9999px for pills
+- **Border:** 1px solid
 - **Shadow:** shadow-xs
 - **Glint effect:** Every button except ghost and disabled gets a combined box-shadow that layers the base shadow with an inset top-edge highlight and a subtle outer color glow:
   - `var(--shadow-xs), inset var(--color-1-400) 0 6px 0px -5px, var(--color-1-700) 0 4px 10px -5px`
 - **Font weight:** 500 (medium)
-- **Font:** Space Grotesk
+- **Font:** Inter
 - **Box sizing:** border-box
 - **Transition:** color transitions on hover
 
@@ -27,12 +32,13 @@
 ## Variants
 
 ### Brand
-- **Background:** brand token
+- **Background:** modern gradient derived from the `colors.md` primary token (`#F9A474`) (`linear-gradient(135deg, #F9A474 0%, #F7B38E 55%, #FCD2B7 100%)`)
 - **Border:** transparent
-- **Text:** white
-- **Hover:** brand-strong background
-- **Focus ring:** 4px, brand-medium color
+- **Text:** `#1A120D`
+- **Hover:** deepen gradient (`linear-gradient(135deg, #F39A67 0%, #F9A474 55%, #F7B38E 100%)`) and slightly increase glow
+- **Focus ring:** 4px, `#F9A47466`
 - **Glint:** yes
+- **Style note:** keep the brand CTA looking beautiful, modern, and premium (soft gradient blend, subtle highlight, no harsh contrast edges)
 
 ### Secondary
 - **Background:** neutral-secondary-medium
@@ -102,3 +108,4 @@
 - Icon size: 16x16px
 - Spacing: 8px gap between icon and label
 - Layout: inline-flex, vertically centered
+

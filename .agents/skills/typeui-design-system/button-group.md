@@ -1,33 +1,15 @@
-# Button Groups
+# Button Group
 
-> Dependencies: `buttons.md`, `colors.md`, `radius.md`
+## Intent
+Grouped actions should feel compact and intentional within dense bento cards.
 
-## Core Specs
-
-- **Wrapper:** inline-flex, 4px radius, shadow-xs
-- **Children overlap:** -1px left margin on all except first button
-- **Buttons inside the group must NOT have individual shadows.** Only the wrapper has a shadow.
-
-## Anatomy
-
-### Wrapper
-- Display: inline-flex
-- Radius: 4px
-- Shadow: shadow-xs
-
-### First Button
-- 4px radius on inline-start side only, 0 on inline-end
-
-### Middle Button(s)
-- No radius (0 on all corners)
-
-### Last Button
-- 4px radius on inline-end side only, 0 on inline-start
-
-### All buttons except first
-- -1px left margin to overlap borders
+## Structure
+- Wrap: inline-flex for short groups, grid for mixed-size CTAs.
+- Gap: 10px desktop, 8px mobile.
+- Align primary action first in LTR interfaces.
 
 ## Rules
+- One dominant button per group.
+- Secondary and ghost actions must not visually overpower primary CTA.
+- Preserve accessible focus order and visible ring overlap handling.
 
-- Buttons inside groups follow all styles from `buttons.md` (background, border, focus rings) except individual shadows
-- Icon-only buttons: 16x16px icon, match height of text buttons

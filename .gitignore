@@ -1,15 +1,12 @@
-# Python
-.venv/
-__pycache__/
-*.pyc
-backend/.env
-
-# Node
-node_modules/
-frontend/dist/
-frontend/.vite/
-
-# Editors / OS
-.vscode/
-.idea/
+node_modules
+dist
+out
 .DS_Store
+.eslintcache
+*.log*
+.env
+.mastra
+tmp/
+data/*.db
+data/*.db-*
+src/mastra/public/data/

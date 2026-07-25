@@ -1,23 +1,15 @@
 # Borders
 
-## Width Scale
+## Intent
+Borders define layers and card boundaries without visual noise.
 
-| Context | Width |
-|---|---|
-| Default (inputs, buttons, cards) | 2px |
-| Emphasis / focus | 3px |
+## Standards
+- Default stroke: 1px `border.default`
+- Emphasis stroke: 1px `border.strong`
+- Hairline separators: 1px with 40% opacity of `border.default`
 
 ## Rules
+- Use border + glow together for premium surfaces.
+- Avoid 2px borders except explicit focus or selected states.
+- Do not use fully opaque white borders in dark mode.
 
-- Use solid borders by default
-- Dashed borders only for special cases like file dropzones
-- Components in the same family must use matching border widths
-- Never mix 2px and 3px borders within a single component
-
-## Usage
-
-| Context | Width |
-|---|---|
-| Inputs / selects / textareas | 2px default; 3px on focus or error |
-| Buttons | 2px for variants that require outlining |
-| Cards / containers | 2px subtle; avoid stacked heavy borders |
